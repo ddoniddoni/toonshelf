@@ -1,0 +1,3 @@
+-- P0 intentionally creates no seed data. This file runs only in local reset.
+-- P2 may introduce clearly labelled [테스트] fixtures for local tests.
+-- Never seed fabricated works, ratings, users or reviews into production.

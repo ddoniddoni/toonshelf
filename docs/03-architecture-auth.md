@@ -1,0 +1,249 @@
+# 03. 기술 구조와 인증
+
+## 1. 버전과 라이브러리 정책
+
+2026-10-01 확인한 Next.js 공식 설치 문서의 표시는 16.3.8이다. 구현 시작 시 공식 보안 공지와 npm 안정 버전을 다시 확인하고, 테스트한 버전을 `package-lock.json`에 고정한다. 실험판이나 canary를 기본 선택하지 않는다. Node.js는 24 LTS 계열을 기준으로 삼되 배포 환경 지원을 확인한다. 출처는 06 문서의 S01, S12다.
+
+| 영역 | 선택 |
+|---|---|
+| 앱 | Next.js App Router, React, TypeScript strict |
+| 패키지 관리 | npm, 단일 package-lock.json |
+| 스타일 | Tailwind CSS, CSS 변수, 접근성 기반 headless UI 또는 shadcn/ui |
+| DB/인증/파일 | Supabase Postgres, Auth, Storage |
+| Supabase SDK | `@supabase/supabase-js`, `@supabase/ssr` |
+| 입력 검증 | Zod, 복잡한 폼에 React Hook Form |
+| 드래그 | dnd-kit의 구현 시점 공식 React 패키지/API 확인 |
+| 상태 | 서버 데이터는 Server Components/DAL, 티어 초안은 클라이언트 reducer |
+| 테스트 | Vitest, Testing Library, Playwright, Supabase 로컬 통합/RLS 테스트 |
+| 이미지 생성 | OG는 Next.js ImageResponse, 전체 PNG는 제한된 서버 렌더 파이프라인 |
+| 배포 | Vercel 앱 + 별도 Supabase 프로젝트, 개발/스테이징/운영 분리 |
+
+dnd-kit의 과거 패키지와 현재 API를 섞지 않는다. 설치하는 UI/검증/테스트 패키지의 React 호환성을 P0에서 확인한다. 프로젝트가 작을 때 전역 상태 라이브러리, 별도 검색 서버, 벡터 DB, Redis를 자동 도입하지 않는다. 필요한 근거가 생기면 문서에 결정과 비용을 남긴다.
+
+공식 문서에서 가져온 구현 지식은 S01-S17을 참조한다. 기능 수치와 도메인 규칙은 이 프로젝트의 독자적인 설계다.
+
+## 2. 전체 구조
+
+```text
+Browser
+  ├─ 공개 페이지, 폼, 티어 편집기
+  ├─ Supabase browser client: 인증 세션과 필요한 구독
+  └─ Next.js Server Actions / Route Handlers
+       ├─ 입력 검증, 인증/권한, rate limit
+       ├─ server-only Data Access Layer
+       ├─ 사용자 세션 Supabase client → Postgres RLS / 제한된 RPC
+       └─ 제한된 privileged client → 계정 삭제, 검증된 파일 처리, 관리 작업
+
+Supabase
+  ├─ Auth: 이메일/비밀번호, Google, Kakao
+  ├─ Postgres: 공개 데이터와 개인 데이터, transaction/RLS
+  ├─ Storage: 아바타, 승인된 표지, 비공개 export
+  └─ Cron: 재시도 가능한 운영 작업 실행
+```
+
+일반 기능은 서버 비밀 키로 읽고 쓰지 않는다. 서버에서 호출한다는 사실만으로 관리자 권한을 쓰지 않는다. 복합 작업은 transaction을 제공하는 RPC로 묶고, 높은 권한의 함수는 허용된 용도로만 작성한다.
+
+Server Actions도 직접 요청할 수 있는 서버 진입점으로 취급하고 입력 검증, 인증, 리소스 소유권을 다시 검사한다. 페이지/레이아웃의 로그인 검사만으로 보호했다고 보지 않는다. [S05]
+
+## 3. 권장 디렉터리
+
+```text
+AGENTS.md
+README.md
+docs/
+src/
+  app/
+    (public)/
+    (member)/
+    (auth)/
+    admin/
+    auth/callback/route.ts
+    api/
+    layout.tsx
+    globals.css
+  components/
+    ui/
+    work/
+    library/
+    tier/
+    social/
+  features/
+    auth/
+    catalogue/
+    library/
+    reviews/
+    tiers/
+    community/
+    discovery/
+    moderation/
+  lib/
+    supabase/client.ts
+    supabase/server.ts
+    supabase/proxy.ts
+    supabase/admin.ts
+    auth/
+    dal/
+    schemas/
+    security/
+    images/
+    errors/
+  types/database.generated.ts
+  proxy.ts
+supabase/
+  migrations/
+  tests/
+  seed.sql
+  config.toml
+tests/
+  unit/
+  integration/
+  e2e/
+public/
+  placeholders/
+scripts/
+```
+
+Route Group 이름은 실제 URL에 들어가지 않는다. 그룹 간 중복 경로를 만들지 않는다. `src/app/auth` 아래에 필요한 인증 페이지를 일관되게 배치하고 callback은 전용 Route Handler로 둔다. 실제 폴더 구성은 한 번 정하고 문서를 갱신한다.
+
+`database.generated.ts`는 migration 이후 CLI로 재생성한다. SDK 응답을 any로 우회하지 않는다. 데이터 조회/변경은 feature별 DAL로 모으고 화면 컴포넌트에 권한 정책을 흩뿌리지 않는다.
+
+## 4. 환경변수 계약
+
+Codex는 아래를 바탕으로 비밀 값 없는 `.env.example`을 생성한다.
+
+```dotenv
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+
+# 서버 전용. 로컬 환경에서는 해당 환경의 service-role 값으로 매핑할 수 있다.
+SUPABASE_SECRET_KEY=
+APP_INTERNAL_JOB_SECRET=
+RATE_LIMIT_HASH_SECRET=
+SHARE_TOKEN_ENCRYPTION_KEY=
+
+# 서버에서 읽고 공개 UI에는 필요한 활성 여부만 전달한다.
+AUTH_GOOGLE_ENABLED=false
+AUTH_KAKAO_ENABLED=false
+FEATURE_ADULT_CATALOGUE=false
+DEMO_MODE=false
+```
+
+Supabase 공개 키는 접근 권한의 대체물이 아니다. 실제 보호는 DB 정책과 권한 검사에서 한다. 비밀 키는 `NEXT_PUBLIC_` 접두사를 붙이지 않으며 브라우저에서 import할 수 없는 모듈에 격리한다. 새 publishable/secret 키와 기존 anon/service-role 키 체계는 프로젝트 환경에 맞춰 확인한다. [S11]
+
+OAuth Client Secret, SMTP 자격증명은 Supabase/공급자 관리 화면에 설정한다. Supabase CLI access token과 DB 비밀번호는 개발/CI 비밀로 관리하며 앱의 공개 환경변수로 만들지 않는다. 환경변수가 없으면 구체적인 설정 오류를 보여주고 가짜 인증으로 대체하지 않는다.
+
+## 5. Supabase SSR 인증
+
+브라우저용 client, 요청별 서버 client, token refresh용 Proxy, 관리자용 client를 분리한다. 서버 client를 사용자 간 전역 singleton으로 공유하지 않는다.
+
+현재 공식 Next.js SSR 가이드에 맞춰 `@supabase/ssr`와 `proxy.ts`를 사용한다. Proxy가 갱신한 request/response 쿠키와 캐시 헤더를 최종 응답에 유지한다. `getClaims()`로 서명 검증된 신원을 사용하고, 현재 Auth 사용자 정보가 필요한 중요한 작업에는 `getUser()`를 사용한다. `getSession()`에 포함된 user만 신뢰하지 않는다. [S02]
+
+Proxy는 세션 갱신과 UX 차원의 경로 분기만 담당한다. 권한의 최종 판단은 DAL/RPC/RLS에서 수행한다. 계정 정지와 삭제 상태는 JWT가 아니라 서버 관리 테이블을 기준으로 재확인한다.
+
+Supabase SSR 쿠키 설정을 임의로 전부 HttpOnly로 바꾸어 브라우저 SDK 세션 처리를 깨뜨리지 않는다. provider 권장 cookie adapter를 따르고 TLS, SameSite, 안전한 토큰 취급을 적용한다. 별도의 재인증 ticket 쿠키는 HttpOnly/Secure/SameSite=Lax로 관리한다.
+
+## 6. 인증 흐름 상세
+
+### 6.1 이메일 가입
+
+폼: 이메일, 비밀번호, 확인 비밀번호, 필수 서비스/개인정보 동의, 서비스의 14세 이상 이용 조건 확인. 나이 체크는 제품 가입 조건이며 법적 연령 검증을 충족한다는 뜻이 아니다. 생년월일은 기본 수집하지 않는다.
+
+제품 비밀번호 기준은 12-128자이며 공백을 허용한다. 비밀번호를 자동 trim하지 않는다. 서버와 Supabase 비밀번호 정책을 일치시키고, 문자 조합 강제보다 충분한 길이와 유출 비밀번호 방어 설정을 우선 검토한다. 비밀번호를 DB에 직접 저장하지 않는다.
+
+`signUp` 성공 후 이메일 인증 안내로 이동한다. 인증 전을 로그인 완료/온보딩 완료로 간주하지 않는다. Auth 사용자 생성 trigger는 최소 profile/user_settings/user_access만 생성하며 외부 API를 호출하지 않는다. trigger 실패로 가입이 막히는 경우를 테스트한다. [S03, S09]
+
+가입 동의는 `complete_onboarding`에서 서버 검증 후 버전별로 기록한다. OAuth를 통하여 Auth 계정만 만들어진 사용자는 앱 동의를 완료하기 전 앱 쓰기를 허용하지 않는다.
+
+### 6.2 이메일 확인
+
+프로젝트의 이메일 템플릿은 공식 SSR 확인 흐름에 맞춰 앱의 확인 경로로 연결한다. 토큰 종류는 email/recovery/email_change 등 실제 활성화한 목적만 allowlist로 검증하고 임의 문자열을 SDK에 넘기지 않는다.
+
+메일 보안 스캐너가 GET 링크를 미리 열 수 있음을 고려하여 `/auth/confirm`은 먼저 확인 화면을 보여주고, 사용자의 확인 POST/Server Action에서 토큰을 소비하는 흐름을 우선 구현한다. 성공하면 토큰 없는 URL로 이동한다. 만료/사용 완료 시 재발송 경로를 제공한다.
+
+token_hash, OAuth code, recovery token을 접근 로그나 분석 도구에 남기지 않는다. 확인 페이지에는 제3자 리소스/분석 스크립트를 넣지 않고 no-store/no-referrer를 적용한다. 토큰을 React 오류 메시지에 출력하지 않는다.
+
+### 6.3 이메일 로그인
+
+`signInWithPassword`로 검증하고 현재 사용자/접근 상태를 확인한다. 입력 실패 메시지는 `이메일 또는 비밀번호를 확인해 주세요`로 통일한다. 필요할 때는 인증 메일 재발송 안내를 별도로 제공한다.
+
+로그인 성공 후 검증된 내부 returnTo로 이동한다. `//evil.example`, 역슬래시, 인코딩된 우회, 외부 origin, `javascript:`를 거절한다. 기본 목적지는 `/me/library`다. 인증 경로로 다시 돌아가는 순환 리다이렉트를 차단한다.
+
+### 6.4 Google/Kakao OAuth
+
+Supabase의 Google과 Kakao provider를 사용한다. 공급자 콘솔에서 Supabase callback URL을 등록하고, Supabase에는 로컬/스테이징/운영의 앱 callback allowlist를 등록한다. provider 설정과 앱 redirect 설정은 서로 다른 설정이다. [S06, S07]
+
+PKCE 코드 교환은 `/auth/callback`에서 처리한다. returnTo와 재인증 목적은 공급자가 돌려준 임의 query 값을 신뢰하지 않고 서버가 발급한 상태와 대조한다. code가 없거나 교환에 실패하면 오류 안내로 이동한다.
+
+이메일이 없거나 확인되지 않은 공급자 응답이면 기본 앱 권한을 주지 않고 연락 이메일 확인 절차로 보낸다. `getUser()`가 확인한 이메일 상태를 사용하며 공급자 사용자 메타데이터의 임의 필드를 인증 증거로 보지 않는다.
+
+동일 이메일 계정 처리는 Supabase의 검증된 identity 동작을 따른다. 이메일 문자열이 같다는 이유만으로 자체 SQL에서 계정을 병합하지 않는다. 계정 연결을 지원하지 않는 상황은 기존 로그인 방법 안내로 처리한다. 로그인 취소, 다른 브라우저, 기존 계정, 공급자 장애, 누락된 email scope를 검수한다.
+
+### 6.5 온보딩
+
+username은 소문자 영문/숫자/밑줄 3-20자다. 대소문자를 구분하지 않는 고유 제약으로 동시 등록 경쟁을 해결한다. admin, auth, api, support 등 예약어를 막는다. 닉네임은 2-30자, 소개는 최대 160자다.
+
+관심 장르, 기본 서재 공개와 평가 공개를 선택한다. 기본값은 둘 다 private다. 프로필/동의/설정/접근 상태를 한 transaction으로 완료하고 다음 요청부터 정식 회원 권한을 부여한다.
+
+### 6.6 비밀번호 복구
+
+찾기 요청은 계정 존재 여부와 무관하게 같은 안내를 제공한다. Supabase의 복구 이메일을 사용한다. 검증된 recovery 토큰 소비 후에만 재설정 화면의 실제 제출을 허용한다. 단순히 URL에 `recovery=true`가 있거나 일반 로그인 상태라는 이유로 복구 권한을 부여하지 않는다. [S03]
+
+복구 확인 시 서버가 일회용 `reauth_ticket`을 발급하고 목적 password_reset, 사용자, 현재 session_id, 짧은 만료와 연결한다. 제출 시 ticket과 현재 인증 사용자를 검증하고 소비한 뒤 Supabase의 현재 비밀번호 변경 정책을 따른다. 필요 nonce/secure password change 설정은 공식 SDK 버전에 맞게 구현한다.
+
+### 6.7 프로필/이메일/비밀번호 변경
+
+일반 프로필 편집은 소유권 검증으로 처리한다. 이메일 변경과 계정 삭제에는 최근 재인증을 요구한다. secure email change 설정을 사용하고 새 주소의 확인 전까지 변경 완료라고 표시하지 않는다. 이메일 변경 요청 여부를 공개 profile에 넣지 않는다.
+
+이메일 비밀번호 사용자는 현재 비밀번호로 재검증하고, 소셜 사용자는 공급자 재인증 또는 현재 확인된 이메일의 OTP를 사용한다. 검증된 동일 사용자임을 확인한 서버만 ticket을 발급한다. JWT `iat`는 token refresh로 갱신될 수 있으므로 최근 비밀번호 입력 증거로 사용하지 않는다.
+
+### 6.8 로그아웃과 탈퇴
+
+로그아웃은 POST/Server Action으로 수행하며 쿠키, 사용자별 캐시, 로컬 편집 임시 저장을 정리한다. 전역 로그아웃은 refresh 세션 철회와 기존 access token의 만료를 구분해서 설명한다. 기존 토큰이 즉시 모두 무효화된다고 주장하지 않는다. [S10]
+
+탈퇴는 04 문서의 다단계 삭제 작업을 사용한다. 활성 토큰이 남아도 user_access의 deleting 상태로 DB 접근과 공개 콘텐츠 노출을 차단한다. Storage 소유 파일 처리를 포함하며 인증 계정만 먼저 삭제하고 끝내지 않는다. [S09]
+
+## 7. 서버 데이터와 캐시
+
+공개 작품 메타데이터는 짧게 캐시할 수 있다. 초기 구현에서는 공개 UGC, 공개/비공개 전환되는 사용자 데이터, 알림, 비교, 인증/설정 응답에 persistent cache를 적용하지 않고 no-store로 시작한다.
+
+사용자 응답을 전역 키로 캐시하지 않는다. 쿠키나 Set-Cookie가 포함된 인증 응답을 CDN 공개 캐시로 보내지 않는다. 로그아웃/다른 계정 로그인 후 이전 사용자 데이터가 남는지를 테스트한다. [S02]
+
+후속 최적화는 public-only projection과 명시적 cache tag 무효화가 갖춰진 경우에만 허용한다. 삭제, 정지, 비공개, 권리 철회는 모든 관련 목록/상세/OG/내보내기에서 확인해야 한다. 검색봇의 외부 캐시는 완전 회수를 보장할 수 없다.
+
+## 8. 검색과 페이지네이션
+
+Postgres `pg_trgm`과 정규화 검색 문자열로 시작한다. 작품 제목, 별칭, 작가 이름을 공백/영문 대소문자 정규화한 검색 대상에 넣고, parameterized query/RPC로 검색한다. trigram 인덱스는 LIKE/ILIKE와 유사도 검색에 활용할 수 있으나 한/두 글자 검색은 별도 성능 검수가 필요하다. [S13]
+
+페이지 크기 기본 24, 최대 50. 피드/댓글/알림은 `(created_at,id)` cursor를 사용한다. 순위와 인기 정렬에는 `(score,id)`와 계산 기준 시각을 포함해 중복/누락을 줄인다. 임의 전체 테이블 다운로드 후 브라우저에서 검색하지 않는다.
+
+## 9. 업로드와 이미지 렌더
+
+아바타는 JPEG/PNG/WebP만 받으며 최대 2MB, 디코딩 후 픽셀 수 상한을 적용한다. 원본 EXIF 제거와 안전한 재인코딩을 거쳐 UUID 파일명으로 저장한다. SVG, HTML, GIF, 외부 이미지 URL 업로드는 받지 않는다. 확장자와 MIME만 믿지 않는다.
+
+표지는 관리자만 권리 근거와 함께 올린다. 원격 URL을 서버가 임의로 가져오는 기능을 만들지 않아 SSRF를 줄인다. 이미지 최적화 remotePatterns는 검증된 Storage 경로만 허용하고 전체 인터넷 wildcard를 사용하지 않는다.
+
+OG는 공개 게시본을 바탕으로 생성하고 원본 표지를 직접 긁지 않는다. 전체 PNG는 서버가 검증한 작품/허가 자산만 렌더한다. 페이지당 최대 60작품, 최대 높이 8000px, 동시 생성과 요청 횟수를 제한한다. 큰 표는 여러 PNG를 ZIP으로 묶는다. 생성 직전에도 게시 접근 권한과 자산 export 허가를 확인한다.
+
+서버에서 사용 가능한 한글 폰트를 준비하고 라이선스 및 배포 허용을 기록한다. 사용자 입력은 escape된 텍스트로만 렌더하고 SVG 마크업/URL/CSS를 직접 주입하지 않는다.
+
+## 10. 운영 작업
+
+`private.operation_jobs`를 작업 원장으로 사용하고 Supabase Cron이 보호된 `/api/internal/jobs` POST 경로를 호출하는 방식을 기준으로 구현한다. 내부 secret은 Vault 또는 배포 비밀로 저장하고 일반 사용자 요청과 분리한다. Supabase Cron은 SQL 및 HTTP 작업을 실행할 수 있다. [S14]
+
+작업은 계정 삭제, 대량 데이터 export, 만료 자산 정리, 고아 파일 청소를 처리한다. 작업 claim은 잠금과 lease를 사용하고 idempotency key, 재시도 횟수, next_run_at, 실패 상태를 둔다. 서버리스 요청을 끝낸 뒤 실행될지 모르는 fire-and-forget 작업으로 만들지 않는다.
+
+추천은 초기에는 제한된 실시간 SQL로 계산한다. 사용자 쌍 전체를 전수 계산하는 일괄 작업이나 머신러닝 파이프라인은 기본 구축하지 않는다.
+
+
+## P0 구현 메모 · 2026-10-02
+
+- 실제 사용 버전은 package.json/package-lock.json 및 README 실행 안내를 기준으로 한다. Node 24.21.0 검수, Next 16.3.8, React 19.3.0, TypeScript 6.0.3, Tailwind 4.3.3.
+- 홈은 src/app/page.tsx에 두고 아직 route group을 만들지 않았다. P0에 필요한 공통 컴포넌트와 SDK 모듈만 생성했다.
+- APP_ENV=local/staging/production을 추가했다. 원격 환경은 HTTPS site/Supabase 주소가 필요하다. .env.local은 로컬 전용이며 staging/production 예제는 배포 변수 작성용이다.
+- getServerEnv는 server-only로 격리한다. 공개 키 자리에 sb_secret/service_role 키를 넣으면 오류를 발생시키고 값은 메시지에 포함하지 않는다.
+- SDK 클라이언트·SSR Proxy를 준비했다. Proxy에서 getClaims를 사용하고 연속 setAll의 쿠키와 cache-control/expires/pragma를 보존한다. 미설정일 때 P0 공개 화면만 실행되며 클라이언트 생성은 실패한다.
+- 실제 Auth·권한·private 데이터 경로는 아직 없다. P1에서 DB 생성 타입을 클라이언트 generic에 연결하고 DAL/RLS/동의/접근 상태 검사와 no-store 정책을 추가해야 한다. 원래 admin.ts는 P0에 사용처가 없어 생성하지 않았다.
+- Supabase CLI 2.119.0으로 init/migration new를 실행했다. CLI가 생성한 현재 local_smtp 설정 이름을 사용한다. 테스트 메일함 55324, 이메일 확인/secure password change 활성, 비밀번호 최소 12자, 재발송 60초로 준비했다. P1의 앱 확인 페이지와 메일 템플릿은 아직 미구현이다.
+- 2026-10-01 Supabase changelog를 확인했다. 자동 API 권한 변경을 반영해 public만 노출하고 auto_expose_new_tables=false를 설정한다. 9월 Postgres minor 변경은 기존 ltree/pgcrypto 데이터가 없는 신규 P0에는 마이그레이션 영향이 없다. 원격 서버 반영/버전 확인은 아직 수행하지 않았다.
+- dev/build는 이 실행 환경의 Turbopack CSS worker 포트 오류 때문에 공식 Webpack 모드를 사용한다.
