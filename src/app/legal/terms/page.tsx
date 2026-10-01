@@ -1,0 +1,2 @@
+export const metadata = {title:"이용약관 · 개발 미리 보기"};
+export default function Page() { return <article className="page-container legal-page"><p className="eyebrow">개발 미리 보기 · 2026-10-02-preview</p><h1>이용약관 준비 안내</h1><p>현재 ToonShelf는 개발 중이며, 가입은 개발 환경과 허용된 내부 검수에만 사용해요. 만 14세 이상 이용 조건을 적용해요.</p><p>운영 주체, 문의 경로, 이용계약, 콘텐츠 운영 및 탈퇴·보존 정책은 공개 출시 전에 확정해야 해요. 이 안내는 확정된 운영 약관을 대신하지 않아요.</p><p>아직 완성되지 않은 기록·공유 기능에 대한 저장이나 이용을 보장하지 않아요. 공개 출시용 신규 가입은 기본적으로 비활성화되어 있어요.</p></article>; }

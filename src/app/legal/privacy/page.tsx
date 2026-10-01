@@ -1,0 +1,2 @@
+export const metadata = {title:"개인정보 처리 안내 · 개발 미리 보기"};
+export default function Page() { return <article className="page-container legal-page"><p className="eyebrow">개발 미리 보기 · 2026-10-02-preview</p><h1>개인정보 처리 안내 준비</h1><p>내부 검수 계정은 인증용 이메일, 공개 사용자 이름·닉네임·소개, 공개 프로필 사진, 개인 설정과 필수 동의 기록을 저장해요. 비밀번호는 Supabase 인증 서비스가 처리하며 공개 프로필에는 이메일을 표시하지 않아요.</p><p>운영 주체와 문의 경로, 처리 목적·항목, 보존 기간, 위탁·국외 처리, 권리 행사와 탈퇴 절차는 공개 출시 전에 실제 운영 환경에 맞춰 확정해야 해요. 이 안내는 확정된 운영 개인정보 처리방침을 대신하지 않아요.</p></article>; }

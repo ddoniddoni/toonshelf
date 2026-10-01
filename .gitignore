@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.env*
+!.env.example
+!.env.staging.example
+!.env.production.example
+.DS_Store
+supabase/.temp/
+supabase/.branches/
+*.log

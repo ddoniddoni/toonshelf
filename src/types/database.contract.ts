@@ -1,0 +1,69 @@
+// Hand-authored P1/P2 migration contract. This is NOT a generated/live DB type.
+// Replace the SDK generic with database.generated.ts after local db:types.
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Visibility = "public" | "private";
+export type Profile = {
+  id: string; username: string | null; display_name: string; bio: string;
+  avatar_path: string | null; discovery_opt_in: boolean;
+  onboarding_completed_at: string | null; created_at: string; updated_at: string;
+};
+export type UserSettings = {
+  user_id: string; default_library_visibility: Visibility; default_evaluation_visibility: Visibility;
+  theme: "system" | "light" | "dark"; timezone: string;
+  notification_preferences: Json; preferred_genre_ids: string[]; updated_at: string;
+};
+export type Genre = { id: string; slug: string; name: string; sort_order: number; active: boolean };
+export type WorkRow = {
+  id:string;slug:string;title:string;aliases:string[];original_description:string;
+  serial_status:"ongoing"|"completed"|"hiatus"|"unknown";age_rating:"all"|"12"|"15"|"19"|"unknown";
+  catalogue_status:"draft"|"published"|"hidden"|"merged";cover_asset_id:string|null;merged_into_id:string|null;
+  is_test:boolean;search_text:string;version:number;created_at:string;updated_at:string;
+};
+export type PlatformRow = {id:string;code:string;name:string;approved_hosts:string[];active:boolean};
+export type CreatorRow = {id:string;name:string;aliases:string[]};
+export type SubmissionRow = {id:string;user_id:string;kind:"new_work"|"correction"|"broken_link";work_id:string|null;proposal:string;source_url:string;
+  status:"pending"|"accepted"|"rejected";result_note:string;result_work_id:string|null;reviewed_at:string|null;created_at:string};
+type Table<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] };
+type SettingsArgs = { p_library: Visibility; p_evaluation: Visibility; p_theme: string; p_timezone: string; p_notifications: Json; p_genres: string[] };
+export type DatabaseContract = {
+  public: {
+    Tables: {
+      profiles:Table<Profile>;user_settings:Table<UserSettings>;genres:Table<Genre>;
+      works:Table<WorkRow>;platforms:Table<PlatformRow>;creators:Table<CreatorRow>;
+      work_genres:Table<{work_id:string;genre_id:string}>;
+      work_creators:Table<{work_id:string;creator_id:string;role:string;sort_order:number}>;
+      work_platforms:Table<{id:string;work_id:string;platform_id:string;official_url:string;external_id:string|null;weekdays:number[];
+        serial_status:WorkRow["serial_status"];age_rating:WorkRow["age_rating"];verified_at:string;active:boolean}>;
+      catalogue_submissions:Table<SubmissionRow>;
+    };
+    Views: Record<string, never>;
+    Functions: {
+      get_my_access: { Args: Record<string, never>; Returns: Json };
+      reserve_account_request: { Args: {p_action:string}; Returns: undefined };
+      complete_onboarding: { Args: { p_username: string; p_display_name: string; p_bio: string; p_library: Visibility; p_evaluation: Visibility; p_genres: string[]; p_policy_version: string; p_terms: boolean; p_privacy: boolean; p_age_14: boolean }; Returns: undefined };
+      save_profile: { Args: { p_display_name: string; p_bio: string; p_discovery_opt_in: boolean }; Returns: undefined };
+      save_settings: { Args: SettingsArgs; Returns: undefined };
+      issue_reauth_ticket: { Args: { p_user_id: string; p_session_id: string; p_token_hash: string; p_purpose: string }; Returns: undefined };
+      consume_reauth_ticket: { Args: { p_token_hash: string; p_purpose: string }; Returns: boolean };
+      set_user_avatar: { Args: { p_user_id: string; p_session_id: string; p_path: string | null }; Returns: undefined };
+      get_my_catalogue_role:{Args:Record<string,never>;Returns:boolean};
+      search_catalogue:{Args:{p_q:string;p_platforms:string[];p_genres:string[];p_status:string|null;p_days:number[];p_age:string|null;p_sort:string;p_after:Json|null;p_limit:number};Returns:Json};
+      get_catalogue_detail:{Args:{p_slug:string};Returns:Json};
+      admin_upsert_work:{Args:{p_id:string|null;p_expected_version:number|null;p_payload:Json;p_reason:string};Returns:string};
+      admin_catalogue_snapshot:{Args:{p_id:string};Returns:Json};
+      admin_find_duplicates:{Args:{p_title:string;p_urls:string[]};Returns:Json};
+      submit_catalogue_suggestion:{Args:{p_kind:string;p_work_id:string|null;p_proposal:string;p_source_url:string};Returns:string};
+      admin_review_submission:{Args:{p_id:string;p_status:string;p_note:string;p_work_id:string|null};Returns:undefined};
+      admin_merge_preview:{Args:{p_source:string;p_target:string};Returns:Json};
+      admin_merge_works:{Args:{p_source:string;p_target:string;p_source_version:number;p_target_version:number;p_reason:string;p_confirm:boolean};Returns:undefined};
+      admin_begin_cover:{Args:{p_work_id:string;p_license:Json;p_reason:string};Returns:Json};
+      admin_activate_cover:{Args:{p_id:string;p_reason:string};Returns:undefined};
+      admin_revoke_cover:{Args:{p_id:string;p_reason:string};Returns:undefined};
+      get_cover_access:{Args:{p_asset:string;p_purpose:string};Returns:Json};
+      admin_catalogue_audit:{Args:Record<string,never>;Returns:Json};
+    };
+    Enums: {visibility:Visibility;access_status:"pending"|"active"|"suspended"|"deleting";user_role:"user"|"moderator"|"admin";
+      serial_status:WorkRow["serial_status"];age_rating:WorkRow["age_rating"];catalogue_status:WorkRow["catalogue_status"]};
+    CompositeTypes: Record<string, never>;
+  };
+};
