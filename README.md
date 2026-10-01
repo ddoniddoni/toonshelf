@@ -1,6 +1,6 @@
 # ToonShelf 개발 문서
 
-**문서 버전:** 1.1 / **갱신일:** 2026-10-02 / **상태:** P0 코드 구성, 로컬 DB 검증 대기
+**문서 버전:** 1.3 / **갱신일:** 2026-10-02 / **상태:** P1·P2 코드 작성, 실제 DB·인증·카탈로그 검증 대기
 
 ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 이름이 아니다.
 
@@ -10,9 +10,9 @@ ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 
 
 **기술:** Next.js App Router + React + TypeScript + npm + Supabase Auth/Postgres/Storage. 기본 배포 대상은 Vercel이다. 이는 설계 선택이며 특정 유료 요금제나 무상 운영을 보장하지 않는다.
 
-원본 다운로드 자료는 문서만 포함했다. 이 프로젝트에는 사용자가 선택한 **P0 기반 코드**를 추가했다. API 키나 외부 서비스 계정은 포함하지 않는다. P1~P7 기능은 아직 구현하지 않았다.
+원본 다운로드 자료는 문서만 포함했다. 이 프로젝트에는 **P0 기반과 P1 인증·계정, P2 카탈로그 코드**를 추가했다. API 키나 외부 서비스 계정은 포함하지 않는다. P1·P2의 실제 DB·인증·권한 동작은 미검증이며 P3~P7은 미착수다. 사용자가 실제 서비스 연결을 후속 공동 작업으로 미뤘으므로 이번에는 연결 작업을 진행하지 않았다.
 
-## 지금 실행하기 (P0)
+## 지금 실행하기
 
 ```bash
 cd /Users/ddoni/dev/toonshelf
@@ -21,7 +21,7 @@ npm ci
 npm run dev
 ```
 
-기본 주소는 `http://localhost:3000`이다. 공개 미리 보기는 환경변수 없이 실행된다. 회원가입, 로그인, 검색, 저장 기능은 P1 이후 구현 대상이며 준비 중 화면으로 표시한다. 데이터 조회를 흉내 내거나 합성 작품/평점을 보여주지 않는다. 테마 선택만 기기에 보관한다.
+기본 주소는 `http://localhost:3000`이다. 공개 미리 보기는 환경변수 없이 실행된다. 인증·프로필·설정·카탈로그 조회/관리 코드는 실제 Supabase와 migration을 연결한 뒤 사용할 수 있으며, 미설정 상태에는 연결 준비 안내를 표시한다. 서재 기록·평가·공유는 아직 준비 중이다. 데이터 조회나 로그인을 흉내 내거나 합성 작품/평점을 공개하지 않는다. 테마 선택만 기기에 보관한다.
 
 - Next.js 16.3.8, React 19.3.0, TypeScript 6.0.3, Tailwind 4.3.3, Supabase JS 2.117.2 / SSR 0.12.7 / CLI 2.119.0을 lockfile에 고정했다.
 - Node.js 24.21.0에서 검증한다. 기존 시스템 Node.js 26도 package engines에 허용하지만 이번 검수 기준은 24 LTS다.
@@ -43,11 +43,31 @@ npm run test:db
 npm run db:types
 ```
 
-포트: API 55321, Postgres 55322, Studio 55323, 로컬 메일함 55324. 프로젝트 ID는 `toonshelf`이다. API에는 `public`만 노출하며 자동 테이블 권한을 끈다. migration은 도메인 enum 및 private 스키마 권한 기반만 만들고, P1 사용자 테이블·RLS·Auth trigger는 아직 만들지 않았다. seed는 의도적으로 비어 있다.
+포트: API 55321, Postgres 55322, Studio 55323, 로컬 메일함 55324. 프로젝트 ID는 `toonshelf`이다. API에는 `public`만 노출하며 자동 테이블 권한을 끈다. P0 migration은 enum/private 스키마를, P1 migration은 사용자·권한·동의·설정·재인증과 아바타를, P2 migration은 카탈로그·검색·관리·제보·표지 권리와 private 표지 bucket을 구성한다. migration의 초기 분류는 실제 장르 12개와 플랫폼 7개이며 실제 작품·사용자·평가를 만들지 않는다. 로컬 seed는 `[테스트] 작품` 60개와 합성 작가 15개만 작성했다. 모두 draft/is_test 상태이며 공개 조회에서 제외된다. 가짜 공식 링크·이미지·이용자·평가는 넣지 않는다. seed는 아직 실행하지 않았다.
 
 DB 명령은 `APP_ENV=local`만 허용한다. 원격 URL, linked 프로젝트, 추가 인자(`--linked`, `--db-url` 등)가 감지되면 실행 전에 실패한다. 타입 생성 실패 시 기존 파일은 보존한다. `database.generated.ts`는 실제 로컬 DB에서 생성하기 전까지 만들지 않는다.
 
-스테이징/운영에는 `.env.staging.example` / `.env.production.example`을 참고해 각각 별도 Supabase 프로젝트와 HTTPS 주소를 설정한다. 예제 파일은 자동 로드하지 않는다. 배포 플랫폼에서 환경변수를 설정하고 `npm run env:check`로 검증한다. 비밀 값은 커밋하거나 채팅으로 전달하지 않는다. P0에는 privileged/admin client가 없으며, 뒤 단계용 서버 비밀 변수는 예제의 빈 자리만 제공한다.
+스테이징/운영에는 `.env.staging.example` / `.env.production.example`을 참고해 각각 별도 Supabase 프로젝트와 HTTPS 주소를 설정한다. 예제 파일은 자동 로드하지 않는다. 배포 플랫폼에서 환경변수를 설정하고 `npm run env:check`로 검증한다. 비밀 값은 커밋하거나 채팅으로 전달하지 않는다. P1의 `SUPABASE_SECRET_KEY`는 검증된 재인증 증명 발급과 아바타 재인코딩·Storage 처리에만 사용한다. 일반 데이터는 사용자 세션으로 처리한다.
+
+## P1 연결 준비
+
+- 위 로컬 DB 작업과 migration 적용은 Docker가 준비된 뒤 진행한다. 테스트 명령은 사용자가 실행을 요청했을 때만 실행한다. `db:reset`은 로컬 데이터를 삭제·재생성하므로 기존 데이터가 있다면 먼저 확인한다.
+- `NEXT_PUBLIC_SITE_URL`, Supabase Auth의 Site URL, Redirect URL의 호스트·포트를 맞춘다. OAuth callback은 `/auth/callback?flow=*`도 허용한다. 앱의 인증·복구 경로는 `/auth/confirm`이며 메일의 GET만으로 토큰을 소비하지 않는다.
+- 로컬 메일 템플릿은 `supabase/templates/`에서 읽는다. 원격에서는 해당 내용을 Supabase Auth Email Templates의 Confirm signup / Reset password / Change email address / Magic link에 각각 등록한다. Magic link 템플릿은 계정 재확인용 OTP를 표시한다. 이메일 확인·Secure email change·Secure password change, 최소 비밀번호 12자·OTP 6자리·재발송 60초 설정을 유지한다.
+- Google/Kakao 공급자 콘솔에는 Supabase의 `/auth/v1/callback`을, Supabase Redirect allowlist에는 앱 callback을 등록한다. Google은 openid/email/profile, Kakao는 확인 가능한 이메일 동의 설정을 준비한다. 공급자가 준비된 뒤 서버의 `AUTH_GOOGLE_ENABLED`/`AUTH_KAKAO_ENABLED`를 설정한다. 로컬 OAuth에는 별도 `auth.external.google`/`auth.external.kakao` 설정도 필요하다.
+- 원격 신규 가입은 앱의 `AUTH_REGISTRATION_ENABLED=false`로 기본 차단한다. Supabase 자체의 Allow new user signups도 별도로 관리해야 한다. 현재 법적 안내는 내부 검수용 `2026-10-02-preview`이며 공개 운영 정책으로 확정한 문서가 아니다. 원격 내부 검수나 공개 가입을 열기 전에 실제 정책·Auth 설정을 확정한다.
+- Docker가 없어 DB 생성 타입을 만들지 못했다. SDK는 명시적으로 손으로 작성한 `database.contract.ts`를 사용한다. `db:types`가 성공한 뒤 실제 생성 타입과 비교하고 SDK generic을 교체해야 한다. 생성됐다고 표시한 가짜 타입 파일은 없다.
+
+현재 코드 경로는 `/auth/sign-up`, `/auth/check-email`, `/auth/confirm`, `/auth/sign-in`, `/auth/forgot-password`, `/auth/reset-password`, `/onboarding`, `/settings/profile`, `/settings/account`, `/settings/privacy`, `/settings/notifications`, `/u/[username]`이다. 탈퇴·내보내기는 P7 동작을 구현하기 전까지 비활성 안내만 제공한다.
+
+## P2 카탈로그 작성 상태
+
+- `/explore`에 제목·별칭·작가명 검색, 자동완성, 플랫폼·장르·연재 상태·요일·비성인 연령 필터, 최근 등록/제목 정렬, 조건에 묶인 cursor 페이지네이션을 작성했다. 평점순과 실제 평가·리뷰는 P3 데이터가 필요해 비활성 안내로 둔다. `/works/[slug]`는 공개 정보·직접 작성한 소개·역할별 작가·공식 링크·canonical을 제공한다.
+- `/admin`, `/admin/works`, `/admin/works/new`, `/admin/works/[id]/edit`, `/admin/works/merge`, `/admin/submissions`, `/admin/assets`, `/admin/audit`를 작성했다. 관리자 여부는 확인된 세션과 private.user_access의 active/admin 상태로 판단한다. 최초 관리자 지정은 실제 계정을 온보딩한 뒤 별도 운영자 DB 작업으로 진행해야 하며 이번에는 지정하지 않았다.
+- `/submissions/new`, `/submissions`에서 회원이 작품 추가/수정/사라진 링크를 제보하고 본인 검수 결과를 확인한다. 제보 반영은 자동 작품 등록이 아니다. 실제 알림 채널 통합은 P5에서 이어간다.
+- 작품 저장은 관계·출처·감사 로그를 transaction으로 처리하고 version 충돌을 감지한다. 공식 URL과 플랫폼 식별자의 중복을 차단하며 주소 이름은 등록 후 고정한다. 병합에는 미리보기·확인·현재 버전·사유가 필요하다. P3 이후 개인 기록 테이블이 생기면 해당 도메인의 보존 처리를 추가하기 전까지 병합을 거절한다.
+- 표지는 텍스트 커버가 기본이다. 관리자가 권리 근거와 파일을 올리면 정지 이미지 검증/재인코딩 뒤 private Storage에 저장한다. `/api/covers/[assetId]`는 현재 작품 공개·허가·기간을 확인해 표시하며 no-store를 사용한다. OG와 export는 별도 목적 검사 helper를 사용해야 한다. 상업적 사용 여부는 기록되며 수익화 시 운영 정책과 추가 사용 범위 판단이 필요하다. 원격 이미지를 다운로드하거나 플랫폼을 크롤링하지 않는다.
+- 입력/서버 경계/DB 권한 테스트 파일은 작성했고 기존 탐색 E2E 기대값은 새 연결 준비 화면에 맞춰 수정했다. **이번 P2에서는 테스트·lint·typecheck·build·React Doctor·advisors·env 검사·브라우저 검수를 하나도 실행하지 않았다.** 실제 DB 적용·검색·Storage·등록·병합은 미검증이다.
 
 ## 검증 명령
 
@@ -61,7 +81,7 @@ npm run test:db     # 실제 Docker/Supabase 필요. check에 포함되지 않�
 
 `check`에는 DB, E2E, 접근성 검사가 **포함되지 않는다**. 자동 접근성 통과는 전체 수동 접근성 검수나 P7 완료를 뜻하지 않는다. SSR cookie adapter 테스트는 mock 기반이며 실제 로그인 검증이 아니다. 전체 진행과 검수 기록은 [06 문서](docs/06-delivery-operations.md)에 기록한다.
 
-테스트는 사용자가 명시적으로 실행을 요청할 때만 실행한다. `npm run check`도 테스트를 포함하므로 자동 실행하지 않는다. lint/typecheck와 build는 별도로 실행할 수 있다. 자세한 실행 규칙은 [AGENTS.md](AGENTS.md)를 따른다.
+테스트와 자동 검사는 사용자가 명시적으로 실행을 요청할 때만 실행한다. lint/typecheck/build/React Doctor/advisors/브라우저 검수도 자동 실행하지 않는다. 위 명령은 실행 방법을 기록한 것이며 실행 허가가 아니다. 자세한 실행 규칙은 [AGENTS.md](AGENTS.md)를 따른다.
 
 원본 문서는 보존했으며 다음의 전체 기능 명세는 이후 작업의 설계 자료다. 아래 예시 프롬프트 자체가 추가 실행이나 Git 작업에 대한 허가를 뜻하지 않는다. P0 기반 구축 당시에는 Git을 초기화하거나 커밋하지 않았다.
 
@@ -114,8 +134,8 @@ Google과 카카오 로그인은 공식 흐름에 맞게 구현해.
 
 ```text
 AGENTS.md와 docs/06-delivery-operations.md의 실제 진행 상태를 읽어.
-미완료된 가장 앞 단계를 이어서 구현하고 해당 단계의 완료 기준까지 검증해.
-직전 단계의 회귀 테스트도 실행해.
+미완료된 가장 앞 단계를 이어서 구현하고 작성 상태와 미검증 항목을 정리해.
+검사·테스트·브라우저 검수는 사용자가 별도로 요청할 때만 실행해.
 문서에만 있고 구현되지 않은 기능, 목업, TODO를 완료로 취급하지 마.
 이번에 끝나지 않은 항목은 구체적으로 남겨.
 ```

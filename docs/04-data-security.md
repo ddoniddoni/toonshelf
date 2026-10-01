@@ -2,7 +2,29 @@
 
 이 문서는 **구현해야 할 스키마 계약**이다. 실행 가능한 migration이 이미 제공되었다는 뜻이 아니다. Codex는 이 계약을 SQL migration, 권한, trigger, 테스트로 구체화해야 한다.
 
+## P1 작성 상태 · 2026-10-02
+
+`20261001162407_accounts_auth.sql`에 profiles/user_settings/genres, private.user_access/consent_records/reauth_tickets/rate_limit_buckets, Auth 생성 trigger와 기존 Auth 사용자에 대한 pending 기반 행 생성을 작성했다. 모든 앱 테이블에 RLS와 명시적 grant를 적용하며 일반 사용자 DML은 제거하고 허용 RPC만 사용한다. featured_tier_list_id와 차단 관계는 P4/P5 의존 기능이므로 해당 단계에서 추가한다.
+
+현재 역할과 정지/삭제 상태는 private.user_access에서 판단한다. 앱 쓰기는 auth.sessions의 실제 session_id, 확인된 Auth 이메일, active 상태, 최신 동의를 확인한다. 온보딩 RPC만 pending→active와 버전별 필수 동의를 원자적으로 저장한다. 사용자 이름은 온보딩 후 바꿀 수 없다. 프로필 공개 조회는 활성·동의·온보딩 상태를 재확인한다.
+
+재인증 발급과 아바타 경로 지정 RPC는 service_role만 실행할 수 있으며 브라우저 세션은 증명을 발급하지 못한다. 사용자용 ticket 소비는 본인/세션/목적/만료/미소비 조건으로 한 번만 성공하도록 작성했다. 아바타 bucket은 공개 WebP 전용이며 일반 사용자 Storage mutation은 restrictive policy로 차단한다. 경로는 bucket `avatars` 안의 `{uid}/{uuid}.webp`이고 profile에는 이 상대 경로만 저장한다.
+
+이는 작성한 migration 계약이며 실제 DB 적용·RLS/Storage 권한·ticket 경쟁 소비·advisors는 미검증이다. 현재 정책 버전은 내부 검수용 `2026-10-02-preview`다. 버전 변경 시 SQL과 서버 검증·온보딩 UI·법적 안내를 함께 바꾸고 실제 운영 정책으로 재동의해야 한다.
+
 ## 1. 공통 규칙
+
+### P2 작성 상태 · 2026-10-02
+
+`20261001174303_catalogue.sql`에 platforms/creators/works/work_creators/work_genres/work_platforms/catalogue_submissions, private.catalogue_sources/asset_licenses/admin_audit_logs를 추가했다. genres는 P1 테이블을 재사용한다. 작품에 optimistic version, 정규화 검색 문자열, 로컬 test 표시를 둔다. 공개 helper는 published·비성인·미병합·실제 작품과 유효한 확인된 비성인 공식 링크를 요구하며 작품/관계/검색/상세/표지에 적용한다. private 출처·허가 근거·이력은 일반 회원에게 노출하지 않는다.
+
+일반 DML은 관리자 세션에도 허용하지 않고 검증된 RPC로만 변경한다. 작가 이름만으로 동일 인물로 합치지 않는다. URL/플랫폼 식별자에 unique를 두고 주소 이름은 고정한다. 링크 제외는 inactive로 처리해 ID를 보존한다. 공식 URL은 HTTPS/허용 host/안전한 query key를 검사한다. fragment와 utm_source/medium/campaign/term/content, gclid/fbclid만 제거하고 다른 query 값은 임의로 삭제하지 않는다.
+
+제보는 현재 계정 UID에서 pending으로 생성하며 own/admin SELECT만 허용한다. 검수 결과는 원자적으로 기록하고 반영 시 실제 공개 가능한 작품을 확인한다. 병합은 작품 UUID 순서 lock과 전용 advisory lock, 미리보기 버전, 사유/확인을 사용한다. 기존 비성인 등급 중 더 제한적인 등급을 유지하고 source 표지는 철회한다. P3+ 도메인 테이블이 존재하면 보존 handler를 추가하기 전까지 병합을 거절한다.
+
+licensed-covers는 private WebP bucket이다. anon/authenticated의 직접 읽기와 mutation은 restrictive policy로 차단하고 서버만 업로드/표시 proxy를 수행한다. staged 라이선스는 실제 Storage 객체 확인 후 활성화한다. 허가 만료·철회·작품 숨김은 새 목적별 접근을 거절한다. source/권리 기록은 관리 snapshot에서 최근 50건씩 제공한다. 모든 앱 테이블 RLS/함수 grant를 migration에 작성했으나 실제 적용·경쟁 저장·RLS/Storage/advisor 검사는 미실행이다.
+
+로컬 seed의 합성 60개 작품은 draft/is_test 상태라 공개 helper와 공개 RPC에서 제외된다. 가짜 이용자/평점/리뷰/공식 링크는 만들지 않는다. seed 자체도 실행하지 않았다.
 
 ID는 UUID, 시간은 timestamptz/UTC를 사용한다. 생성/수정 시각은 DB에서 관리한다. 사용자 소유 데이터의 owner/user ID는 요청 body를 신뢰하지 않고 `auth.uid()`로 확정한다. 사용자 ID와 부모 ID는 생성 후 일반 수정으로 바꿀 수 없다. 다만 관리자 작품 병합처럼 명시적으로 검증한 transaction은 승인된 예외이며 일반 사용자 UPDATE로 실행할 수 없다.
 

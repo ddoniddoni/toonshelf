@@ -9,8 +9,9 @@ test("home navigation shows honest unavailable state and no horizontal overflow"
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole("link", { name: "서재 둘러보기" }).click();
   await expect(page).toHaveURL(/\/explore$/);
-  await expect(page.getByText("현재 미리 보기 버전으로, 회원가입과 기록 저장은 아직 제공하지 않습니다.")).toBeVisible();
-  await expect(page.getByRole("textbox")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "작품 카탈로그를 준비하고 있어요" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "작품 제목·별칭·작가 검색" })).toBeDisabled();
+  await expect(page.locator(".work-card")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

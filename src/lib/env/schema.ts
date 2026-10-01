@@ -44,6 +44,7 @@ const serverSchema = z.object({
   APP_ENV: z.enum(["local", "staging", "production"]).default("local"),
   AUTH_GOOGLE_ENABLED: flag,
   AUTH_KAKAO_ENABLED: flag,
+  AUTH_REGISTRATION_ENABLED: flag,
   FEATURE_ADULT_CATALOGUE: z.literal("false").default("false"),
   DEMO_MODE: flag,
 });

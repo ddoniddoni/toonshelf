@@ -56,6 +56,23 @@ client가 전달한 `userId`, `isAdmin`, `likesCount`, `publishedAt`를 그대�
 
 ### 카탈로그
 
+P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며 실행 검증 결과가 아니다.
+
+| 서버 함수 | 사용자 세션 DB RPC | 현재 동작 |
+|---|---|---|
+| searchWorks | search_catalogue | 공개 DTO·필터·keyset; 최근/제목 정렬 |
+| getWorkDetail | get_catalogue_detail | 현재 공개 가능한 상세; merged slug는 공개 target만 반환 |
+| submitSuggestion | submit_catalogue_suggestion | current UID/pending/요청 제한 |
+| upsertWork | admin_upsert_work | 역할·source·expectedVersion·관계 저장·감사 log transaction |
+| 관리 중복 확인 | admin_find_duplicates | 정확한 제목/별칭/정규화 URL 후보, 최대 25개 |
+| getMergePreview / mergeWorks | admin_merge_preview / admin_merge_works | metadata 미리보기·version/확인/사유·원자적 관계 병합 |
+| uploadCover / revokeCover | admin_begin_cover / admin_activate_cover / admin_revoke_cover | staged→파일 확인→active / 권리 철회 |
+| reviewSuggestion | admin_review_submission | pending에서만 결과 변경; 반영한 공개 작품 확인 |
+
+작품 입력은 제목 200자, 별칭 20개·각 200자, 직접 쓴 소개 2000자, 작가/공식 링크 각각 최대 20개, 장르 최대 12개, 전체 관리 payload 최대 256KiB(DB)를 기준으로 작성했다. 글자 수는 Unicode code point로 확인한다. source는 제목·연령·공식 링크 확인을 필수로 요구한다. 단순 같은 제목의 자동 병합이나 외부 플랫폼 소개/표지 수집을 제공하지 않는다.
+
+평점순·평가/리뷰 DTO는 P3에서 실제 데이터와 연결한다. P2 제보 결과는 `/submissions`에서 확인하며 P5에서 알림을 연결한다. P3+ 개인 도메인 table이 추가되면 아래 13절의 전체 보존 규칙을 해당 단계에서 구현하기 전까지 P2 병합 RPC가 명시적으로 거절한다.
+
 | 기능 | 입력/출력 | 규칙 |
 |---|---|---|
 | searchWorks | filters/cursor → WorkCardDTO page | 공개 작품만, 사용자 전체 기록을 포함하지 않음 |

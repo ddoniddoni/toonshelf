@@ -213,6 +213,18 @@ username은 소문자 영문/숫자/밑줄 3-20자다. 대소문자를 구분하
 
 ## 8. 검색과 페이지네이션
 
+### P2 작성 계약 · 2026-10-02
+
+`20261001174303_catalogue.sql`과 `src/lib/catalogue/`를 작성했다. `search_catalogue`는 공개 조건을 명시적으로 확인하는 제한된 DTO RPC다. 정규화된 제목/별칭/역할별 작가·필명에 pg_trgm 인덱스를 두고 LIKE의 %/_를 escape한다. 플랫폼/요일은 같은 유효 링크에 적용한다. 제목순 또는 (created_at,id) 최근 등록순 keyset이며 cursor는 필터 fingerprint와 위치를 담는다. fingerprint는 무결성 서명이 아니라 조건 변경 감지용이다. 조작한 cursor도 공개 조건을 완화하지 못한다.
+
+페이지 크기는 24, 최대 50이며 자동완성 HTTP 경로는 8개를 반환한다. 입력·배열·페이지 크기를 서버/DB에서 제한하고 search RPC에 statement timeout을 지정했다. 라이브 세션에는 DB 사용자별 120회/분 제한을 작성했다. 비회원 IP 기준 외부 edge 제한은 아직 구현·설정하지 않았으며 P7 운영 검수에서 필요하다. 단문 검색 성능/실제 쿼리 계획은 미검증이다.
+
+관리자 페이지와 action은 사용자 SDK와 역할 확인 RPC를 사용하고 DB 함수도 실제 세션·확인된 이메일·active 상태·현재 동의·private 역할을 재검사한다. 사용자 메타데이터나 UI 상태로 역할을 부여하지 않는다. 초기 관리자 지정은 사용자와 DB 연결 후 별도 운영 절차로 진행한다.
+
+표지 파일은 직접 업로드한 허가 이미지에 한정한다. MIME/이미지 디코딩/16MP·2MB/정지 프레임 검사 후 900×1350 안에 WebP로 재인코딩하여 private bucket에 저장한다. Storage 업로드/다운로드만 서버 전용 privileged SDK를 사용하고 권리 등록·활성화·철회는 사용자 세션 RPC로 처리한다. 실제 Storage metadata 및 정책 동작은 미검증이다. 표시 proxy는 Storage I/O 전후 현재 허가와 작품 공개를 검사하고 no-store를 사용한다. OG/export renderer는 각 목적의 별도 helper를 호출해야 하며 상업적 이용은 공개 운영 정책과 함께 판단해야 한다.
+
+Next 설치 버전의 page/searchParams/Route Handler/metadata 안내와 Supabase의 [RLS 공식 문서](https://supabase.com/docs/guides/database/postgres/row-level-security), [Storage 접근 제어](https://supabase.com/docs/guides/storage/security/access-control), PostgreSQL [pattern matching](https://www.postgresql.org/docs/current/functions-matching.html)을 참고했다. 패키지 추가/업데이트나 실행 검사는 이번 작업에서 하지 않았다.
+
 Postgres `pg_trgm`과 정규화 검색 문자열로 시작한다. 작품 제목, 별칭, 작가 이름을 공백/영문 대소문자 정규화한 검색 대상에 넣고, parameterized query/RPC로 검색한다. trigram 인덱스는 LIKE/ILIKE와 유사도 검색에 활용할 수 있으나 한/두 글자 검색은 별도 성능 검수가 필요하다. [S13]
 
 페이지 크기 기본 24, 최대 50. 피드/댓글/알림은 `(created_at,id)` cursor를 사용한다. 순위와 인기 정렬에는 `(score,id)`와 계산 기준 시각을 포함해 중복/누락을 줄인다. 임의 전체 테이블 다운로드 후 브라우저에서 검색하지 않는다.
@@ -238,6 +250,8 @@ OG는 공개 게시본을 바탕으로 생성하고 원본 표지를 직접 긁�
 
 ## P0 구현 메모 · 2026-10-02
 
+아래 P0 기록은 당시 상태다. 이후 P1 구현 내용은 다음 절을 따른다.
+
 - 실제 사용 버전은 package.json/package-lock.json 및 README 실행 안내를 기준으로 한다. Node 24.21.0 검수, Next 16.3.8, React 19.3.0, TypeScript 6.0.3, Tailwind 4.3.3.
 - 홈은 src/app/page.tsx에 두고 아직 route group을 만들지 않았다. P0에 필요한 공통 컴포넌트와 SDK 모듈만 생성했다.
 - APP_ENV=local/staging/production을 추가했다. 원격 환경은 HTTPS site/Supabase 주소가 필요하다. .env.local은 로컬 전용이며 staging/production 예제는 배포 변수 작성용이다.
@@ -247,3 +261,15 @@ OG는 공개 게시본을 바탕으로 생성하고 원본 표지를 직접 긁�
 - Supabase CLI 2.119.0으로 init/migration new를 실행했다. CLI가 생성한 현재 local_smtp 설정 이름을 사용한다. 테스트 메일함 55324, 이메일 확인/secure password change 활성, 비밀번호 최소 12자, 재발송 60초로 준비했다. P1의 앱 확인 페이지와 메일 템플릿은 아직 미구현이다.
 - 2026-10-01 Supabase changelog를 확인했다. 자동 API 권한 변경을 반영해 public만 노출하고 auto_expose_new_tables=false를 설정한다. 9월 Postgres minor 변경은 기존 ltree/pgcrypto 데이터가 없는 신규 P0에는 마이그레이션 영향이 없다. 원격 서버 반영/버전 확인은 아직 수행하지 않았다.
 - dev/build는 이 실행 환경의 Turbopack CSS worker 포트 오류 때문에 공식 Webpack 모드를 사용한다.
+
+## P1 구현 메모 · 2026-10-02
+
+- `src/lib/auth/`에 Zod 검증, 사용자 세션 DAL, 인증/설정 Server Actions, 재인증·아바타 처리를 추가했다. 이메일 및 OAuth 로그인은 공통 `signIn` 서버 진입점을 사용한다. 액션에서 권한을 재확인하고 실제 Auth 사용자는 `getUser()`, session_id는 검증된 `getClaims()`로 확인한다.
+- P1 SDK generic은 실제 migration 계약을 손으로 작성한 `database.contract.ts`다. DB 타입 생성/비교는 Docker 대기이며 `.generated.ts`로 위장하지 않는다. 실제 생성 후 SDK generic 교체가 필요하다.
+- `admin.ts`는 server-only이며 증명 발급 및 검증된 아바타 처리만 사용한다. 32바이트 난수 ticket의 SHA-256 hash를 DB에 저장하고 원문은 HttpOnly/Secure(HTTPS)/SameSite=Lax 쿠키에만 둔다. 만료 10분, 목적/사용자/현재 session_id 바인딩, DB 원자적 1회 소비를 사용한다.
+- recovery proof는 확인 POST에서 실제 recovery 토큰 검증 후에만 발급한다. 계정 변경 proof는 별도 Auth 클라이언트에서 비밀번호 또는 OTP를 검증하고 동일 사용자 ID를 대조한 뒤 발급한다. 일반 로그인, URL의 recovery 플래그, JWT iat로 proof를 발급하지 않는다. Supabase secure password change의 nonce 요청/입력도 제공한다.
+- OAuth는 PKCE와 임의 nonce를 HttpOnly flow 쿠키에 묶고 callback query의 flow와 비교한다. cookie에 보관한 returnTo도 다시 검증하며 callback query에서 재인증 목적을 받지 않는다. 확인된 이메일이 없는 계정에는 온보딩/앱 쓰기를 허용하지 않는다. 이메일 자체가 누락된 pending 계정만 최초 연락 이메일을 등록할 수 있다.
+- Auth 메일 템플릿 4개를 로컬 config에 연결했다. confirm GET은 소비하지 않으며 토큰 allowlist/POST 확인 후 토큰 없는 URL로 이동한다. 개발 요청 로그에서 `/auth`를 제외하고 Server Function 인자 로그/브라우저 로그 전달을 끈다. 배포 CDN/프록시/접근 로그에서도 query와 요청 body의 토큰·비밀번호 제거 설정이 필요하다.
+- 요청별 SDK fetch와 인증/설정 응답은 no-store다. 기본 테마는 계정 DB 설정에서 읽고 기기 테마 UI에 반영한다. 테마 외 인증/프로필 저장을 localStorage로 흉내 내지 않는다.
+- APP_ENV/실제 로컬 DB 호스트를 확인해 로컬 가입을 허용한다. 원격은 AUTH_REGISTRATION_ENABLED를 명시해야 앱 가입/OAuth 진입이 열린다. Supabase 자체 signup/provider 활성화와 확정 운영 정책은 별도 설정이며 앱 플래그만으로 Auth API가 차단된다고 주장하지 않는다.
+- Sharp 0.35.5를 직접 의존성으로 고정했다. 아바타 입력은 2MB/16M pixels/JPEG·PNG·WebP, 단일 프레임만 허용한다. 디코딩한 형식과 MIME을 대조하고 회전·최대 512px·WebP 재인코딩으로 메타데이터를 제거한다. Server Action body limit은 multipart 여유를 포함해 3MB다.

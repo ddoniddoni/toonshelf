@@ -45,20 +45,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 사용자 지정 Git 규칙 (2026-10-02)
 
-Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 현재 작업 범위는 사용자가 선택한 P0이며 P1~P7은 후속 작업이다.
+Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 현재 작업 범위는 P2 카탈로그 개발이다. P1의 실제 Supabase·메일·OAuth 연결은 사용자와 후속 작업으로 진행하며 P3~P7은 후속 개발이다.
 
 - 저장소 초기화, 브랜치 생성, commit, push, tag, release, merge, rebase, PR 생성은 사용자가 **그 정확한 동작을 명시적으로 요청한 경우에만** 수행한다. 구현 요청은 Git 작업 허가가 아니다.
 - develop은 일상 통합, main은 안정 배포 브랜치다. 명시적으로 허가된 일상 브랜치 작업은 최신 develop에서 feature/*, fix/*, docs/*, refactor/*, test/*, chore/* 중 의도가 드러나는 이름을 사용한다.
 - 한 브랜치와 PR에는 한 가지 변경만 담는다. 일반 PR은 develop 대상, 안정 릴리스는 develop→main 전용 PR로 진행한다.
 - develop/main 직접 커밋, force push, 공유 이력 재작성, 파괴적 Git 명령은 각각 명시적 허가 없이는 금지한다.
 - Conventional Commit 형식 type(scope): subject를 사용한다. 허용 type은 feat, fix, docs, refactor, test, chore, build, ci, perf, revert다.
-- push/PR 전 관련 lint/typecheck와 DB·의존성·빌드 설정의 추가 검증을 수행하되, 테스트 실행은 아래 사용자 지정 규칙을 따른다.
+- push/PR 전 검사도 아래 사용자 지정 실행 규칙을 따른다. 검사 허가 없이 검사를 실행하거나 통과했다고 보고하지 않는다.
 - status/diff 조회는 허용한다. git add .는 금지하며 요청된 commit 관련 파일만 stage한다. 비밀 키·로컬 env·생성된 테스트 결과·무관한 변경을 포함하지 않는다.
 - 기존 dirty tree를 보존하고 브랜치 전환을 위해 변경을 버리지 않는다.
 
 ## 사용자 지정 테스트 실행 규칙 (2026-10-02)
 
-- 테스트는 사용자가 명시적으로 실행을 요청한 경우에만 실행한다. 구현, 커밋, push, PR 요청 자체는 테스트 실행 허가가 아니다.
+- 테스트와 자동 검사는 사용자가 명시적으로 실행을 요청한 경우에만 실행한다. 구현, 커밋, push, PR 요청 자체는 검사 실행 허가가 아니다.
 - 단위·통합·E2E·접근성·DB·회귀 테스트와 테스트를 포함하는 `npm run check` 등 복합 명령을 자동 실행하지 않는다.
 - 기존 문서나 skill의 자동 테스트 지침보다 이 사용자 결정을 우선한다. 테스트를 실행하지 않은 경우 결과 보고에 미실행을 명시하며 통과했다고 쓰지 않는다.
-- lint/typecheck는 테스트 실행과 구분하며 기존 검증 규칙을 따른다.
+- lint, typecheck, build, React Doctor, advisor, env 검사와 브라우저 수동·자동 검수도 자동 실행하지 않는다. 필요한 소스·문서 읽기와 코드 작성은 계속하되 실행 검증은 별도 요청을 기다린다. 테스트 파일 작성 자체는 허용한다.
