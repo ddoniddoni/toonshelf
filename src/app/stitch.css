@@ -206,6 +206,11 @@ html { scroll-padding-top: 76px; }
 .catalogue-submission-note .button { font-size: 11px; min-height: 28px; }
 
 /* Library / screens/732b6eff8a804c33ab2d2b6d52884fab */
+.public-library-page { padding-block: 24px 32px; }
+.public-library-page > .hub-section-heading { margin-top: 12px; }
+.public-library-page h1 { font-size: 26px; line-height: 34px; }
+.public-library-filters .library-filter-toolbar + .library-filter-toolbar { margin-top: 8px; }
+.public-library-filters > .field-hint { margin-top: 8px; font-size: 11px; }
 .library-page { padding-block: 12px 32px; }
 .library-layout { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 20px; align-items: start; }
 .library-main { min-width: 0; }

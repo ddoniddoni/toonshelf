@@ -11,7 +11,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P0 | 조건부: 코드 구성, DB 검증 대기 | 아래 16절. 로컬 Docker 엔진 필요 |
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
-| P3 | 진행: 서재·평가·리뷰와 기본 신고/차단/조치 코드 작성, 실행 미검증·잔여 범위 있음 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
+| P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터 코드 작성, 실행 미검증·잔여 범위 있음 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 실제 기능 미착수: 편집기 디자인 미리 보기만 작성 | 아래 16절. 작품 추가·배치·저장·게시·공유 미구현 |
 | P5 | 미착수 | 없음 |
 | P6 | 미착수 | 없음 |
@@ -407,6 +407,24 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **실행한 검사·실제 사용자 흐름:** 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 앱 검수는 **모두 미실행**이며 실제로 확인한 사용자 흐름은 **없음**이다. 수행한 작업은 Stitch 연결 조회, 참조 HTML/이미지와 설치 문서·앱 소스 읽기, 코드/문서 작성, 공식 폰트/라이선스 다운로드다. 컴파일·저장·테마·모바일·접근성·시안과 실제 렌더링 일치를 확인했다고 주장하지 않는다. Git은 status/diff 읽기만 수행했고 브랜치 생성·stage·commit·push·merge·PR는 수행하지 않았다. 기존 `next-env.d.ts` 변경은 보존했다.
 
 **대기·다음 단계:** 배너 일러스트 표시 승인은 별도로 받고, 실행 검수는 사용자 요청 범위에서만 진행한다. Supabase/Auth 공동 연동·migration 적용·생성 타입 대조는 이전 결정대로 대기한다. P3의 개인 기록 보존 병합·공개 서재 필터·평점순 탐색과 P4 실제 편집/저장/게시/공유는 남아 있다. 다음 Git 반영 요청에는 작업 브랜치 commit/push → develop merge/push 순서를 적용한다.
+
+### 2026-10-03 · P3 공개 서재 검색·필터 (작성·실행 미검증)
+
+**상태:** 진행/외부설정대기. 다음 기능 개발 요청에 따라 P3 잔여 범위 중 공개 서재 필터를 작성했다. 관련 요구사항은 LIB-04, SOC-01, LIB-07의 기존 공개 작품 가져오기 경로다. 실제 동작/권한 검수가 없으므로 추적표는 완료로 바꾸지 않았다.
+
+**변경 기능·파일:**
+
+- `/u/[username]/library`와 `PublicLibraryFilterForm`: 공개 작품 제목/별칭/작가 검색, 상태·플랫폼·장르·정확한 반점 별점·기본 티어 조건, 제목/공개 별점/공개 티어 정렬, 조건 초기화·빈 결과·잘못된 조건 안내·조건을 유지하는 24개 페이지 이동을 작성했다. GET 적용은 첫 페이지로 돌아간다.
+- 공개 프로필과 `PublicLibraryItems`: 새 검색 경로를 연결하고 기존 공개 카드와 내 서재 저장 action을 재사용한다. 타인 평가/기록 복사나 private owner DTO는 추가하지 않았다.
+- `library/model.ts`·`data.ts`·수동 `database.contract.ts`: public 필터 스키마/URL/응답 타입과 별도 RPC 계약을 추가했다. 기존 get_public_library 호출과 UUID순 프로필 페이지 계약은 유지한다. query scalar 중복·개인 태그/메모/회차 필터·개인 생성/수정일 정렬·소유자 위조·허용하지 않은 필드는 거절한다.
+- Supabase CLI `migration new public_library_search`로 생성한 `20261002162554_public_library_search.sql`에 새 `search_public_library`를 작성했다. 파일 생성만 수행했고 DB 적용은 하지 않았다. 공개 상태를 투영하고 공개 평가만 join한 뒤 필터·총수·정렬을 계산하며 소유자도 이 public 경계를 사용한다. 차단/계정/작품 공개 조건은 기존 helper를 재사용한다. 개인 details/활동 시각은 읽지 않고 공개 컬럼으로만 정렬하며 `EXISTS`로 분류 조건을 적용해 작품을 중복 집계하지 않는다. 기존 owner/관계 PK와 인덱스를 재사용하며 성능은 미검증이다.
+- `stitch.css`: 기존 작은 검색 도구 모음·카드·폰트·간격으로 새 화면을 구성했다. 기존 5개 시안 배치와 준비 상태를 유지한다.
+
+**작성한 테스트:** unit에 private query/정렬 거절, scalar 중복·평가·Unicode 경계, 조건을 보존하는 URL 인코딩을 추가했다. `supabase/tests/05_public_library_search.test.sql`에는 rollback 전용 anon/A/B 합성 fixture로 독립 공개 상태/평가·private 값에 따른 결과 수/순서 비노출·본인 public 투영·LIKE 문자·복합 분류·페이지 중복/상한·차단/정지/숨김 작품 사례를 작성했다. 테스트 파일만 작성했고 실행하지 않았다.
+
+**실행한 작업·검사 결과:** 소스/설계/설치된 Next Promise page 안내와 공식 [Supabase functions](https://supabase.com/docs/guides/database/functions)·[RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)·[changelog](https://supabase.com/changelog)를 읽고 파일을 작성했다. CLI help는 최초 sandbox 밖 telemetry 파일 접근으로 실패한 뒤 승인된 재실행에서 안내를 읽었고 빈 migration 파일 생성은 성공했다. 이 명령들은 DB 적용/검사가 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 검수는 **모두 미실행**이며 실제로 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/운영자 지정은 수행하지 않았다. Git은 status/diff 조회만 허용 범위에서 수행하고 branch 생성·stage·commit·push·merge·PR는 하지 않았다.
+
+**외부 대기·다음 단계:** 공동 Supabase/Auth 연결과 새 migration 적용·실제 DB 타입 대조 후 사용자 요청 범위에서 공개 프로필→검색/필터→페이지 이동→내 서재 저장과 A/B·차단·독립 공개 조건을 검수해야 한다. P3 개인 기록을 보존하는 작품 병합과 평점순 카탈로그, 이후 P4 실제 티어 편집/저장/게시/공유는 남아 있다. 시안 배너 일러스트 승인은 별도 대기다.
 
 ## 17. 요구사항 추적표
 

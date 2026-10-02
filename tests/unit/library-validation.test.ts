@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe,expect,it } from "vitest";
-import { recordPayloadSchema,parseLibraryFilters,selectionSchema,parsePage } from "@/lib/library/model";
+import { recordPayloadSchema,parseLibraryFilters,selectionSchema,parsePage,parsePublicLibraryFilters,publicLibraryFiltersSchema,publicLibraryUrl } from "@/lib/library/model";
 const payload = {status:"reading",libraryVisibility:"private",evaluationVisibility:"public",ratingSteps:9,canonicalTier:"A",episode:0,startedOn:"2026-10-01",finishedOn:null,note:"",tags:[],preferredLink:null};
 describe("reading input boundaries",()=>{
  it("allows independent visibility and half-star steps",()=>{
@@ -32,5 +32,28 @@ describe("reading input boundaries",()=>{
   const selection = {id:"10000000-0000-4000-8000-000000000001",version:1};
   expect(selectionSchema.safeParse([selection,selection]).success).toBe(false);
   expect(selectionSchema.safeParse([{id:selection.id}]).success).toBe(false);
+ });
+});
+describe("public library search boundaries",()=>{
+ it("rejects private fields and private activity sorting",()=>{
+  for (const key of ["tag","note","episode","startedOn","finishedOn","preferredLink","userId"]) {
+   expect(()=>parsePublicLibraryFilters({[key]:"private-value"})).toThrow();
+  }
+  for (const sort of ["updated","added"]) expect(()=>parsePublicLibraryFilters({sort})).toThrow();
+  expect(publicLibraryFiltersSchema.safeParse({...parsePublicLibraryFilters({}),tag:"private-tag"}).success).toBe(false);
+ });
+ it("rejects repeated scalars, invalid ratings and oversized Unicode searches",()=>{
+  expect(()=>parsePublicLibraryFilters({status:["reading","completed"]})).toThrow();
+  for (const rating of ["0","11","2.5","1e1","01"]) expect(()=>parsePublicLibraryFilters({rating})).toThrow();
+  expect(()=>parsePublicLibraryFilters({q:"😀".repeat(101)})).toThrow();
+  expect(parsePublicLibraryFilters({q:"😀".repeat(100),rating:"10",tier:"S"}).rating).toBe(10);
+ });
+ it("preserves all public filters through pagination and encodes literal search text",()=>{
+  const filters = parsePublicLibraryFilters({q:"  하늘 & 100%_  ",status:"completed",platform:"naver_webtoon",genre:"fantasy",rating:"9",tier:"A",sort:"rating"});
+  const url = new URL(publicLibraryUrl("reader_1",filters,3),"https://example.test");
+  expect(url.pathname).toBe("/u/reader_1/library");
+  expect(url.searchParams.get("page")).toBe("3");
+  expect(parsePublicLibraryFilters(Object.fromEntries(url.searchParams))).toEqual(filters);
+  expect(new URL(publicLibraryUrl("reader_1",filters),"https://example.test").searchParams.has("page")).toBe(false);
  });
 });

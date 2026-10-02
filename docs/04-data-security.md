@@ -107,6 +107,12 @@ work_platforms의 `(platform_id, external_id)`는 external_id가 있을 때 고�
 
 쓰기 RPC는 현재 UID만 사용하고 계정 lock으로 같은 소유자의 변경을 직렬화한다. 개별/일괄 저장은 version을 비교하고 일괄 처리 전체를 transaction으로 묶는다. planned 평가를 trigger와 RPC에서 거절하며 clear 확인 없이 기존 평가를 제거하지 않는다. 진행 기록은 날짜·회차·메모·태그·작품 소속 플랫폼 링크를 검증한다. 서재 삭제는 private details/evaluation만 cascade한다. 전체 비공개는 항목·평가·기본값을 원자적으로 변경한다. 숨김/성인/unknown 작품은 public DTO·통계에서 제외하고 owner DTO에서도 작품 메타데이터를 제거한다. 기존 P2 병합 보호는 계속 차단한다. DB 적용·RLS/경쟁 저장/권한 검증은 미실행이며 리뷰 테이블·병합 보존 handler는 후속 작업이다.
 
+### P3 공개 서재 검색의 개인정보 경계 · 2026-10-03
+
+`20261002162554_public_library_search.sql`의 `search_public_library`는 기존 가시성/차단 helper를 통과한 회원과 공개 가능한 작품만 조회한다. 공개 평가 행만 join하고 서재 상태는 visibility=public일 때만 투영한다. 이 값에만 상태/정확한 별점/티어 필터와 정렬을 적용해 비공개 값이 일치 여부·총수·순서를 바꾸지 않게 작성했다. 검색 문자열·장르·플랫폼은 공개 작품 메타데이터만 사용하며 플랫폼 조건은 유효한 비성인 공식 링크를 요구한다. 개인 details나 활동 시각을 읽지 않는다.
+
+RPC는 공개 평가만 있는 작품도 합쳐 표현해야 하므로 기존 공개 서재 RPC와 같이 제한된 `SECURITY DEFINER`를 사용하고 빈 search_path·명시적 스키마·고정 SQL·엄격한 입력/크기/페이지 검증을 적용한다. PUBLIC 실행 권한을 철회하고 anon/authenticated에 명시적으로 허용한다. 기존 RLS·컬럼 grant·쓰기 권한은 바꾸지 않았으며 공개 경로에서는 소유자도 비공개 필터를 사용할 수 없다. 테스트 파일에 anon/A/B·독립 공개 조합·비공개 값 변경·차단·정지·숨김 작품·페이지 경계 사례를 작성했지만 DB에 적용하거나 실행한 근거는 없다.
+
 ### library_entries
 
 `user_id`, `work_id` composite PK, `status` reading_status, `visibility` private 기본값, `created_at`, `updated_at`.

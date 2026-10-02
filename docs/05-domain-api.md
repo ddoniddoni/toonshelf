@@ -86,7 +86,11 @@ P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며
 
 **P3 첫 구현 · 2026-10-02:** `saveReadingRecord→save_reading_record`는 상태·개인 진행·평가를 한 번에 저장한다. payload에 owner ID를 받지 않으며 expectedVersion=null은 새 기록만 허용한다. `copyWorkToLibrary→copy_work_to_library`는 planned/default 범위로 최초 생성하고 기존 기록은 변경하지 않는다. `bulkLibraryChange→bulk_library_change`는 최대 100개 `{id,version}`과 delete/status/tag/libraryVisibility/evaluationVisibility를 검증한다. 삭제·planned 평가 제거는 확인을 요구하고 한 건의 오류도 전체를 rollback한다. `makeAllLibraryPrivate`는 항목/평가/기본값을 함께 변경한다.
 
-본인 조회는 `get_my_library(filters,page)` 및 `get_my_reading_record`로 private details를 포함하며 공개 조회 `get_public_library(username,page)`는 상태/평가 각각의 공개 여부만 투영한다. 페이지는 24개, 번호 1~1000의 bounded offset 방식이고 정렬 끝에 UUID를 사용한다. 목록 변경 중 페이지를 이동하면 항목 위치가 바뀔 수 있다. 공개 서재 필터/cursor와 대규모 서재 pagination 최적화는 후속 작업이다. 본인 필터에는 제목·상태·플랫폼·장르·별점·티어·개인 태그를 지원한다. 모든 텍스트는 plain text다.
+본인 조회는 `get_my_library(filters,page)` 및 `get_my_reading_record`로 private details를 포함하며 기존 공개 조회 `get_public_library(username,page)`는 상태/평가 각각의 공개 여부만 투영하고 UUID순 프로필 목록 계약을 유지한다. 페이지는 24개, 번호 1~1000의 bounded offset 방식이다. 목록 변경 중 페이지를 이동하면 항목 위치가 바뀔 수 있다. cursor와 대규모 서재 pagination 최적화는 후속 작업이다. 본인 필터에는 제목·상태·플랫폼·장르·별점·티어·개인 태그를 지원한다. 모든 텍스트는 plain text다.
+
+**공개 서재 필터 계약 · 2026-10-03 (작성·실행 미검증):** `getPublicLibrary(username,page,filters)`는 새 `search_public_library(p_username,p_filters,p_page)`를 호출한다. filters는 정확히 `{q,status,platform,genre,rating,tier,sort}`이며 null은 해당 조건 없음이다. q는 최대 100 Unicode code point의 공개 제목/별칭/작가 포함 검색이고 `%`·`_`·역슬래시는 LIKE 와일드카드가 아닌 문자로 처리한다. status는 reading/completed/dropped/planned, rating은 1~10 정수의 정확한 반점 단위 평가, tier는 S/A/B/C/D/F이며 플랫폼/장르는 활성 분류 한 개씩이다. tag·개인 메모·진행 정보·소유자 위조·알 수 없는 필드는 거절한다. 공개 투영 후 조건을 AND로 적용하며 평가는 공개 평가 행만 join한다. 상태 비공개/평가 공개 작품은 status 필터에 일치하지 않고 반대 경우에는 rating/tier 필터에 일치하지 않는다. 본인 방문도 public 투영을 유지한다.
+
+sort는 title/rating/tier만 허용한다. rating은 공개 별점 내림차순, tier는 공개 S→F이며 미공개/미지정 값은 마지막이다. 동률은 공개 제목·작품 UUID로 정리하고 개인 생성/수정 시각은 사용하지 않는다. items는 기존 `{work,status,ratingSteps,canonicalTier}` public DTO이며 total/hasNext도 같은 필터 집합에서 계산한다. 가시성이 없는 회원은 null이고 현재 차단·계정·작품 공개 조건을 재사용한다. 공개 endpoint의 필터/총수/정렬에는 비공개 데이터를 넣지 않는다.
 
 `get_reading_stats(null)`은 확인된 본인의 공개·비공개 기록, username을 전달하면 해당 사용자의 공개 상태와 공개 평가만 각각 집계한다. 장르는 작품별 장르 수로 비중을 나눈다. `get_work_evaluation_stats`는 활성 회원의 public evaluation 한 행씩으로 별점/티어 분모와 평균을 계산한다. 평가 없음은 null/0이다. 모두 현재 공개 가능한 작품만 포함하며 미실행·미검증이다. 평점순 카탈로그/보정 순위/완독자 세부 표본은 아직 연결하지 않았다.
 
@@ -100,7 +104,7 @@ P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며
 | copyWorkToMyLibrary | workId | 존재하면 idempotent no-op, 타인 평가 미복사 |
 | makeAllLibraryPrivate | confirmation | 항목/평가/기본 설정을 함께 private |
 | getMyLibrary | own filters/cursor | 본인만, 공개/비공개와 개인 메모 포함 가능 |
-| getPublicLibrary | username/filters/cursor | 공개 entry와 공개 평가만 각각 독립 join |
+| getPublicLibrary | username/page/선택 public filters | 기존 프로필 RPC 또는 search_public_library, 공개 상태/평가만 필터·정렬 |
 
 서재/평가/상태 변경이 공개 수치에 영향을 주면 관련 집계는 다음 요청부터 반영되게 한다. 직접 테이블로 변경했을 때도 같은 불변식이 유지되어야 한다.
 
