@@ -11,7 +11,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P0 | 조건부: 코드 구성, DB 검증 대기 | 아래 16절. 로컬 Docker 엔진 필요 |
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
-| P3 | 미착수 | 없음 |
+| P3 | 진행: 서재·평가·리뷰와 기본 신고/차단/조치 코드 작성, 실행 미검증·잔여 범위 있음 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 미착수 | 없음 |
 | P5 | 미착수 | 없음 |
 | P6 | 미착수 | 없음 |
@@ -318,6 +318,46 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **남은 연결·검수:** 사용자와 P1 Supabase/Auth를 연결하고 migration 적용·실제 생성 타입 대조·최초 관리자 지정·licensed-covers 설정을 진행해야 한다. 코드의 RLS/RPC/Storage/동시 수정/병합/검색 성능/허가 철회와 UI를 그 후 요청한 검사 범위에서 확인한다. 비회원 IP별 edge 속도 제한은 아직 설정/구현되지 않았고 로그인 검색에는 DB 사용자별 제한만 작성했다. 최초 공개 운영 전 익명 경로 제한·정책·이미지 상업적 사용 범위·실제 정보 출처를 확인해야 한다.
 
 **다음 단계:** 공동 연동 작업과 P1·P2 확인을 남긴 상태다. P3 개인 서재/평가/리뷰 개발을 요청하면 이어가며, 개인 테이블 추가 시 P2 병합 보호를 유지하고 05 문서의 개인정보 보존 handler를 구현해야 한다. 검사와 Git 동작은 각각 명시 요청 후 실행한다.
+
+### 2026-10-02 · P3 개인 서재·평가 (첫 기능 범위, 코드 작성·미검증)
+
+사용자의 다음 기능 개발 요청으로 P3 중 개인 서재와 평가를 작성했다. 리뷰/스포일러/신고는 다음 기능 범위이며 P3 전체 완료로 표시하지 않는다. 실제 Supabase·메일·OAuth 연결은 이전 결정대로 보류했다. 새 브랜치 생성·stage·commit·push·merge·PR는 요청하지 않아 수행하지 않았다. 기존 `next-env.d.ts` 로컬 변경은 보존했다.
+
+**관련 요구사항:** LIB-01~06, RATE-01~04의 코드와 migration, SOC-01의 공개 서재/평가/통계를 작성했다. LIB-07은 공개 프로필에서 작품을 가져오는 경로만 작성했고 리뷰/티어의 가져오기는 해당 단계에서 연결한다. SOC-01의 리뷰/티어 탭, P3 리뷰 전체와 공개 서재 필터, P2 평점순 탐색, 개인정보 보존 병합 handler는 남아 있다. 실제 검수가 없어 추적표 체크는 유지한다.
+
+**변경:**
+
+- `20261001184908_library_evaluations.sql`: library_entries/version, library_private_details, user_evaluations의 FK/제약/trigger/RLS/최소 SELECT 권한을 작성했다. 상태와 개인 진행/평가를 transaction으로 저장하고 planned 평가를 차단한다. 서재·평가는 독립적으로 공개하며 회차/날짜/메모/태그/선호 플랫폼과 내부 저장 시각/version은 공개 DTO에 포함하지 않는다.
+- `src/lib/library/`: Unicode 입력 검증, 현재 세션/active 계정 게이트, 안전한 오류, 본인/공개 DTO, 개별 저장·idempotent 작품 복사·일괄 변경·전체 비공개·통계를 작성했다. owner ID는 입력받지 않는다. 본인 변경은 현재 계정 lock과 expectedVersion을 사용하고 일괄 변경은 최대 100개를 원자적으로 처리한다.
+- `/me/library`, `/me/library/[workId]`, `/works/[slug]`, `/u/[username]`, 공개 범위 설정에 화면을 연결했다. 검색·상태/플랫폼/장르/별점/기본 티어/개인 태그 필터, 추가/수정/제목/내 별점 정렬, 카드/목록, 24개씩 페이지, 선택 일괄 변경, 공개 기록 저장, 전체 비공개와 평가 삭제 확인을 작성했다. 선택 UI는 현재 페이지 최대 24개다. 미설정 상태는 실제 연결 준비 안내다.
+- 평균/별점 수/기본 티어 수를 실제 공개 evaluation으로 계산하며 분모를 분리한다. 본인 통계는 자신의 private 기록을 포함하고 공개 통계는 공개 상태/평가만 각각 집계한다. 장르별 비중은 작품별 장르 수로 나누며 숨겨진/성인/unknown 작품과 비활성 계정은 공개 통계에서 제외한다. 숨겨진 작품의 개인 기록은 작품 메타데이터를 제거한 본인 전용 DTO로 확인·삭제/비공개 전환이 가능하다.
+- P2 관리 병합은 개인 테이블을 감지하는 기존 guard를 유지한다. 개인 메모나 리뷰를 조용히 삭제하지 않으며 보존 handler를 구현하기 전까지 병합을 거절한다. 기존 P2 SQL 테스트 기대값도 이 보호에 맞춰 갱신했다.
+
+**작성한 테스트:** `tests/unit/library-validation.test.ts`(planned/별점/날짜/Unicode/태그/필터/선택 version), `tests/integration/library-actions.test.ts`(활성 계정·owner 위조·삭제 확인·copy 범위·안전한 오류), `supabase/tests/03_library_evaluations.test.sql`(anon/A/B 접근·공개 평가와 private 상태 분리·메모/시각 유출 차단·버전 충돌·일괄 rollback·cascade·전체 비공개·정지 계정). 롤백 전용 합성 fixture만 파일에 작성했으며 서비스 데이터로 실행하지 않았다.
+
+**실행한 검사·결과:** 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 검수는 **모두 미실행**. 실제 사용자 흐름 확인도 **없음**. Supabase CLI help를 읽고 migration new로 빈 파일을 생성한 뒤 코드를 작성한 것만 수행했다. CLI의 최초 help는 sandbox telemetry 접근 제한으로 실패했고 허용된 재시도로 help/파일 생성만 진행했다. DB 시작/연결/적용/reset/타입 생성/검사 명령은 실행하지 않았다. Next 설치 문서와 Supabase 공식 RLS/functions/changelog를 읽었으며 의존성 추가·업데이트는 하지 않았다. 컴파일/SQL/권한/동시성/화면이 통과했다고 주장하지 않는다.
+
+**외부 대기·다음 단계:** 공동 Supabase/Auth 연결과 P1~P3 migration 적용, 실제 생성 타입 대조가 필요하다. 그 뒤 사용자 요청에 따라 상태→평가→공개→새로고침→삭제, A/B 권한·planned/경쟁 저장·일괄 rollback·공개 집계의 실제 검수를 수행해야 한다. 다음 개발은 P3 리뷰의 private 편집 초안/게시본 분리·스포일러 명시적 펼치기·기본 신고/차단·관리자 조치다. 안전한 개인 도메인 병합 및 공개 서재 필터/평점순 탐색은 후속 범위로 남긴다.
+
+### 2026-10-02 · P3 리뷰·스포일러·기본 안전 기능 (코드 작성·미검증)
+
+사용자의 다음 개발 요청으로 P3 리뷰와 공개 리뷰에 필요한 기본 신고·차단·운영 조치를 작성했다. 실제 Supabase·메일·OAuth 공동 연결은 계속 보류했다. 브랜치 생성·stage·commit·push·merge·PR는 수행하지 않았고 기존 개인 서재/평가 코드와 `next-env.d.ts` 로컬 변경을 보존했다. P3 전체 완료가 아니며 아래 추적표 체크를 유지한다.
+
+**관련 요구사항:** REV-01/02, REV-03 중 첫 게시 최신순·상세·공유 URL, LIB-07의 리뷰에서 작품 가져오기, SOC-01의 공개 리뷰 목록을 작성했다. SOC-06과 OPS-01/02/04의 리뷰 대상 최소 기능을 앞당겨 작성했다. REV-03 좋아요순·REV-04는 P5, 전체 신고 대상·계정 조치·내보내기/탈퇴·보존 규칙은 P7까지 이어간다.
+
+**변경 기능:**
+
+- `20261002032637_reviews_moderation.sql`: current review unique, 별도 편집 초안과 게시본/version, block helper, owner-only RLS·명시적 grant, 공개/본인/운영 DTO RPC와 rate limit, review 신고·private 운영 감사 이벤트를 작성했다. 본문 raw 공개 SELECT와 일반 DML을 허용하지 않고 공개 상태/활성 작성자/작품/차단을 매 요청에 검사한다. CLI `migration new`는 파일만 생성했으며 migration은 적용하지 않았다.
+- `src/lib/reviews/`와 리뷰 컴포넌트: Unicode/JSON/역할/소유권/버전·확인 검증, 수동 초안 저장과 저장된 초안 게시, 공개 취소/삭제, plain text·안전한 HTTP(S) 링크, 스포일러 명시적 읽기 전용 펼치기, 신고·차단·운영 조치와 안전한 오류를 작성했다. 비공개 진행 회차·메모를 공개 payload에 포함하지 않는다. 삭제는 원문/초안만 지우고 서재/평가를 유지한다.
+- `/reviews/[id]`, `/works/[slug]/reviews`, `/u/[username]/reviews`, `/me/reviews`·`/me/reviews/[id]/edit`, `/me/reports`, `/settings/blocks`, `/admin/reports`·`/admin/reviews/[id]`를 작성하고 작품/프로필/계정 메뉴에 연결했다. 공개 목록은 첫 게시 최신순 12개, 본인 신고는 20개다. spoiler 초기 body/excerpt는 null이고 메타데이터는 일반 안내만 사용한다. 숨김/초안/삭제/차단은 공개 경로에서 반환하지 않는다.
+- 운영 화면은 private DB의 moderator/admin만 접근하고 편집 초안을 제공하지 않는다. hide/restore/reject_report·결과·사유·감사를 원자적으로 작성한다. 작성자는 운영 숨김을 직접 해제할 수 없다. 차단 helper는 공개 프로필·서재·평가·집계에도 연결하며 비회원에는 개인 차단 관계가 없음을 안내한다. P5 팔로우 정리는 관계 테이블 생성 시 추가해야 한다.
+- 기존 README·UX·구조·DB·API·진행 문서와 수동 SDK 계약을 갱신했다. 새로운 라이브 생성 타입이나 의존성은 추가하지 않았다.
+
+**작성한 테스트:** `tests/unit/review-validation.test.ts`(초안/게시 길이·Unicode 공백·스포일러/회차·역할/owner 위조·신고/조치·URL), `tests/integration/review-actions.test.ts`(현재 계정/운영 권한·저장된 초안만 게시·확인·권한 변경 후 펼치기·안전한 오류), `supabase/tests/04_reviews_moderation.test.sql`(anon/A/B/운영자·owner-only raw 조회·초안/게시본 분리·개인 기록 미복사·스포일러 초기 payload·Unicode 공백만 있는 직접 RPC 게시 거절·충돌·신고 중복/본인 결과·숨김/복구·차단 공개 필터·공개 취소/삭제·정지 계정). 전부 파일만 작성했으며 DB fixture는 rollback 전용 합성 데이터다.
+
+**실행한 검사·결과:** 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 검수는 **모두 미실행**. 실제로 확인한 사용자 흐름도 **없음**. 소스·설치된 Next 안내·Supabase 공식 functions/RLS/changelog와 PostgreSQL [Unicode 리터럴](https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-STRINGS-UESCAPE)·[문자열 함수](https://www.postgresql.org/docs/current/functions-string.html) 문서 읽기, 파일 생성/작성만 수행했다. DB 연결/시작/적용/reset/타입 생성/관리자 승격은 하지 않았다. SQL·TypeScript·RLS·화면의 통과를 주장하지 않는다.
+
+**외부 대기·잔여 범위·다음 단계:** 공동 Supabase/Auth 연결과 P1~P3 migration 적용·실제 생성 타입 대조·운영자 역할 설정 후 사용자 요청 범위에서 작성→저장→게시→스포일러 펼치기→신고→숨김/복구와 A/B 권한·동시성·차단 집계를 검수해야 한다. 개인 도메인을 보존하는 작품 병합 handler, 공개 서재 필터, 평점순 탐색은 남아 있고 현재 병합은 기존 guard로 거절한다. 신규 review FK/신고 기록도 P7의 보존·비식별화·참조 정리와 hard-delete 작업자에 포함해야 한다. 다음 개발은 이 P3 잔여 범위를 이어가고 이후 P4 티어 편집기로 진행한다. 검사와 Git 동작은 각각 명시 요청 후 수행한다.
 
 ## 17. 요구사항 추적표
 

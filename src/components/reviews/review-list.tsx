@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { UserAvatar } from "@/components/account/user-avatar";
+import type { ReviewCard } from "@/lib/reviews/model";
+export function ReviewList({items}:{items:ReviewCard[]}) {
+ return <div className="review-list">{items.length ? items.map(review=><article className="review-card" key={review.id}><div className="review-author"><UserAvatar path={review.avatar} name={review.name}/><div><Link className="text-link" href={"/u/"+review.username}>{review.name}</Link><p className="field-hint">{new Date(review.publishedAt).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul"})} 게시 · {new Date(review.updatedAt).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul"})} 수정</p></div></div><Link href={"/reviews/"+review.id}><h3>{review.workTitle} 리뷰</h3><p className={review.isSpoiler ? "review-spoiler-note" : "review-excerpt"}>{review.isSpoiler ? "스포일러 포함 · 상세에서 직접 펼칠 수 있어요" : review.excerpt}</p></Link><p className="field-hint">{review.episode === null ? "" : "공개 기준 "+review.episode+"회차 · "}{review.ratingSteps === null ? "공개 별점 없음" : (review.ratingSteps/2).toFixed(1)+"점"}{review.canonicalTier ? " · 티어 "+review.canonicalTier : ""}</p><Link className="text-link" href={"/reviews/"+review.id}>리뷰 읽기 →</Link></article>) : <p>아직 열람 가능한 공개 리뷰가 없어요.</p>}</div>;
+}

@@ -2,6 +2,18 @@
 
 ## 1. 버전과 라이브러리 정책
 
+### P3 서재·평가 기반 · 2026-10-02
+
+`src/lib/library/`의 Zod 입력 검증/명시적 DTO/Server Actions와 migration RPC를 연결했다. 모든 변경은 확인된 active 계정의 사용자 SDK로 호출하고 DB에서 현재 세션/동의/상태/작품 공개 조건을 다시 검증한다. 별도 service role 쓰기나 localStorage 저장을 사용하지 않는다. SSR의 기존 no-store 조회를 유지하고 저장 뒤 서재·작품 상세·공개 프로필·공개 범위 설정을 revalidate한다. Next 설치 문서의 Server Actions/revalidatePath를 읽고 기존 고정 의존성을 재사용했다. DB 생성 타입은 없으며 수동 migration 계약에 RPC만 추가했다. 테스트·컴파일·브라우저·실제 DB 실행 검증은 미실행이다.
+
+### P3 리뷰·안전 기능 기반 · 2026-10-02
+
+`src/lib/reviews/`에 별도의 입력/공개·본인·운영 DTO와 사용자 세션 RPC action을 작성했다. 쓰기는 확인된 active 계정과 리소스 소유권, 운영 조치는 private DB 역할을 서버·DB에서 재확인한다. 초안 저장과 게시를 분리하고 각각 draft/publication version을 검사한다. 운영 숨김은 작성자 action으로 해제할 수 없다. 추가 의존성이나 privileged 리뷰 쓰기는 도입하지 않았다.
+
+공개 스포일러 조회는 초기 SSR/RSC payload에 본문을 넣지 않는다. `revealReviewBody`는 명시적 POST의 읽기 전용 함수이며 비회원도 현재 공개 조건·차단 관계·expectedVersion을 통과한 게시본을 읽을 수 있다. DB 쓰기나 초안 접근을 허용하지 않는다. 운영 원문 펼치기는 현재 moderator/admin 권한을 추가로 검사한다. 메타데이터는 일반 안내만 사용하며 비공개/운영/개인 목록은 noindex, 조회 SDK의 기존 no-store를 유지한다. 변경 후 리뷰·작품·프로필·본인 목록·운영 화면을 revalidate하고 차단 변경은 서재·차단 설정도 갱신한다. 이미 브라우저에 전달된 원문은 회수할 수 없다.
+
+Supabase 공식 functions/RLS 문서와 설치된 Next Server Actions 안내를 읽고 기존 버전을 재사용했다. 수동 `database.contract.ts`에 RPC 계약을 추가했으며 실제 생성 타입은 아니다. migration 적용·컴파일·권한·모바일·브라우저와 자동 검사/테스트는 모두 미실행이다.
+
 2026-10-01 확인한 Next.js 공식 설치 문서의 표시는 16.3.8이다. 구현 시작 시 공식 보안 공지와 npm 안정 버전을 다시 확인하고, 테스트한 버전을 `package-lock.json`에 고정한다. 실험판이나 canary를 기본 선택하지 않는다. Node.js는 24 LTS 계열을 기준으로 삼되 배포 환경 지원을 확인한다. 출처는 06 문서의 S01, S12다.
 
 | 영역 | 선택 |
