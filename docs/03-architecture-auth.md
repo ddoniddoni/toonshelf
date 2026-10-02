@@ -10,6 +10,12 @@
 
 Inter 4.1·Pretendard 1.3.9 폰트 원본과 라이선스를 `public/fonts`에 보관하고 `@font-face`로 자체 제공한다. 새 패키지나 런타임 CDN 호출은 추가하지 않았다. 시안의 배너 일러스트는 자동 승인 검토가 다운로드를 거절해 파일이 없으며 별도 승인 대기다. 표지 권리 proxy·세션 검증·스포일러 본문 게이트·공개 집계·private 기록 경계를 유지했다. 신규 DB/RPC/client 캐시·인증 연동·의존성은 추가하지 않았다. TypeScript/Next 컴파일·브라우저·실제 DB/저장 실행과 자동 검사는 모두 미실행이다.
 
+### P3 공개 서재 검색·필터 · 2026-10-03
+
+새 `/u/[username]/library`는 Server Component이며 Promise `params/searchParams`를 읽고 username·단일 query·페이지·조건을 서버에서 검증한다. 공개 목록과 분류 선택지는 병렬 조회한다. 필터가 있는 `getPublicLibrary`는 사용자 세션의 기존 `createClient`로 `search_public_library`를 호출하고, 필터를 전달하지 않는 기존 프로필 조회는 `get_public_library`를 유지한다. 둘 다 기존 public DTO 스키마를 사용하며 private owner DTO나 비밀 키 SDK를 사용하지 않는다. `PublicLibraryItems`는 두 화면이 같은 공개 카드·내 서재 저장 경로를 재사용하도록 분리했다.
+
+새 migration은 별도 이름의 읽기 RPC를 추가해 기존 함수의 signature/호출을 바꾸지 않는다. 수동 `database.contract.ts`에 해당 계약만 추가했다. 쿠키별 no-store 조회와 noindex를 유지하며 client 캐시·새 의존성은 도입하지 않았다. 설치된 Next page/Promise 안내와 Supabase 공식 functions/RLS/changelog를 읽었다. DB 적용·타입 생성·컴파일·브라우저·모든 자동 검사/테스트는 미실행이다.
+
 ### P3 서재·평가 기반 · 2026-10-02
 
 `src/lib/library/`의 Zod 입력 검증/명시적 DTO/Server Actions와 migration RPC를 연결했다. 모든 변경은 확인된 active 계정의 사용자 SDK로 호출하고 DB에서 현재 세션/동의/상태/작품 공개 조건을 다시 검증한다. 별도 service role 쓰기나 localStorage 저장을 사용하지 않는다. SSR의 기존 no-store 조회를 유지하고 저장 뒤 서재·작품 상세·공개 프로필·공개 범위 설정을 revalidate한다. Next 설치 문서의 Server Actions/revalidatePath를 읽고 기존 고정 의존성을 재사용했다. DB 생성 타입은 없으며 수동 migration 계약에 RPC만 추가했다. 테스트·컴파일·브라우저·실제 DB 실행 검증은 미실행이다.

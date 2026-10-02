@@ -61,6 +61,7 @@ export type DatabaseContract = {
       get_my_reading_record:{Args:{p_work:string};Returns:Json};
       get_my_library:{Args:{p_filters:Json;p_page:number};Returns:Json};
       get_public_library:{Args:{p_username:string;p_page:number};Returns:Json};
+      search_public_library:{Args:{p_username:string;p_filters:Json;p_page:number};Returns:Json};
       get_reading_stats:{Args:{p_username:string|null};Returns:Json};
       get_work_evaluation_stats:{Args:{p_work:string};Returns:Json};
       get_my_access: { Args: Record<string, never>; Returns: Json };

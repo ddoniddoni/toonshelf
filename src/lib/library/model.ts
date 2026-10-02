@@ -27,6 +27,7 @@ export const recordSchema = z.object({
 export type ReadingRecord = z.infer<typeof recordSchema>;
 export const libraryResponseSchema = z.object({items:z.array(recordSchema),total:z.number().int().nonnegative(),hasNext:z.boolean()});
 export const publicLibrarySchema = z.object({items:z.array(z.object({work:cardSchema,status:readingSchema.nullable(),ratingSteps:z.number().nullable(),canonicalTier:tierSchema.nullable()})),total:z.number().int().nonnegative(),hasNext:z.boolean()});
+export type PublicLibrary = z.infer<typeof publicLibrarySchema>;
 const counts = z.record(z.string(),z.number().int().nonnegative());
 export const statsSchema = z.object({readCount:z.number().int().nonnegative(),statuses:counts,ratings:counts,tiers:counts,
  genres:z.array(z.object({name:z.string(),weight:z.number(),share:z.number()}))});
@@ -36,6 +37,25 @@ export const libraryFiltersSchema = z.strictObject({q:text(100),status:readingSc
  platform:z.string().regex(/^[a-z0-9_]{1,40}$/).nullable(),genre:z.string().regex(/^[a-z0-9-]{1,40}$/).nullable(),
  rating:z.number().int().min(1).max(10).nullable(),tier:tierSchema.nullable(),tag:text(20).nullable()});
 export type LibraryFilters = z.infer<typeof libraryFiltersSchema>;
+export const publicLibraryFiltersSchema = libraryFiltersSchema.omit({tag:true}).extend({sort:z.enum(["title","rating","tier"])});
+export type PublicLibraryFilters = z.infer<typeof publicLibraryFiltersSchema>;
+const publicLibraryQuerySchema = z.strictObject({
+ q:z.string().optional(),status:z.string().optional(),sort:z.string().optional(),platform:z.string().optional(),
+ genre:z.string().optional(),rating:z.string().optional(),tier:z.string().optional(),page:z.string().optional()
+});
+export function parsePublicLibraryFilters(params:SearchParams) {
+ const query = publicLibraryQuerySchema.parse(params);
+ const rating = query.rating ?? "";
+ return publicLibraryFiltersSchema.parse({q:(query.q ?? "").trim(),status:query.status || null,sort:query.sort || "title",
+  platform:query.platform || null,genre:query.genre || null,tier:query.tier || null,
+  rating:rating ? /^(10|[1-9])$/.test(rating) ? Number(rating) : NaN : null});
+}
+export function publicLibraryUrl(username:string,filters:PublicLibraryFilters,page=1) {
+ const query = new URLSearchParams();
+ for (const [key,value] of Object.entries(filters)) if (value !== null && value !== "") query.set(key,String(value));
+ if (page > 1) query.set("page",String(page));
+ return "/u/"+encodeURIComponent(username)+"/library?"+query;
+}
 export function parseLibraryFilters(params:SearchParams) {
  const single = (name:string) => z.string().optional().parse(params[name]) ?? "";
  const rating = single("rating");
