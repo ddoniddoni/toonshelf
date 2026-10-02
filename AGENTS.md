@@ -45,9 +45,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 사용자 지정 Git 규칙 (2026-10-02)
 
-Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 현재 작업 범위는 P2 카탈로그 개발이다. P1의 실제 Supabase·메일·OAuth 연결은 사용자와 후속 작업으로 진행하며 P3~P7은 후속 개발이다.
+Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 현재 작업 범위는 P3의 리뷰·스포일러와 기본 신고·차단·운영 조치 개발이다. 개인 서재·평가 코드도 실행 미검증 상태다. P1의 실제 Supabase·메일·OAuth 연결은 사용자와 후속 공동 작업으로 진행하며 P3 잔여 범위와 P4~P7은 후속 개발이다.
 
-- 저장소 초기화, 브랜치 생성, commit, push, tag, release, merge, rebase, PR 생성은 사용자가 **그 정확한 동작을 명시적으로 요청한 경우에만** 수행한다. 구현 요청은 Git 작업 허가가 아니다.
+- 저장소 초기화, 브랜치 생성, commit, push, tag, release, merge, rebase, PR 생성은 사용자가 **그 정확한 동작을 명시적으로 요청한 경우에만** 수행한다. 단, 커밋·push 요청에는 아래 기본 반영 순서 전체를 포함한다. 구현 요청만으로 Git 작업을 수행하지 않는다.
+- 기본 Git 반영 순서: 사용자가 커밋·push를 요청하면 관련 변경을 작업 브랜치에 Conventional Commit으로 커밋 → 작업 브랜치 push → 최신 develop에 merge → develop push까지 연속 수행한다. develop 반영을 매번 다시 확인하지 않는다. 사용자가 이번 범위를 따로 지정하면 그 지시를 따른다. main 반영·릴리스·force push·PR 생성·새 브랜치 생성은 이 기본값에 포함하지 않는다. (2026-10-02 사용자 지정)
 - develop은 일상 통합, main은 안정 배포 브랜치다. 명시적으로 허가된 일상 브랜치 작업은 최신 develop에서 feature/*, fix/*, docs/*, refactor/*, test/*, chore/* 중 의도가 드러나는 이름을 사용한다.
 - 한 브랜치와 PR에는 한 가지 변경만 담는다. 일반 PR은 develop 대상, 안정 릴리스는 develop→main 전용 PR로 진행한다.
 - develop/main 직접 커밋, force push, 공유 이력 재작성, 파괴적 Git 명령은 각각 명시적 허가 없이는 금지한다.

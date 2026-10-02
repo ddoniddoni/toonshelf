@@ -32,6 +32,18 @@ ID는 UUID, 시간은 timestamptz/UTC를 사용한다. 생성/수정 시각은 D
 
 서재, 개인 평가, 공유 티어표를 별개 모델로 둔다. 별점과 티어를 두 군데에 저장해 어느 값이 최신인지 모르게 만들지 않는다.
 
+### P3 리뷰·차단·신고 작성 상태 · 2026-10-02
+
+`20261002032637_reviews_moderation.sql`에 reviews, review 전용 content_edit_drafts, blocks, review 전용 reports와 private.review_moderation_events를 작성했다. 현재 리뷰는 사용자/작품별 미삭제 한 건이며 삭제한 리뷰는 원문과 편집 초안을 제거하고 최소 참조·상태만 남긴다. 서재·평가를 삭제하지 않는다. 게시본과 JSON 편집 초안은 별도 행/version이고 저장은 초안만 변경한다. 게시 RPC는 서버에 저장된 초안을 검증해 원자적으로 복사한다. 일반 사용자·운영자 모두 직접 DML 권한이 없다.
+
+reviews/content_edit_drafts의 직접 SELECT는 active 소유자만 허용한다. 공개 SELECT를 부여하면 스포일러 본문을 우회할 수 있으므로 공개 조회는 제한된 RPC DTO만 사용한다. 공개 가능 조건은 published·visible·미삭제·공개 비성인 작품·활성 작성자·조회자와 양방향 차단 없음이다. 최초 spoiler body/excerpt는 null이며 펼치기 요청은 이 조건과 게시 version을 다시 검사한다. 공개 기준 회차는 명시적으로 입력한 값이며 개인 진행/메모/태그를 조회하거나 복사하지 않는다. 리뷰에 붙는 별점/티어는 공개 evaluation만 투영한다.
+
+blocks는 본인만 읽고 현재 계정의 목표 상태 RPC로 생성/해제한다. `private.author_active`는 기존 활성 작성자 조건을 유지하고 `private.profile_visible`에 `private.users_can_interact`를 합쳐 프로필·공개 서재/평가·공개 집계에도 차단을 적용한다. 차단은 로그인 계정 사이의 노출·접촉 제한이며 비회원 조회를 막는 비공개 설정이 아니다. 본인 조회는 자기 차단이 불가능하므로 기존 계정 조건을 유지한다. follows가 없는 현재는 양방향 관계 정리를 수행하지 않으며 P5에서 같은 transaction에 추가해야 한다.
+
+reports는 현재 공개된 타인 리뷰만 대상으로 하며 신고자/review별 pending 중복을 차단한다. 신고자는 본인 사유·상세·처리 상태/결과만 읽고 운영 검토 DTO는 신고자의 ID를 제공하지 않는다. 역할은 private.user_access의 active moderator/admin으로 확인한다. 숨김/복구/기각·결과·사유·감사 이벤트는 한 transaction이며 운영자에게 편집 초안·개인 메모를 제공하지 않는다. 감사 이벤트에 원문을 복제하지 않는다. reports의 review FK를 포함한 신고 보존/비식별화·참조 정리와 탈퇴 hard-delete는 P7 작업자에서 처리해야 하며 현재는 soft-delete만 구현했다. 글/댓글/티어/프로필/작품 신고는 후속 범위다.
+
+파일만 작성했으며 실제 migration/SQL/RLS/함수 권한/차단 집계/동시성/생성 타입/advisor/테스트는 미실행이다. 운영 역할을 지정하거나 실제 DB에 연결하지 않았다.
+
 ## 2. 도메인 enum
 
 | 이름 | 값 |
@@ -88,6 +100,12 @@ work_platforms의 `(platform_id, external_id)`는 external_id가 있을 때 고�
 표지 권리의 실제 컬럼은 private.asset_licenses에 둔다. public DTO에 허가 계약 문서나 내부 담당자 정보를 내보내지 않는다. 작품의 사실 정보 출처는 private.catalogue_sources에 별도로 기록한다.
 
 ## 5. 서재와 평가: 세 테이블 분리
+
+### P3 서재·평가 작성 상태 · 2026-10-02
+
+`20261001184908_library_evaluations.sql`에 세 테이블과 RLS/최소 SELECT grant/RPC를 작성했다. private details는 본인 전용이며 관리자라도 일반 SDK로 타인의 메모를 조회할 수 없다. 공개 entry와 공개 evaluation의 정책은 독립적이며 활성 작성자와 공개 가능한 작품을 요구한다. 공개 SELECT는 상태/평가 컬럼만 허용하여 비공개 메모 수정 시각이나 내부 version을 직접 조회할 수 없게 했다. owner DTO와 public DTO를 따로 작성했다.
+
+쓰기 RPC는 현재 UID만 사용하고 계정 lock으로 같은 소유자의 변경을 직렬화한다. 개별/일괄 저장은 version을 비교하고 일괄 처리 전체를 transaction으로 묶는다. planned 평가를 trigger와 RPC에서 거절하며 clear 확인 없이 기존 평가를 제거하지 않는다. 진행 기록은 날짜·회차·메모·태그·작품 소속 플랫폼 링크를 검증한다. 서재 삭제는 private details/evaluation만 cascade한다. 전체 비공개는 항목·평가·기본값을 원자적으로 변경한다. 숨김/성인/unknown 작품은 public DTO·통계에서 제외하고 owner DTO에서도 작품 메타데이터를 제거한다. 기존 P2 병합 보호는 계속 차단한다. DB 적용·RLS/경쟁 저장/권한 검증은 미실행이며 리뷰 테이블·병합 보존 handler는 후속 작업이다.
 
 ### library_entries
 

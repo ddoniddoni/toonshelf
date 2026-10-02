@@ -84,6 +84,12 @@ P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며
 
 ### 서재와 평가
 
+**P3 첫 구현 · 2026-10-02:** `saveReadingRecord→save_reading_record`는 상태·개인 진행·평가를 한 번에 저장한다. payload에 owner ID를 받지 않으며 expectedVersion=null은 새 기록만 허용한다. `copyWorkToLibrary→copy_work_to_library`는 planned/default 범위로 최초 생성하고 기존 기록은 변경하지 않는다. `bulkLibraryChange→bulk_library_change`는 최대 100개 `{id,version}`과 delete/status/tag/libraryVisibility/evaluationVisibility를 검증한다. 삭제·planned 평가 제거는 확인을 요구하고 한 건의 오류도 전체를 rollback한다. `makeAllLibraryPrivate`는 항목/평가/기본값을 함께 변경한다.
+
+본인 조회는 `get_my_library(filters,page)` 및 `get_my_reading_record`로 private details를 포함하며 공개 조회 `get_public_library(username,page)`는 상태/평가 각각의 공개 여부만 투영한다. 페이지는 24개, 번호 1~1000의 bounded offset 방식이고 정렬 끝에 UUID를 사용한다. 목록 변경 중 페이지를 이동하면 항목 위치가 바뀔 수 있다. 공개 서재 필터/cursor와 대규모 서재 pagination 최적화는 후속 작업이다. 본인 필터에는 제목·상태·플랫폼·장르·별점·티어·개인 태그를 지원한다. 모든 텍스트는 plain text다.
+
+`get_reading_stats(null)`은 확인된 본인의 공개·비공개 기록, username을 전달하면 해당 사용자의 공개 상태와 공개 평가만 각각 집계한다. 장르는 작품별 장르 수로 비중을 나눈다. `get_work_evaluation_stats`는 활성 회원의 public evaluation 한 행씩으로 별점/티어 분모와 평균을 계산한다. 평가 없음은 null/0이다. 모두 현재 공개 가능한 작품만 포함하며 미실행·미검증이다. 평점순 카탈로그/보정 순위/완독자 세부 표본은 아직 연결하지 않았다.
+
 | 기능 | 입력 | 규칙 |
 |---|---|---|
 | saveLibraryEntry | workId, status, visibility, privateDetails | 상태와 private data를 transaction으로 저장 |
@@ -99,6 +105,30 @@ P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며
 서재/평가/상태 변경이 공개 수치에 영향을 주면 관련 집계는 다음 요청부터 반영되게 한다. 직접 테이블로 변경했을 때도 같은 불변식이 유지되어야 한다.
 
 ### 리뷰와 커뮤니티
+
+**P3 리뷰 구현 계약 · 2026-10-02 (실행 미검증):**
+
+| 서버 함수/조회 | 사용자 세션 DB RPC | 작성한 동작 |
+|---|---|---|
+| createReview | create_review_draft | 공개 작품에 현재 리뷰/초안 생성, 기존 current ID 반환 |
+| saveReviewDraft | save_review_draft | owner + expectedDraftVersion, JSON 편집 초안만 변경 |
+| publishReview | publish_review | expectedDraftVersion + expectedReviewVersion, 저장된 초안 검증/복사 |
+| withdrawReview | withdraw_review | owner/version/확인, 공개 취소 또는 원문·초안 삭제 |
+| getReview / revealReviewBody | get_review | current public DTO, 펼치기는 confirm + expectedVersion |
+| listReviews | list_reviews | 작품 또는 username 한 조건, 첫 게시 최신순, 12개/페이지 |
+| 본인 편집/목록 | get_my_review_editor / list_my_reviews | owner-only 초안/게시본 상태, 12개/페이지 |
+| reportReview | report_review | 공개 타인 리뷰, reason/detail, pending 중복 방지 |
+| setUserBlock / getMyBlocks | set_user_block / get_my_blocks | 확인된 본인 목표 상태, private 차단 목록 |
+| 운영자 확인 | get_my_review_moderator_role | private 역할·현재 계정 조건 |
+| 운영 목록/상세 | list_review_reports / moderation_review_snapshot | pending 20개/페이지, 최근 신고·감사 각각 최대 50개 |
+| revealModerationBody | moderation_review_snapshot | 현재 운영 역할·게시 version 재검사, 공개 게시본만 |
+| moderateReview | moderate_review | 현재 version·사유·hide/restore/reject_report, 선택 신고 결과·감사 원자적 저장 |
+
+초안 payload는 `{body,isSpoiler,episode}`만 허용하며 32KiB/5000 Unicode code point 상한, 게시 때 trim 후 20자 이상을 검사한다. DB의 `review_text_trim`에도 JavaScript trim과 같은 공백 집합을 지정해 직접 RPC의 탭·줄바꿈·Unicode 공백만으로 게시 길이를 채우지 못하게 한다. 공개 회차는 null 또는 0~1,000,000 정수다. owner/역할/게시 상태는 입력받지 않는다. 게시 첫 시각은 업데이트·재게시에서도 유지하며 별도 수정 시각을 표시한다. 현재 UI는 수동 초안 저장 후 저장된 내용을 확인해 게시한다. 자동 저장은 구현하지 않았고 좋아요·댓글·좋아요순은 P5에서 연결한다. 공개 리뷰에서 작품을 가져오면 기존 서재 복사 RPC를 사용하며 리뷰 작성자의 평가/개인 기록을 복사하지 않는다.
+
+스포일러 초기 body/excerpt는 null이고 직접 공개 테이블 조회도 허용하지 않는다. 읽기 전용 펼치기 action은 로그인 없이 명시적 POST 확인을 받을 수 있지만 DB에서 현재 published/visible/live work/author/차단/version을 다시 확인한다. 메타데이터와 목록에는 숨겨진 본문을 넣지 않는다. 운영 펼치기도 원문 version과 현재 역할을 검사하고 private 초안은 반환하지 않는다.
+
+차단 변경은 이후 요청의 양방향 리뷰·프로필·공개 기록·집계에 적용한다. 작품의 공개 평가 집계는 로그인한 조회자의 차단 관계에 따라 분모가 달라질 수 있으므로 현재 볼 수 있는 평가 기준임을 표시한다. 비회원 조회에는 개인 차단 관계가 없고 이미 받은 본문을 회수할 수 없다. P5의 팔로우 정리·반응·댓글·피드/알림 검사는 아직 구현하지 않았다. `/me/reports`는 own RLS SELECT를 사용해 20개와 다음 페이지 여부만 제공한다. 아래 글/반응/댓글 및 범용 신고 계약은 후속 구현 대상이다.
 
 | 기능 | 규칙 |
 |---|---|

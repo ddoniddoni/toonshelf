@@ -1,4 +1,4 @@
-// Hand-authored P1/P2 migration contract. This is NOT a generated/live DB type.
+// Hand-authored P1/P2/P3 migration contract. This is NOT a generated/live DB type.
 // Replace the SDK generic with database.generated.ts after local db:types.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 export type Visibility = "public" | "private";
@@ -35,9 +35,34 @@ export type DatabaseContract = {
       work_platforms:Table<{id:string;work_id:string;platform_id:string;official_url:string;external_id:string|null;weekdays:number[];
         serial_status:WorkRow["serial_status"];age_rating:WorkRow["age_rating"];verified_at:string;active:boolean}>;
       catalogue_submissions:Table<SubmissionRow>;
+      reports:Table<{id:string;reporter_id:string;review_id:string;reason:string;detail:string;status:string;result_note:string;created_at:string;resolved_at:string|null}>;
     };
     Views: Record<string, never>;
     Functions: {
+      create_review_draft:{Args:{p_work:string};Returns:string};
+      save_review_draft:{Args:{p_id:string;p_version:number;p_payload:Json};Returns:undefined};
+      publish_review:{Args:{p_id:string;p_draft_version:number;p_review_version:number};Returns:undefined};
+      withdraw_review:{Args:{p_id:string;p_version:number;p_delete:boolean;p_confirm:boolean};Returns:undefined};
+      get_review:{Args:{p_id:string;p_reveal:boolean;p_expected_version:number|null};Returns:Json};
+      list_reviews:{Args:{p_work:string|null;p_username:string|null;p_page:number};Returns:Json};
+      get_my_review_editor:{Args:{p_id:string};Returns:Json};
+      list_my_reviews:{Args:{p_page:number};Returns:Json};
+      report_review:{Args:{p_review:string;p_reason:string;p_detail:string};Returns:undefined};
+      set_user_block:{Args:{p_user:string;p_blocked:boolean};Returns:undefined};
+      get_my_blocks:{Args:Record<string,never>;Returns:Json};
+      get_my_review_moderator_role:{Args:Record<string,never>;Returns:boolean};
+      moderation_review_snapshot:{Args:{p_id:string;p_reveal:boolean;p_expected_version:number|null};Returns:Json};
+      list_review_reports:{Args:{p_page:number};Returns:Json};
+      moderate_review:{Args:{p_review:string;p_version:number;p_action:string;p_reason:string;p_report:string|null;p_result:string};Returns:undefined};
+      save_reading_record:{Args:{p_work:string;p_expected_version:number|null;p_payload:Json;p_clear_evaluation:boolean};Returns:undefined};
+      copy_work_to_library:{Args:{p_work:string};Returns:undefined};
+      bulk_library_change:{Args:{p_selection:Json;p_operation:string;p_value:string;p_confirm:boolean};Returns:undefined};
+      make_all_library_private:{Args:{p_confirm:boolean};Returns:undefined};
+      get_my_reading_record:{Args:{p_work:string};Returns:Json};
+      get_my_library:{Args:{p_filters:Json;p_page:number};Returns:Json};
+      get_public_library:{Args:{p_username:string;p_page:number};Returns:Json};
+      get_reading_stats:{Args:{p_username:string|null};Returns:Json};
+      get_work_evaluation_stats:{Args:{p_work:string};Returns:Json};
       get_my_access: { Args: Record<string, never>; Returns: Json };
       reserve_account_request: { Args: {p_action:string}; Returns: undefined };
       complete_onboarding: { Args: { p_username: string; p_display_name: string; p_bio: string; p_library: Visibility; p_evaluation: Visibility; p_genres: string[]; p_policy_version: string; p_terms: boolean; p_privacy: boolean; p_age_14: boolean }; Returns: undefined };
