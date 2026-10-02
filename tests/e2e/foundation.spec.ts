@@ -7,7 +7,7 @@ test("home navigation shows honest unavailable state and no horizontal overflow"
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("읽은 이야기마다,나의 취향이 쌓인다.");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.getByRole("link", { name: "서재 둘러보기" }).click();
+  await page.getByRole("link", { name: "작품 찾아보기", exact: true }).click();
   await expect(page).toHaveURL(/\/explore$/);
   await expect(page.getByRole("heading", { name: "작품 카탈로그를 준비하고 있어요" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "작품 제목·별칭·작가 검색" })).toBeDisabled();
@@ -17,9 +17,11 @@ test("home navigation shows honest unavailable state and no horizontal overflow"
 
 test("theme choice survives reload and system mode remains available", async ({ page }) => {
   await page.goto("/");
+  await page.locator(".theme-switcher > summary").click();
   await page.getByRole("button", { name: "다크 테마", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
+  await page.locator(".theme-switcher > summary").click();
   await expect(page.getByRole("button", { name: "다크 테마", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "시스템 테마" }).click();
   await expect(page.getByRole("button", { name: "시스템 테마" })).toHaveAttribute("aria-pressed", "true");
@@ -46,9 +48,11 @@ test("keyboard skip link reaches main content", async ({ page }) => {
 for (const theme of ["라이트", "다크"]) {
   test(`@a11y ${theme} home and empty state have no automated WCAG AA violations`, async ({ page }) => {
     await page.goto("/");
+    await page.locator(".theme-switcher > summary").click();
     await page.getByRole("button", { name: `${theme} 테마`, exact: true }).click();
     for (const route of ["/", "/explore"]) {
       await page.goto(route);
+      await page.locator(".theme-switcher > summary").click();
       await expect(page.getByRole("button", { name: `${theme} 테마`, exact: true })).toHaveAttribute("aria-pressed", "true");
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
       expect(results.violations).toEqual([]);
