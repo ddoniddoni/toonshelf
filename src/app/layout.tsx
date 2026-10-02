@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { MobileNavigation } from "@/components/navigation";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getServerEnv } from "@/lib/env/server";
 import "./globals.css";
+import "./stitch.css";
 
 export const metadata: Metadata = {
   title: { default: "ToonShelf · 취향을 담는 웹툰 서재", template: "%s · ToonShelf" },
@@ -18,7 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <a className="skip-link" href="#main-content">본문으로 바로 가기</a>
       <AppHeader />
       <main id="main-content" tabIndex={-1}>{children}</main>
-      <footer className="app-footer"><span className="footer-brand">toonshelf.</span><span>읽은 이야기, 오래 남는 취향.</span><span className="footer-preview">미리 보기</span></footer>
+      <footer className="app-footer"><div className="footer-inner"><div className="footer-summary"><Link href="/" className="footer-brand">ToonShelf</Link><span className="footer-preview">개발 미리 보기</span><p>웹툰은 공식 플랫폼에서, 기록은 나만의 서재에서. ToonShelf는 웹툰 기록과 리뷰를 위한 서비스예요.</p></div><nav aria-label="서비스 안내"><Link href="/legal/terms">이용약관</Link><Link href="/legal/privacy">개인정보처리방침</Link><Link href="/community">커뮤니티</Link><Link href="/submissions/new">작품 정보 제보</Link></nav></div></footer>
       <MobileNavigation />
     </ThemeProvider>
   </body></html>;

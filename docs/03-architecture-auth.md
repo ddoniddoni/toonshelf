@@ -2,6 +2,14 @@
 
 ## 1. 버전과 라이브러리 정책
 
+### Stitch 원본 재대조·화면 수정 · 2026-10-02
+
+설치된 Next Image/CSS 안내를 읽고 기존 고정 의존성과 Server Component 구조를 재사용했다. 참조 치수와 화면별 스타일은 `src/app/stitch.css`에서 `globals.css` 뒤에 적용한다. 홈은 기존 공개 `searchWorks`로 최대 6개를 읽고 첫 작품의 `listReviews`를 읽어 제한된 공개 DTO만 표시한다. 미연결은 빈 상태, 조회 실패는 일반 안내로 처리하며 원문 오류나 합성 자료를 출력하지 않는다. `/me/library`의 `edit` query는 `none` 선택 해제 또는 서버에서 검증한 UUID만 허용하고 인증된 본인의 현재 페이지 결과에서만 선택한다. query가 없으면 현재 페이지에서 공개 메타데이터가 있는 첫 본인 기록을 선택한다. 오른쪽 패널과 작품 상세의 전체 너비 기록 입력은 기존 version 기반 `RecordForm`/저장 action을 사용한다. 작품 메타데이터는 기존 공개 상세 조회를 통과해야 표시한다.
+
+상세의 같은 장르 목록은 기존 공개 검색에 작품의 첫 장르를 전달해 최근 등록 작품에서 현재 작품을 제외한 최대 4개를 표시한다. 이 조회 실패는 빈 안내로 처리하며 개인화 추천이나 신규 P6 집계를 제공하지 않는다. `/rankings`는 준비 안내이고 `/tiers`의 빈 보드는 저장이 없는 표현 계층이다.
+
+Inter 4.1·Pretendard 1.3.9 폰트 원본과 라이선스를 `public/fonts`에 보관하고 `@font-face`로 자체 제공한다. 새 패키지나 런타임 CDN 호출은 추가하지 않았다. 시안의 배너 일러스트는 자동 승인 검토가 다운로드를 거절해 파일이 없으며 별도 승인 대기다. 표지 권리 proxy·세션 검증·스포일러 본문 게이트·공개 집계·private 기록 경계를 유지했다. 신규 DB/RPC/client 캐시·인증 연동·의존성은 추가하지 않았다. TypeScript/Next 컴파일·브라우저·실제 DB/저장 실행과 자동 검사는 모두 미실행이다.
+
 ### P3 서재·평가 기반 · 2026-10-02
 
 `src/lib/library/`의 Zod 입력 검증/명시적 DTO/Server Actions와 migration RPC를 연결했다. 모든 변경은 확인된 active 계정의 사용자 SDK로 호출하고 DB에서 현재 세션/동의/상태/작품 공개 조건을 다시 검증한다. 별도 service role 쓰기나 localStorage 저장을 사용하지 않는다. SSR의 기존 no-store 조회를 유지하고 저장 뒤 서재·작품 상세·공개 프로필·공개 범위 설정을 revalidate한다. Next 설치 문서의 Server Actions/revalidatePath를 읽고 기존 고정 의존성을 재사용했다. DB 생성 타입은 없으며 수동 migration 계약에 RPC만 추가했다. 테스트·컴파일·브라우저·실제 DB 실행 검증은 미실행이다.

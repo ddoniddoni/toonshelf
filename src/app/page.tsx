@@ -1,35 +1,55 @@
 import Link from "next/link";
-import { ArrowRight, Bookmark, Layers3, LockKeyhole, Search, Star } from "lucide-react";
-import { TypographyCover } from "@/components/work/typography-cover";
+import { ArrowRight, BookOpen, ChevronDown, Layers3, PencilLine, Star } from "lucide-react";
+import { WorkCard } from "@/components/catalogue/work-card";
+import { WorkCover } from "@/components/catalogue/work-cover";
+import { ReviewList } from "@/components/reviews/review-list";
+import { EmptyState } from "@/components/ui/empty-state";
+import { getPublicEnv } from "@/lib/env/public";
+import { searchWorks } from "@/lib/catalogue/data";
+import { parseFilters, dayLabels, type WorkCard as Card } from "@/lib/catalogue/model";
+import { listReviews } from "@/lib/reviews/data";
+import type { ReviewCard } from "@/lib/reviews/model";
 
-export default function HomePage() {
-  return <div className="page-container home-page">
-    <section className="hero" aria-labelledby="home-title">
-      <div className="hero-copy">
-        <p className="eyebrow"><span className="tiny-book" aria-hidden="true" />나의 웹툰, 하나의 서재</p>
-        <h1 id="home-title">읽은 이야기마다,<br /><span>나의 취향이 쌓인다.</span></h1>
-        <p className="hero-description">여러 플랫폼에서 만난 웹툰을 한곳에.<br />좋았던 순간을 기록하고, 나만의 순서로 모아 보세요.</p>
-        <div className="hero-actions"><Link className="button button-primary" href="/explore">서재 둘러보기<ArrowRight size={18} aria-hidden="true" /></Link><a className="text-link" href="#about">어떤 서재인가요?</a></div>
-        <p className="hero-note"><span className="status-dot" aria-hidden="true" />지금은 미리 보기예요. 기록과 공유 기능을 준비하고 있어요.</p>
+export const dynamic = "force-dynamic";
+
+async function loadHome() {
+  const empty: { works: Card[]; reviews: ReviewCard[]; reviewWork: Card | null; unavailable: boolean } = { works: [], reviews: [], reviewWork: null, unavailable: false };
+  if (!getPublicEnv().supabase) return empty;
+  try {
+    const catalogue = await searchWorks(parseFilters({}), undefined, 6);
+    const first = catalogue.items[0] ?? null;
+    let reviews: ReviewCard[] = [];
+    if (first) {
+      try { reviews = (await listReviews(first.id, null, 1))?.items.slice(0, 2) ?? []; }
+      catch { /* The catalogue remains available when reviews cannot load. */ }
+    }
+    return { ...empty, works: catalogue.items, reviews, reviewWork: first };
+  } catch { return { ...empty, unavailable: true }; }
+}
+
+const tierGuides = [
+  { label: "MY TIER", title: "나만의 기준으로 고른 S급 작품", description: "개인 별점과 별도로, 공유하고 싶은 작품의 티어표를 만들어요.", href: "/tiers", action: "티어 편집기 미리 보기", Icon: Layers3 },
+  { label: "READING ARCHIVE", title: "끝까지 읽은 이야기를 한곳에", description: "완독한 작품을 모아 보고, 오래 남을 감상을 기록해 보세요.", href: "/me/library?status=completed", action: "완독한 내 작품 보기", Icon: BookOpen },
+  { label: "NEXT STORY", title: "다음에 읽을 이야기를 모아요", description: "여러 플랫폼에서 찾은 작품을 나중에 볼 목록에 담아 두세요.", href: "/me/library?status=planned", action: "나중에 볼 작품 보기", Icon: Star },
+];
+
+export default async function HomePage() {
+  const home = await loadHome();
+  const featured = home.works[0];
+  return <div className="page-container home-hub">
+    <section className="home-banner" aria-labelledby="home-title">
+      <div className="home-banner-copy">
+        <div><p className="banner-kicker"><span>WEBTOON ARCHIVE</span><small>읽고, 기록하고, 취향을 나누는 서재</small></p>
+          <h1 id="home-title">읽은 이야기마다,<br/><span>나의 취향이 쌓인다.</span></h1>
+          <p>네이버웹툰·카카오웹툰·리디 등 여러 플랫폼의 작품을 한곳에서 찾고,<br/>별점과 리뷰로 오래 남을 이야기를 모아 보세요.</p></div>
+        <div className="home-banner-actions"><Link className="button button-primary" href="/explore">작품 찾아보기 <ArrowRight size={16} aria-hidden="true"/></Link><Link href="/me/library"><span className="banner-status-dot"/> 내 서재에서 기록하기</Link></div>
       </div>
-      <div className="shelf-art" role="img" aria-label="읽고, 기록하고, 나누는 취향을 표현한 세 권의 책 일러스트">
-        <div className="shelf-annotation" aria-hidden="true">취향이 머무는 자리 <span>↙</span></div>
-        <div className="shelf-books" aria-hidden="true">
-          <div className="art-book art-book-one"><TypographyCover title="읽다." caption="마음에 남는 이야기" tone="iris" /></div>
-          <div className="art-book art-book-two"><TypographyCover title="기록하다." caption="나만의 감상과 별점" tone="mint" /></div>
-          <div className="art-book art-book-three"><TypographyCover title="나누다." caption="서로 다른 취향의 발견" tone="peach" /></div>
-        </div>
-        <div className="shelf-base" aria-hidden="true" /><div className="shelf-label" aria-hidden="true"><span>MY TASTE, MY SHELF</span><Bookmark size={18} /></div>
-      </div>
+      <div className="home-banner-visual"><div className="home-banner-picture" aria-hidden="true">{featured?.coverAssetId ? <WorkCover title={featured.title} assetId={featured.coverAssetId}/> : <span className="banner-monogram">T</span>}</div><div className="home-banner-caption"><span>{featured ? "최근 등록된 이야기" : "MY WEBTOON ARCHIVE"}</span><Link href={featured ? "/works/"+featured.slug : "/explore"}>{featured?.title ?? "여러 플랫폼의 이야기를 나의 서재에"}</Link><small>{featured ? featured.genres.map(g=>g.name).join(" · ") : "작품 정보와 공식 읽는 곳을 함께 확인해요."}</small></div></div>
     </section>
-    <section className="about-section" id="about" aria-labelledby="about-title">
-      <div className="section-heading"><div><p className="eyebrow">취향을 모으는 세 가지 방법</p><h2 id="about-title">다 읽고 나서도, 이야기는 계속.</h2></div><p>읽는 곳은 달라도<br />기록은 흩어지지 않도록.</p></div>
-      <div className="feature-grid">
-        <article className="feature"><span className="feature-icon icon-iris"><Search size={23} aria-hidden="true" /></span><h3>흩어진 작품을 한곳에</h3><p>플랫폼마다 흩어진 작품을 찾고,<br />다음에 읽을 이야기까지 모아요.</p><span className="feature-caption">발견하는 즐거움</span></article>
-        <article className="feature"><span className="feature-icon icon-mint"><Star size={23} aria-hidden="true" /></span><h3>평가는 내 기준으로</h3><p>별점과 티어, 짧은 감상까지.<br />남의 순위보다 나의 취향을 남겨요.</p><span className="feature-caption">기록하는 즐거움</span></article>
-        <article className="feature"><span className="feature-icon icon-peach"><Layers3 size={23} aria-hidden="true" /></span><h3>취향이 닿는 사람들과</h3><p>나만의 티어리스트를 만들고,<br />다른 독자의 새로운 관점을 만나요.</p><span className="feature-caption">나누는 즐거움</span></article>
-      </div>
-    </section>
-    <aside className="privacy-strip"><span className="privacy-icon"><LockKeyhole size={21} aria-hidden="true" /></span><div><h2>공유는, 내가 원할 때.</h2><p>내 서재와 평가는 비공개로 시작해요. 공개할 기록은 직접 선택하세요.</p></div><span className="privacy-tag">나를 위한 서재</span></aside>
+    <nav id="weekdays" className="day-navigation" aria-label="요일별 웹툰"><div>{dayLabels.map((day,index)=><Link key={day} href={"/explore?day="+index}>{day}</Link>)}<span className="day-divider"/><Link href="/explore?status=completed">완결</Link><Link href="/explore?sort=latest">신작 <small>N</small></Link></div><div className="day-controls"><Link href="/explore?sort=latest">최근 등록순 <ChevronDown size={12} aria-hidden="true"/></Link><Link href="/explore">전체 플랫폼 <ChevronDown size={12} aria-hidden="true"/></Link></div></nav>
+    <section className="home-section" aria-labelledby="recent-works"><div className="hub-section-heading"><div><h2 id="recent-works">새로 등록된 웹툰 <span className="section-chip">최근 등록</span></h2><p>공식 출처와 함께 등록된 작품을 만나 보세요.</p></div><Link className="text-link" href="/explore">전체 작품 <ArrowRight size={14} aria-hidden="true"/></Link></div>
+      {home.works.length ? <div className="work-grid home-work-grid">{home.works.map(work=><WorkCard key={work.id} work={work}/>)}</div> : <EmptyState title={home.unavailable ? "작품 목록을 불러오지 못했어요" : "첫 이야기를 기다리고 있어요"} description={home.unavailable ? "작품 탐색에서 다시 확인해 주세요." : "공개된 작품이 등록되면 여기에 표시돼요. 알고 있는 작품을 공식 출처와 함께 제보해 주세요."} action={<Link className="button button-secondary" href={home.unavailable ? "/explore" : "/submissions/new"}>{home.unavailable ? "작품 탐색으로 이동" : "작품 제보하기"}</Link>}/>}</section>
+    <section className="home-section" aria-labelledby="home-tiers"><div className="hub-section-heading"><div><h2 id="home-tiers">독자 큐레이션 티어리스트 <span className="section-chip">준비 중</span></h2><p>공유 티어리스트 기능은 준비 중이에요. 내 기록부터 모아 보세요.</p></div><Link className="text-link" href="/tiers">편집기 미리 보기 <ArrowRight size={14} aria-hidden="true"/></Link></div><div className="home-tier-grid">{tierGuides.map(({label,title,description,href,action,Icon})=><article className="home-tier-card" key={label}><div className="tier-cover-strip" aria-hidden="true">{[0,1,2,3].map(n=><div key={n}><BookOpen size={18}/></div>)}</div><span className="tier-guide-label">{label}</span><h3>{title}</h3><p>{description}</p><div className="tier-guide-footer"><Icon size={15} aria-hidden="true"/><Link href={href}>{action} <ArrowRight size={13} aria-hidden="true"/></Link></div></article>)}</div></section>
+    <section className="home-section home-reviews-section" aria-labelledby="home-reviews"><div className="hub-section-heading"><div><h2 id="home-reviews">독자 리뷰 &amp; 정주행 한줄평 <span className="section-chip">REVIEW</span></h2><p>{home.reviewWork ? home.reviewWork.title+"에 남긴 공개 리뷰예요. 스포일러는 상세에서 직접 펼쳐요." : "읽은 기준 회차와 스포일러 표시를 함께 남겨 보세요."}</p></div><Link className="button button-secondary" href="/me/reviews"><PencilLine size={16} aria-hidden="true"/>내 리뷰 남기기</Link></div><ReviewList items={home.reviews} variant="feed"/></section>
   </div>;
 }

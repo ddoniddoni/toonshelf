@@ -16,11 +16,12 @@ const themes = [
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  return <div className="theme-switcher" role="group" aria-label="화면 테마">
+  const CurrentIcon = mounted ? themes.find(item => item.value === theme)?.Icon ?? Monitor : Monitor;
+  return <details className="theme-switcher"><summary aria-label="화면 테마 선택" title="화면 테마 선택"><CurrentIcon size={18} aria-hidden="true"/><span className="sr-only">화면 테마 선택</span></summary><div role="group" aria-label="화면 테마">
     {themes.map(({ value, label, Icon }) => <button
       key={value} type="button" aria-label={`${label} 테마`}
       aria-pressed={mounted && theme === value}
       onClick={() => setTheme(value)} title={`${label} 테마`}
-    ><Icon size={17} aria-hidden="true" /></button>)}
-  </div>;
+    ><Icon size={17} aria-hidden="true" /><span>{label}</span></button>)}
+  </div></details>;
 }
