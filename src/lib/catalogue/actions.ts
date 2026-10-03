@@ -11,6 +11,7 @@ import { catalogueAdminAccount } from "./admin";
 import { catalogueOptions } from "./data";
 import { catalogueError } from "./errors";
 import { canonicalOfficialUrl,reasonSchema,sourceUrlSchema,suggestionSchema,uuidSchema,workPayloadSchema } from "./model";
+import { mergePolicySchema } from "./merge-model";
 
 const lines = (value:string) => value.split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
 function dateField(form:FormData,name:string) { return z.iso.date().parse(field(form,name))+"T00:00:00Z"; }
@@ -88,12 +89,15 @@ export async function mergeWorks(_state:FormState,form:FormData):Promise<FormSta
   return finish(async()=>{
     const {client} = await catalogueAdminAccount();
     const source = uuidSchema.parse(field(form,"sourceId"));const target = uuidSchema.parse(field(form,"targetId"));
+    if (source === target) throw new AuthFailure("VALIDATION_ERROR","서로 다른 두 작품을 선택해 주세요.");
     const version = (name:string)=>z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).parse(field(form,name));
     const reason = reasonSchema.parse(field(form,"reason").trim());
-    if (!checked(form,"confirm")) throw new AuthFailure("VALIDATION_ERROR","병합 결과를 확인하고 동의해 주세요.");
+    if (!checked(form,"confirm") || !checked(form,"confirmPolicy")) throw new AuthFailure("VALIDATION_ERROR","같은 웹툰인지와 개인 기록 보존 정책을 확인해 주세요.");
     const {error} = await client.rpc("admin_merge_works",{p_source:source,p_target:target,p_source_version:version("sourceVersion"),
-      p_target_version:version("targetVersion"),p_reason:reason,p_confirm:true});
+      p_target_version:version("targetVersion"),p_reason:reason,p_confirm:true,
+      p_preview_token:uuidSchema.parse(field(form,"previewToken")),p_conflict_policy:mergePolicySchema.parse(field(form,"conflictPolicy"))});
     catalogueError(error);
+    revalidatePath("/");revalidatePath("/me","layout");revalidatePath("/u/[username]","layout");revalidatePath("/reviews","layout");
     return "/admin/works/"+target+"/edit?merged=1";
   });
 }

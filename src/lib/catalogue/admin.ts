@@ -7,6 +7,7 @@ import { guardPage,requireAccount } from "@/lib/auth/session";
 import { getPublicEnv } from "@/lib/env/public";
 import { catalogueError } from "./errors";
 import { ageSchema,creatorInputSchema,linkInputSchema,serialSchema,slugSchema,uuidSchema } from "./model";
+import { mergePreviewSchema } from "./merge-model";
 
 export const catalogueAdminAccount = cache(async ()=>{
   const account = await requireAccount();
@@ -42,11 +43,6 @@ export async function getAdminSnapshot(id:string) {
   catalogueError(error);
   return data === null ? null : snapshotSchema.parse(data);
 }
-export const mergePreviewSchema = z.object({
-  source:z.object({id:uuidSchema,title:z.string(),version:z.number().int(),status:z.string()}),
-  target:z.object({id:uuidSchema,title:z.string(),version:z.number().int(),status:z.string()}),
-  blockedByPersonalDomains:z.boolean(),sourceLinkCount:z.number(),sourceGenreCount:z.number(),sourceCoverWillBeRevoked:z.boolean()
-});
 export async function getMergePreview(source:string,target:string) {
   const {client} = await catalogueAdminAccount();
   const {data,error} = await client.rpc("admin_merge_preview",{p_source:uuidSchema.parse(source),p_target:uuidSchema.parse(target)});

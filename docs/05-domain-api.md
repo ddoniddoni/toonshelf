@@ -75,7 +75,7 @@ P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며
 
 rating 정렬은 공개 별점 평균 내림차순(null last) → ratingCount 내림차순 → 작품 UUID 오름차순이다. 표시에만 소수 둘째 자리 반올림을 사용한다. rating next는 `{id,ratingSum,ratingCount,viewerId}`이며 ratingSum은 반점 단위 정수 합계다. 합계/건수는 0~JS safe integer 범위이고 건수 0이면 합계도 0, 양수면 건수~건수×10이다. server cursor v2는 모든 필터 fingerprint에 묶고 DB는 정수/키/현재 조회자/기준 작품의 현재 공개 합계·건수를 검증한다. 기준이 바뀌거나 접근 불가능하면 VALIDATION_ERROR로 첫 페이지 재시작을 안내한다. 기존 latest/title cursor v1 `{id,createdAt,title}`은 유지하며 title은 200 Unicode code point다. 페이지는 실시간 조회이며 다른 작품의 평가가 이동 중 바뀌면 순서/위치가 달라질 수 있다. snapshot/cross-user 캐시에 오래된 공개 점수를 남기지 않는다.
 
-CAT-03 탐색의 rating은 일반 공개 평균 기준이며 평가 없는 작품도 포함한다. 아래 P6 순위용 최소 표본/weighted_score와 경험별 세부 표본 계약은 별도 후속 구현이다. P2 제보 결과는 `/submissions`에서 확인하며 P5에서 알림을 연결한다. P3+ 개인 도메인 table이 추가되면 아래 13절의 전체 보존 규칙을 해당 단계에서 구현하기 전까지 P2 병합 RPC가 명시적으로 거절한다.
+CAT-03 탐색의 rating은 일반 공개 평균 기준이며 평가 없는 작품도 포함한다. 아래 P6 순위용 최소 표본/weighted_score와 경험별 세부 표본 계약은 별도 후속 구현이다. P2 제보 결과는 `/submissions`에서 확인하며 P5에서 알림을 연결한다. P3 개인 기록 보존 병합은 아래 13절의 작성 범위로 확장했고 티어·게시글 등 후속 도메인은 각 보존 handler 작성 전까지 거절한다.
 
 | 기능 | 입력/출력 | 규칙 |
 |---|---|---|
@@ -391,3 +391,11 @@ IP는 배포 플랫폼의 신뢰된 proxy chain에서만 읽고 공격자가 보
 공식 링크와 작가/장르 관계를 중복 없이 통합한다. source는 merged 상태와 merged_into_id를 남기고 상세 slug는 target으로 리다이렉트한다. 이전 티어 게시본은 읽을 때 merged work ID를 정규화하되 최신 draft 정리는 버전 충돌 규칙을 유지한다.
 
 작품 병합은 비공개 내용에 접근하는 민감한 관리 작업이다. 관리자 화면에 필요 없는 사용자 메모 원문을 보여주지 않으며 감사 로그에 내용을 복사하지 않는다.
+
+**P3 작성 계약 · 2026-10-03 (실행 미검증):** `admin_merge_preview`는 metadata/이동 건수/충돌 건수/`canMerge`와 무작위 `previewToken`만 반환한다. 관리자·source/target 쌍에 묶인 토큰은 10분 유효하며 새 미리보기로 교체된다. 내부 snapshot에는 양쪽 서재/details/evaluation과 리뷰/초안/작품이 포함되고 그 SHA-256 fingerprint는 private에만 저장한다. `admin_merge_works`는 기존 ID/version/reason/confirm에 `p_preview_token`, `p_conflict_policy='latest_private'`를 추가한 단일 signature다. 잠금 이후 version/fingerprint/만료/소유자를 다시 비교하고 변경·경합·만료는 거절한다.
+
+상태는 library updated_at, 평가는 evaluation updated_at의 최신 **한 행 전체**, 진행/선호 링크는 details updated_at 기준으로 선택하며 동률은 target이다. 빈 진행 값은 다른 행으로 보완하되 잘못된 날짜 조합은 충돌이다. 서재/평가 visibility는 각각 private 우선이며 평가 없는 행은 평가 충돌 후보가 아니다. 메모는 target→source 순서로 제목/UUID 출처를 붙이고 태그는 union한다. 합친 메모 5000자/태그 20개 초과, 선택된 planned 상태에 평가 존재, 현재 리뷰 두 건, 별칭/링크/작가 관계 20개/장르 12개 초과는 전체 중단한다. 현재 공개 불가능한 source에 개인 기록이나 현재 리뷰가 있으면 노출 확대를 막기 위해 중단한다. 관리자는 건수만 확인하고 소유자는 본인 기록/리뷰를 별도로 보관한 뒤 수정/삭제해 충돌을 정리한다. 서비스 export 기능은 P7 대기다.
+
+덮어쓴 상태·평가·진행을 포함한 두 원래 서재 기록은 private owner 보관본에 저장하며 `/me/library/merges`에서 `get_my_work_merge_history(p_page)`로 20개씩 확인·복사한다. 보관본을 `delete_my_work_merge_history(p_id,p_confirm)`로 지워도 현재 서재/평가/리뷰는 유지한다. 일반 기록 편집/삭제만으로 이 별도 보관본이 바뀌지는 않는다고 안내한다. `get_my_work_merge_target`은 본인 원본 이력과 현재 본인 기록이 있을 때만 옛 ID의 이동 대상을 반환한다. 제목 표시와 리뷰 연결에는 현재 공개/미삭제 조건을 반영한다.
+
+리뷰 ID/게시/스포일러/운영 상태/본문/신고/운영 참조를 보존하고 미삭제 source 리뷰의 draft payload를 그대로 유지한다. 서재는 양쪽 version 최대+1, source 리뷰/초안은 각각 version+1로 이전 편집을 무효화한다. 통계에는 살아남은 canonical evaluation 한 행만 반영한다. 티어·게시글 보호는 유지하며 미래 handler와 P7 export/탈퇴 완결은 후속이다.

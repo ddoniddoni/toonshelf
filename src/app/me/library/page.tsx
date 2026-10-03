@@ -29,6 +29,7 @@ export default async function Page({searchParams}:{searchParams:Promise<SearchPa
   const work = selected?.work ? await getWorkDetail(selected.work.slug) : null;
   const total = Object.values(stats?.statuses ?? {}).reduce((sum,count)=>sum+count,0);
   return <section className="page-container library-page">
+    <Link className="text-link" href="/me/library/merges">내 작품 병합 이력 · 원본 기록 확인 →</Link>
     {params.changed === "1" || params.private === "1" ? <p role="status" className="form-success">기록 변경을 저장했어요.</p> : null}
     <div className="library-layout"><div className="library-main"><section className="library-profile-card"><div className="library-heading"><div className="library-owner"><UserAvatar path={profile?.avatar_path ?? null} name={profile?.display_name ?? "나"}/><div><h1>{profile?.display_name ? profile.display_name+"의 서재" : "내 서재"}</h1><p>플랫폼은 달라도 나의 독서 기록은 한곳에.</p></div></div><div className="library-heading-actions">{profile?.username ? <Link className="button button-secondary" href={"/u/"+profile.username}>공개 서재 보기</Link> : null}<Link className="button button-secondary" href="/settings/privacy"><SlidersHorizontal size={14} aria-hidden="true"/>공개 설정</Link></div></div>
       {stats ? <ReadingStatistics stats={stats} compact/> : null}

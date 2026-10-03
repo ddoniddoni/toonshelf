@@ -10,6 +10,12 @@
 
 Inter 4.1·Pretendard 1.3.9 폰트 원본과 라이선스를 `public/fonts`에 보관하고 `@font-face`로 자체 제공한다. 새 패키지나 런타임 CDN 호출은 추가하지 않았다. 시안의 배너 일러스트는 자동 승인 검토가 다운로드를 거절해 파일이 없으며 별도 승인 대기다. 표지 권리 proxy·세션 검증·스포일러 본문 게이트·공개 집계·private 기록 경계를 유지했다. 신규 DB/RPC/client 캐시·인증 연동·의존성은 추가하지 않았다. TypeScript/Next 컴파일·브라우저·실제 DB/저장 실행과 자동 검사는 모두 미실행이다.
 
+### P3 개인 기록 보존 병합 · 2026-10-03
+
+관리자 Server Action은 현재 계정/DB 역할, UUID/version, 미리보기 토큰과 `latest_private` 정책/확인을 검증한다. 개인 내용은 SQL transaction 안에서 처리하며 RPC의 관리자 DTO는 합계와 충돌 건수로 제한한다. SQL의 SHA-256 snapshot은 private에만 보관하고 브라우저에는 무작위 관리자 전용 10분 토큰만 반환한다. 이전 6-argument `admin_merge_works`를 제거하고 토큰/정책을 포함한 단일 signature로 교체한다.
+
+`/me/library/merges`와 관련 owner RPC는 현재 계정 자신의 원본만 제공한다. 메모는 plain text로 Server Component에서 표시하며 공유 캐시·공개 DTO를 사용하지 않는다. 병합 성공 시 홈/카탈로그/관리자/내 화면/프로필/리뷰를 revalidate한다. 서재 version과 리뷰/초안 version을 갱신하며 경합 lock은 대기 없이 전체 rollback 후 미리보기 재확인을 요구한다. 설치된 Next Server Actions/revalidatePath 안내와 Vercel React 인증/직렬화 지침을 참고했다. SDK 계약은 수동 작성 상태이고 DB 생성 타입·컴파일·실행 검증은 미실행이다.
+
 ### P3 카탈로그 평점순 · 2026-10-03
 
 기존 Server Component 탐색·GET 폼·`/api/works/search`와 `searchWorks` DAL을 재사용한다. 입력/페이지 상한/cursor 조건을 SDK 생성 전에 검증하고 검색 결과에 별도 `CatalogueRating` public summary를 포함한다. 기본 `WorkCard`/서재/상세 DTO에는 새 필드를 요구하지 않으며 탐색만 카드의 rating prop을 전달한다. 조회는 사용자 세션의 기존 no-store SDK와 한 번의 RPC이며 작품별 추가 SDK 요청이나 공용 client 캐시를 도입하지 않았다. 필터 form key로 URL 조건이 바뀔 때 uncontrolled 입력도 새 조건을 반영하도록 작성했다.
