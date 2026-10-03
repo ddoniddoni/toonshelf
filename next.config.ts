@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  outputFileTracingIncludes: { "/api/tiers/*/export": ["./public/fonts/Pretendard-Regular.otf"], "/api/og/tiers": ["./public/fonts/Pretendard-Regular.otf"], "/api/og/tiers/*": ["./public/fonts/Pretendard-Regular.otf"] },
   experimental: { serverActions: { bodySizeLimit: "3mb" } },
   // Auth links, share capabilities and action arguments can contain credentials.
   logging: { incomingRequests: { ignore: [/\/auth(?:\/|\?)/,/\/share\/t(?:\/|\?)/] }, serverFunctions: false, browserToTerminal: false },
@@ -15,6 +16,12 @@ const nextConfig: NextConfig = {
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         { key: "X-Robots-Tag", value: "noindex, nofollow" }
       ]
+    }, {
+      source: "/api/tiers/:path*",
+      headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }],
+    }, {
+      source: "/api/og/tiers/:path*",
+      headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }],
     }, {
       source: "/auth/:path*",
       headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }],

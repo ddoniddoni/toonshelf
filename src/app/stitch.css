@@ -649,3 +649,8 @@ html { scroll-padding-top: 76px; }
   .record-form .form-columns { grid-template-columns: minmax(0,1fr); }
   .header-actions > .header-icon[disabled] { display: none; }
 }
+.tier-image-export { margin: 24px 0; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.tier-image-export h2 { margin: 0 0 12px; font-size: 18px; }
+.tier-image-export > p { margin: 12px 0; }
+.tier-image-export .form-checkbox { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; }
+.tier-image-export .tier-list-actions { flex-wrap: wrap; margin-top: 16px; }

@@ -268,9 +268,15 @@ RPC 흐름: 인증/소유권/계정 상태 → 대상 행 FOR UPDATE → expecte
 | 운영 현재 게시본 | `moderation_tier_snapshot(id)` → 현재 게시본/신고/감사만·private 초안/옛 게시본/token 제외 |
 | 운영 조치 | `moderate_tier_publication(id,version,action,reason,report?,result)` → hide/restore/reject_report, 결과/감사/version 원자 처리·30회/분 |
 
-암호문 자료는 `{hash,ciphertext,nonce}` 세 필드뿐이며 token은 32바이트 난수의 정규 base64url(43자), hash는 SHA-256 hex다. ciphertext는 43바이트 token과 16바이트 GCM tag, nonce는 12바이트를 hex로 보관한다. 공개/링크 payload는 title/description/tags/rows/placed work UUID만 보관한다. reader DTO는 행별 public WorkCard 또는 null 대체이며 숨김 UUID·미배치·비공개 메모·token·원격 이미지 URL을 포함하지 않는다. spoiler는 기본 표시이며 최초 body=null, 명시적 POST 확인 뒤 현재 권한/버전을 재검사한다. 제목/배치를 metadata/OG에 넣지 않는다.
+암호문 자료는 `{hash,ciphertext,nonce}` 세 필드뿐이며 token은 32바이트 난수의 정규 base64url(43자), hash는 SHA-256 hex다. ciphertext는 43바이트 token과 16바이트 GCM tag, nonce는 12바이트를 hex로 보관한다. 공개/링크 payload는 title/description/tags/rows/placed work UUID만 보관한다. reader DTO는 행별 public WorkCard 또는 null 대체이며 숨김 UUID·미배치·비공개 메모·token·원격 이미지 URL을 포함하지 않는다. spoiler는 기본 표시이며 최초 body=null, 명시적 POST 확인 뒤 현재 권한/버전을 재검사한다. 스포일러/링크 공개의 제목·배치를 metadata/OG에 넣지 않는다. OG 텍스트 metadata는 모두 일반 안내이며 스포일러 없는 public 이미지에만 현재 일부 행 텍스트를 포함한다.
 
-초안 version, lifecycle version, 단조 publication_counter는 별개다. 초안 저장은 lifecycle과 현재 게시본을 변경하지 않는다. 회전/철회/게시/운영/작품 병합은 lifecycle을 올려 오래된 작업을 거절한다. 삭제 RPC는 publication·token도 제거하며 현재 조회 경로는 모두 dynamic/no-store다. 현재 신고자 상세·결과는 private owner RPC만, 운영자 snapshot은 현재 public/unlisted 게시본만 제공한다. 보관한 옛 게시본의 owner UI·대표 티어 지정/철회 연동·PNG/OG 이미지·기본 평가 가져오기/반영·인기/테마/소셜 반응은 후속이며 실행 검증은 없다.
+초안 version, lifecycle version, 단조 publication_counter는 별개다. 초안 저장은 lifecycle과 현재 게시본을 변경하지 않는다. 회전/철회/게시/운영/작품 병합은 lifecycle을 올려 오래된 작업을 거절한다. 삭제 RPC는 publication·token도 제거하며 현재 조회 경로는 모두 dynamic/no-store다. 현재 신고자 상세·결과는 private owner RPC만, 운영자 snapshot은 현재 public/unlisted 게시본만 제공한다. 보관한 옛 게시본의 owner UI·대표 티어 지정/철회 연동·비회원 PNG·기본 평가 가져오기/반영·인기/테마/소셜 반응은 후속이며 실행 검증은 없다.
+
+**P4 PNG/OG 계약 · 2026-10-04 (작성·미적용/미검증):** POST `/api/tiers/[id]/export`의 strict JSON은 `{source: draft|publication,version,token:null|string,confirm:true,confirmSpoiler:boolean}`이며 2KiB 이하·서비스 Origin만 허용한다. 활성/이메일 확인/동의 회원만 이용하고 token은 POST body에서 hash로 바꾼다. `begin_tier_image_export(id,source,version,hash?,confirmSpoiler)`는 owner 초안 또는 현재 접근 가능한 게시본을 검사해 `{id,source,version,isSpoiler,body:{title,description,tags,rows:[row+items:[{title}|null]]},unplaced:[{title}|null]}`를 반환하며 공통 계정 bucket을 5회/고정 600초로 예약한다. source=publication은 lifecycle version, draft는 draft version이며 전자 unplaced=[]다. 스포일러 게시본은 confirmSpoiler=true를 요구한다. 계정/소유권/차단/author/운영/숨김 작품을 UI와 무관하게 RPC에서도 검사하며 raw work/asset/token/개인 메모를 projection하지 않는다.
+
+한 번의 예약으로 최대 8장·PNG 합계 16MiB를 만들고 페이지가 하나면 PNG, 둘 이상이면 fixed ASCII PNG filenames의 ZIP을 반환한다. `X-ToonShelf-Pages`와 attachment filename을 제공한다. 성공 직전 `get_tier_image_source`로 다시 읽어 SHA-256 fingerprint가 바뀌거나 권한이 철회되면 409/404/권한 오류로 반환한다. rate 예약은 성공적으로 커밋된 뒤 렌더 실패/취소에도 환불하지 않는다. 요청/렌더 제한과 안전한 오류를 작성했으며 실제 실행 근거는 없다. 비회원 PNG와 신뢰된 token/IP 제한은 후속이다.
+
+GET `/api/og/tiers/[id]`는 query/hash를 받지 않고 현재 public을 전후 조회한다. 스포일러는 일반 카드, 그 외 현재 일부 행의 텍스트 미리보기며 private/unlisted/숨김/철회는 404다. `/api/og/tiers`는 ID/token/사용자 내용과 무관한 일반 카드다. PNG/OG 모두 자체 텍스트 표지·로컬 OTF만 사용하고 no-store/no-referrer/noindex다. 이미 받은 이미지와 외부 플랫폼 재캐시는 회수하지 못하며 다음 요청의 현재 권한을 검사한다. OG edge 제한과 허가된 표지의 목적별 선택은 후속이다.
 
 다른 사용자 표 복제는 자신이 열람 가능한 **현재 게시본**만 복사한다. 새로운 표는 private이고 좋아요, 댓글, 원 작성자의 user ID, token은 복사하지 않는다. 복제 출처 표 ID는 선택 메타데이터로 보관할 수 있으나 원본 비공개 정보를 읽는 권한이 되지 않는다.
 

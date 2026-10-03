@@ -39,6 +39,8 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      get_tier_image_source:{Args:{p_id:string;p_source:string;p_version:number;p_hash:string|null;p_confirm_spoiler:boolean};Returns:Json};
+      begin_tier_image_export:{Args:{p_id:string;p_source:string;p_version:number;p_hash:string|null;p_confirm_spoiler:boolean};Returns:Json};
       preview_tier_publication:{Args:{p_id:string};Returns:Json};
       get_my_tier_publication_state:{Args:{p_id:string};Returns:Json};
       publish_tier_list:{Args:{p_id:string;p_draft_version:number;p_list_version:number;p_fingerprint:string;p_visibility:string;p_spoiler:boolean;p_token:Json|null;p_confirm:boolean};Returns:Json};

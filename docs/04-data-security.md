@@ -203,6 +203,8 @@ unlisted 게시본은 public table SELECT 정책으로 읽게 하지 않는다. 
 
 신고·감사는 `private.tier_reports/tier_moderation_events`에 RLS/직접 권한 제거와 owner/운영자 RPC를 둔다. reporter+list pending unique, 사유·길이·현재 접근/자기 신고 금지·DB rate를 검사한다. 운영 조치는 역할·버전·현재 게시 상태·사유/신고 소속을 확인하고 숨김/복구/신고 결과/감사를 원자적으로 저장한다. 숨김은 token도 철회하고 복구만으로 이전 token을 살리지 않는다. 삭제는 공개 포인터를 지우고 publication·token·초안·병합 원본을 제거하되 private 신고/감사는 유지한다. 대표 티어 필드/설정과 그 철회 연동·과거 게시본 owner UI·P7 보관본 export/계정 삭제 정리는 후속이다. DB 적용/권한/경합/성능/모든 검사는 실행하지 않았다.
 
+**P4 PNG 증분 · 2026-10-04 (파일만 작성·미적용):** `20261003171347_tier_image_export.sql`의 `get_tier_image_source`/`begin_tier_image_export`는 authenticated execute만 허용하고 현재 실제 세션/활성/이메일 확인/동의를 다시 검사한다. 초안은 소유자만, 게시본은 현재 public 또는 유효 hash와 차단/author/운영/버전 조건을 통과해야 한다. 관리자 역할도 타인 초안 export 권한이 아니다. 스포일러 게시본은 별도 확인하며 text-only DTO에서 work/asset ID·URL·메모·회차·token을 제거한다. private helper의 직접 execute도 제거하고 빈 search_path/statement timeout을 작성했다. 예약 RPC는 기존 private 회원별 rate bucket을 5회/고정 600초로 사용한다. 원시 IP 수집·임의 header 신뢰·service key 사용자 접근은 구현하지 않았다. 비회원 PNG/token·IP/HMAC 제한은 후속이고 이번에는 로그인 안내/DB execute 거절로 처리한다. 렌더 직후 현재 DTO/권한을 재확인하고 모든 이미지 응답은 no-store다. 이미 수신한 파일과 외부 OG cache는 회수할 수 없다. 이미지에는 원격/허가된 표지까지 사용하지 않고 텍스트 카드만 포함해 표시 권한을 재배포 권한으로 추정하지 않는다. 실제 DB/RLS/권한/동시 철회·이미지/배포 검수는 미실행이다.
+
 ## 8. 소셜 테이블
 
 | 테이블 | 주요 컬럼과 불변식 |
