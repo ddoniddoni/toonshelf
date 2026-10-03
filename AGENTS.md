@@ -45,7 +45,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 사용자 지정 Git 규칙 (2026-10-02)
 
-Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 최근 작업은 `/explore`의 공개 평균 평점순·평가 수 표시와 기존 `search_catalogue` RPC 확장이다. 공개 서재 검색·필터와 Stitch 원본 5개 화면 배치·공식 배포 Inter·Pretendard 자체 제공을 유지하며 시안 홈 배너 일러스트는 별도 승인 대기다. P1~P3 코드와 화면·이번 migration은 실행 미검증 상태이며 P4 실제 편집·저장·공유는 미착수다. P1의 실제 Supabase·메일·OAuth 연결은 사용자와 후속 공동 작업으로 진행하며 P3의 개인 기록 보존 병합과 P4~P7은 후속 개발이다. P6의 최소 표본·보정 순위/경험별 통계는 이번 일반 평균 정렬 범위에 포함하지 않았다.
+Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 최근 작업은 P3의 개인 기록 보존 작품 병합과 본인 전용 병합 이력이다. 공개 평균 평점순 탐색·공개 서재 검색/필터·Stitch 원본 5개 화면 배치·공식 배포 Inter·Pretendard 자체 제공을 유지하며 시안 홈 배너 일러스트는 별도 승인 대기다. P1~P3 코드와 화면·migration은 실행 미검증 상태이며 P4 실제 편집·저장·게시·공유는 미착수다. P1의 실제 Supabase·메일·OAuth 연결은 사용자와 후속 공동 작업으로 진행한다. 다음 개발은 P4이며 티어·게시글 도메인 추가 시 병합 보존 handler와 기존 보호를 함께 확장해야 한다. P6의 최소 표본·보정 순위/경험별 통계와 P7의 병합 보관본 export/탈퇴 정리는 후속 범위다.
 
 - 저장소 초기화, 브랜치 생성, commit, push, tag, release, merge, rebase, PR 생성은 사용자가 **그 정확한 동작을 명시적으로 요청한 경우에만** 수행한다. 단, 커밋·push 요청에는 아래 기본 반영 순서 전체를 포함한다. 구현 요청만으로 Git 작업을 수행하지 않는다.
 - 기본 Git 반영 순서: 사용자가 커밋·push를 요청하면 관련 변경을 작업 브랜치에 Conventional Commit으로 커밋 → 작업 브랜치 push → 최신 develop에 merge → develop push까지 연속 수행한다. develop 반영을 매번 다시 확인하지 않는다. 사용자가 이번 범위를 따로 지정하면 그 지시를 따른다. main 반영·릴리스·force push·PR 생성·새 브랜치 생성은 이 기본값에 포함하지 않는다. (2026-10-02 사용자 지정)

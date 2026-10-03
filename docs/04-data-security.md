@@ -12,6 +12,16 @@
 
 이는 작성한 migration 계약이며 실제 DB 적용·RLS/Storage 권한·ticket 경쟁 소비·advisors는 미검증이다. 현재 정책 버전은 내부 검수용 `2026-10-02-preview`다. 버전 변경 시 SQL과 서버 검증·온보딩 UI·법적 안내를 함께 바꾸고 실제 운영 정책으로 재동의해야 한다.
 
+## P3 개인 기록 보존 병합 작성 상태 · 2026-10-03
+
+`20261003091940_personal_record_safe_merge.sql`은 기존 library/private details/evaluation/reviews/content drafts의 보존 handler를 작성한다. private.work_merge_previews는 관리자/작품 쌍·무작위 token·내부 SHA-256 fingerprint·만료만, private.work_merge_history는 소유자·작품 쌍·원래 두 개인 기록·옮겨진 리뷰 참조를 저장한다. 두 private 테이블 모두 RLS를 켜고 anon/authenticated 직접 접근을 제거하며 타인 기록을 읽는 관리자 policy는 없다. 보관본은 owner RPC의 auth.uid/현재 세션·활성/동의 검증을 거쳐 조회/삭제하며 계정 삭제 시 profile FK로 cascade한다. 이력 원문은 운영 감사 로그에 복사하지 않는다. P7 export는 아직 없으므로 그때 이 보관본을 함께 처리해야 한다.
+
+상태/평가/진행은 각 최신 행 기준, 동률은 target이며 이전 값/수정 시각도 owner 보관본에 남긴다. 메모는 양쪽 비어 있지 않을 때 제목/UUID 출처를 붙여 합치며 최종 5000자, 태그 union 20개를 넘으면 거절한다. 날짜와 planned 평가, 현재 리뷰 중복, metadata 상한 충돌은 transaction 전체를 중단한다. 원본 작품이 공개 불가능하고 개인 기록/현재 리뷰가 있으면 거절해 병합에 따른 노출 확대를 막는다. 서재와 평가 공개 범위는 독립적으로 더 제한적인 쪽을 유지한다.
+
+전용 try-advisory lock → 작품 UUID 순서 NOWAIT → 관련 소유자 계정/개인 행/리뷰/초안 NOWAIT로 잠근 뒤 토큰·version·fingerprint를 다시 비교한다. 기존 owner→work/리뷰→work 잠금과 경합하면 기다리지 않고 CONFLICT로 rollback한다. source 행 삭제/cascade 전 target와 private 보관본을 작성한다. 공식 링크 ID를 유지하고 source 리뷰 ID/본문/게시/스포일러/운영 상태/신고 참조와 draft payload를 보존한다. source-only 기록도 version을 올린다. private details/evaluation과 inactive 공식 링크 이동을 위해 work_id 인덱스를 추가한다.
+
+P4 tier_lists/items/drafts/publications와 posts가 있으면 보존 handler 작성 전까지 계속 거절한다. SQL/RLS/동시 저장/권한/성능/advisor와 DB 적용·타입 생성·모든 테스트는 미실행이다. 아래 P2/P3 최초 작성 당시의 일괄 차단 기록은 역사이며 현재 개인 도메인 handler 범위는 이 절을 따른다.
+
 ## P3 카탈로그 평점순 작성 상태 · 2026-10-03
 
 `20261003053412_catalogue_rating_sort.sql`은 기존 `search_catalogue`의 signature를 보존해 public 별점 요약/정렬을 추가한다. 공개 가능한 작품에 속한 visibility=public, rating_steps가 있는 평가만 작품별로 먼저 집계하며 `private.profile_visible`로 현재 활성/동의/양방향 차단 조건을 검사한다. 본인 방문도 자기 private 평가를 집계하지 않는다. 비공개 library status는 읽지 않으므로 서재 공개와 평가 공개의 독립 경계를 유지한다. tier만 있는 평가는 별점 분모가 아니며 여러 링크/장르/작가가 평가 행을 곱하지 않는다.

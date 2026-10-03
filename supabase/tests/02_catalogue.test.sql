@@ -117,10 +117,10 @@ set local role authenticated;
 select lives_ok($$select public.admin_revoke_cover('70000000-0000-4000-8000-000000000001','권리 철회 확인')$$,'Admin can revoke an asset');
 select is(public.get_cover_access('70000000-0000-4000-8000-000000000001','display'),null::jsonb,'Revoked display grant denied');
 select throws_ok($$insert into storage.objects(bucket_id,name) values('licensed-covers','unvalidated.webp')$$,'42501',null,'Direct unvalidated cover upload denied');
-select throws_ok($$select public.admin_merge_works('50000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002',2,1,'동일 작품 검토',false)$$,'P0001','VALIDATION_ERROR','Merge confirmation required in DB too');
+select throws_ok($$select public.admin_merge_works('50000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002',2,1,'동일 작품 검토',false,null,'latest_private')$$,'P0001','VALIDATION_ERROR','Merge confirmation required in DB too');
 select throws_ok($$select public.admin_merge_works('50000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002',
  (select version from public.works where id = '50000000-0000-4000-8000-000000000001'),
- (select version from public.works where id = '50000000-0000-4000-8000-000000000002'),'동일 웹툰 병합 확인',true)$$,'P0001','MERGE_REQUIRES_DOMAIN_HANDLERS','Personal domains block merge until lossless handlers exist');
+ (select version from public.works where id = '50000000-0000-4000-8000-000000000002'),'동일 웹툰 병합 확인',true,null,'latest_private')$$,'P0001','MERGE_PREVIEW_EXPIRED','Merge requires a current owner-bound preview token');
 select is(public.get_catalogue_detail('p2-fixture-alpha')->>'slug','p2-fixture-alpha','Rejected merge leaves source unchanged');
 select is(public.get_catalogue_detail('p2-fixture-beta')->>'ageRating','12','Rejected merge leaves target unchanged');
 reset role;

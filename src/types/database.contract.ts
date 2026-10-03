@@ -60,6 +60,9 @@ export type DatabaseContract = {
       make_all_library_private:{Args:{p_confirm:boolean};Returns:undefined};
       get_my_reading_record:{Args:{p_work:string};Returns:Json};
       get_my_library:{Args:{p_filters:Json;p_page:number};Returns:Json};
+      get_my_work_merge_history:{Args:{p_page:number};Returns:Json};
+      get_my_work_merge_target:{Args:{p_source:string};Returns:string|null};
+      delete_my_work_merge_history:{Args:{p_id:string;p_confirm:boolean};Returns:undefined};
       get_public_library:{Args:{p_username:string;p_page:number};Returns:Json};
       search_public_library:{Args:{p_username:string;p_filters:Json;p_page:number};Returns:Json};
       get_reading_stats:{Args:{p_username:string|null};Returns:Json};
@@ -81,7 +84,7 @@ export type DatabaseContract = {
       submit_catalogue_suggestion:{Args:{p_kind:string;p_work_id:string|null;p_proposal:string;p_source_url:string};Returns:string};
       admin_review_submission:{Args:{p_id:string;p_status:string;p_note:string;p_work_id:string|null};Returns:undefined};
       admin_merge_preview:{Args:{p_source:string;p_target:string};Returns:Json};
-      admin_merge_works:{Args:{p_source:string;p_target:string;p_source_version:number;p_target_version:number;p_reason:string;p_confirm:boolean};Returns:undefined};
+      admin_merge_works:{Args:{p_source:string;p_target:string;p_source_version:number;p_target_version:number;p_reason:string;p_confirm:boolean;p_preview_token:string;p_conflict_policy:"latest_private"};Returns:undefined};
       admin_begin_cover:{Args:{p_work_id:string;p_license:Json;p_reason:string};Returns:Json};
       admin_activate_cover:{Args:{p_id:string;p_reason:string};Returns:undefined};
       admin_revoke_cover:{Args:{p_id:string;p_reason:string};Returns:undefined};

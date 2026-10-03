@@ -11,7 +11,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P0 | 조건부: 코드 구성, DB 검증 대기 | 아래 16절. 로컬 Docker 엔진 필요 |
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
-| P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색 코드 작성, 실행 미검증·잔여 범위 있음 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
+| P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 실제 기능 미착수: 편집기 디자인 미리 보기만 작성 | 아래 16절. 작품 추가·배치·저장·게시·공유 미구현 |
 | P5 | 미착수 | 없음 |
 | P6 | 미착수 | 없음 |
@@ -442,6 +442,23 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **실행한 작업·검사 결과:** 소스/설계/설치된 Next Promise page 안내와 공식 [Supabase functions](https://supabase.com/docs/guides/database/functions)·[RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)·[changelog](https://supabase.com/changelog)를 읽었다. changelog markdown은 web의 content-type 미지원 후 문서 파일로 받아 읽었고 관련 minor Postgres/Data API 변경 안내를 읽었다. 고정 package/lockfile 버전을 유지했다. CLI help 읽기와 빈 migration 파일 생성만 성공했다. 이는 DB 연결/검사가 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 검수는 **모두 미실행**이며 실제로 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/운영자 지정은 하지 않았다. Git은 status/diff 읽기만 수행하고 branch 생성·stage·commit·push·merge·PR는 수행하지 않았다.
 
 **외부 대기·다음 단계:** 공동 Supabase/Auth 연결과 새 migration 적용·실제 DB 생성 타입 대조 후 사용자 요청 범위에서 탐색→평점순→조건 적용→페이지 이동과 공개/비공개/차단/정지/동시 평가 변경·검색 성능을 검수해야 한다. 다음 개발은 P3의 개인 기록을 보존하는 작품 병합이며 그 뒤 P4 실제 티어 편집/저장/게시/공유를 진행한다. P1~P3 실행 검증과 시안 배너 일러스트 승인 대기는 유지한다.
+
+### 2026-10-03 · P3 개인 기록 보존 작품 병합 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. CAT-08, LIB-01/03/05/06, RATE-03, REV-01, OPS-04의 병합 보존 경로를 작성했다. P3 완료 체크는 실제 검수까지 유지한다. 실제 Supabase·메일·OAuth 공동 연결은 보류했다.
+
+**작성한 변경:**
+- `/admin/works/merge`: 도메인 이동/중복 건수와 메모·태그·날짜·planned 평가·리뷰 중복·작품 관계·원본 비공개 조건 충돌 건수를 표시한다. 개인 내용/회원 ID는 표시하지 않는다. 보존 정책과 동일 웹툰 확인/사유를 요구하며 충돌 시 폼을 숨긴다. 미리보기는 관리자·작품 쌍의 10분 토큰이며 source/target version과 내부 SHA-256 snapshot으로 개인 수정도 감지한다.
+- `20261003091940_personal_record_safe_merge.sql`: 최신 상태/평가/진행 선택, 각 visibility private 우선, 메모 출처/태그 union, 원래 기록 owner 보관본, source-only version 갱신과 링크 ID 보존을 transaction으로 작성했다. 원문/초안/내부 digest를 감사 로그나 관리자 RPC에 반환하지 않는다. 두 현재 리뷰는 거절하고 나머지 리뷰의 ID/본문/게시/스포일러/운영 상태·신고/운영 참조·편집 초안을 유지하며 버전을 올린다. NOWAIT/try-advisory 경합은 rollback/재확인으로 처리한다. P4 티어/P5 글 도메인은 아직 거절한다.
+- `/me/library/merges`: 본인 병합 안내·원래 두 기록 확인/복사·확인 후 보관본 삭제·현재 기록/리뷰 연결을 추가했다. 현재 기록 변경과 보관본은 별개라고 안내한다. 옛 내 기록 URL은 본인 이력과 현재 본인 기록이 있을 때만 이동한다. private 두 테이블에 RLS/권한 제거, owner RPC에 현재 UID/세션·활성/동의 게이트를 적용했다. work_id 기반 비공개 기록/공식 링크 인덱스와 수동 RPC 계약, 성공 후 관련 페이지 revalidation을 작성했다.
+
+**작성한 테스트:** `tests/unit/merge-preview.test.ts`, `tests/integration/merge-history.test.ts`와 기존 catalogue 액션 테스트에 정책/확인/토큰, 개인정보 없는 DTO/오류, owner 게이트/보관본 삭제/redirect/revalidation을 작성했다. `supabase/tests/07_personal_record_safe_merge.test.sql`은 rollback fixture로 권한 위조, 원문/초안/digest 비노출, 미리보기 변경/만료, 메모·태그·날짜·planned·중복 리뷰·숨김 원본 충돌, 원본 보관/개인 공개 범위/평가 중복 분모, 리뷰/초안 버전·신고/운영 참조 보존, owner 조회/타인 삭제 거절, 미래 도메인 차단을 작성했다. 기존 P2 SQL 기대값을 새 token signature에 맞췄다. 파일만 작성했으며 실행하지 않았다. 실제 여러 세션의 lock 경합/동시 수정 검수는 별도로 남아 있다.
+
+**실행/결과:** 소스·설계·설치된 Next Server Actions/revalidatePath, Supabase functions/changelog와 PostgreSQL 잠금/SHA-256 공식 안내를 읽었다. 고정 의존성을 유지했다. CLI `migration new --help` 읽기와 빈 migration 파일 생성만 수행했으며 DB 연결/검사가 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 검수는 **모두 미실행**, 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/운영자 지정도 하지 않았다.
+
+**Git:** 새 작업 브랜치 준비에 대한 상시 허가에 따라 최신 origin/develop을 fetch하고 같은 기준 HEAD에서 `feature/personal-record-safe-merge`를 만들었다. 기존 AGENTS.md의 미커밋 Git 규칙 변경은 보존했다. stage·commit·push·통합 merge·PR는 하지 않았다.
+
+**외부 대기·다음 단계:** 공동 Supabase/Auth 연결, migration 적용·실제 생성 타입 대조·관리자 지정 후 요청된 검사로 미리보기→충돌 해결→병합→본인 원본/리뷰 확인·타인 접근 거절·동시 편집·성능을 확인해야 한다. P1~P3 검증과 시안 배너 승인 대기는 유지한다. 다음 개발은 P4 실제 티어 편집·자동 저장·게시·공유이며, 테이블 추가 시 이번 미래 도메인 guard와 티어 보존 handler를 함께 확장해야 한다. P7에서 병합 보관본의 export/탈퇴 정리를 포함한다.
 
 ## 17. 요구사항 추적표
 
