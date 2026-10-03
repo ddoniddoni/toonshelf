@@ -43,13 +43,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 <!-- END:nextjs-agent-rules -->
 
 
-## 사용자 지정 Git 규칙 (2026-10-02)
+## 사용자 지정 Git 규칙 (2026-10-03)
 
 Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 최근 작업은 `/explore`의 공개 평균 평점순·평가 수 표시와 기존 `search_catalogue` RPC 확장이다. 공개 서재 검색·필터와 Stitch 원본 5개 화면 배치·공식 배포 Inter·Pretendard 자체 제공을 유지하며 시안 홈 배너 일러스트는 별도 승인 대기다. P1~P3 코드와 화면·이번 migration은 실행 미검증 상태이며 P4 실제 편집·저장·공유는 미착수다. P1의 실제 Supabase·메일·OAuth 연결은 사용자와 후속 공동 작업으로 진행하며 P3의 개인 기록 보존 병합과 P4~P7은 후속 개발이다. P6의 최소 표본·보정 순위/경험별 통계는 이번 일반 평균 정렬 범위에 포함하지 않았다.
 
-- 저장소 초기화, 브랜치 생성, commit, push, tag, release, merge, rebase, PR 생성은 사용자가 **그 정확한 동작을 명시적으로 요청한 경우에만** 수행한다. 단, 커밋·push 요청에는 아래 기본 반영 순서 전체를 포함한다. 구현 요청만으로 Git 작업을 수행하지 않는다.
-- 기본 Git 반영 순서: 사용자가 커밋·push를 요청하면 관련 변경을 작업 브랜치에 Conventional Commit으로 커밋 → 작업 브랜치 push → 최신 develop에 merge → develop push까지 연속 수행한다. develop 반영을 매번 다시 확인하지 않는다. 사용자가 이번 범위를 따로 지정하면 그 지시를 따른다. main 반영·릴리스·force push·PR 생성·새 브랜치 생성은 이 기본값에 포함하지 않는다. (2026-10-02 사용자 지정)
-- develop은 일상 통합, main은 안정 배포 브랜치다. 명시적으로 허가된 일상 브랜치 작업은 최신 develop에서 feature/*, fix/*, docs/*, refactor/*, test/*, chore/* 중 의도가 드러나는 이름을 사용한다.
+- 공통 Git Flow 기준은 `/Users/ddoni/.codex/AGENTS.md`다. 아래 새 작업 브랜치 기본 승인은 기존의 브랜치 생성 별도 요청 규칙을 대체한 2026-10-03 사용자 결정이다.
+- 새 기능·수정 등 집중된 개발 작업을 시작하면 최신 develop을 가져와 가능한 경우 fast-forward로 기준을 맞추고, 작업에 맞는 새 브랜치를 생성·전환한 뒤 구현한다. 이 준비는 개발 요청에 포함된 기본 승인으로 매번 다시 묻지 않는다. 같은 미완료 작업의 후속 수정만 현재 작업 브랜치에서 이어간다.
+- 저장소 초기화, commit, push, tag, release, merge, rebase, PR 생성은 사용자가 **그 정확한 동작을 명시적으로 요청한 경우에만** 수행한다. 단, 위 작업 브랜치 준비와 아래 기본 반영 순서는 사용자가 미리 승인한 예외다. 개발 요청만으로 commit·push·PR를 수행하지 않으며 일반 작업 준비 이외의 브랜치 생성은 별도 요청을 따른다.
+- 기본 Git 반영 순서: 사용자가 커밋·push를 요청하면 관련 변경을 작업 브랜치에 Conventional Commit으로 커밋 → 작업 브랜치 push → 최신 develop에 merge → develop push → develop으로 복귀까지 연속 수행한다. develop 반영을 매번 다시 확인하지 않는다. 사용자가 이번 범위를 따로 지정하면 그 지시를 따른다. main 반영·릴리스·force push·PR 생성은 이 기본값에 포함하지 않는다. (반영 순서: 2026-10-02, develop 복귀: 2026-10-03 사용자 지정)
+- develop은 일상 통합, main은 안정 배포 브랜치다. 작업 브랜치는 feature/*, fix/*, docs/*, refactor/*, test/*, chore/* 중 의도가 드러나는 이름을 사용한다. 완료한 작업 브랜치는 새 작업에 재사용하지 않으며 `chore/p0-bootstrap`도 후속 기능 개발·커밋에 재사용하지 않는다.
 - 한 브랜치와 PR에는 한 가지 변경만 담는다. 일반 PR은 develop 대상, 안정 릴리스는 develop→main 전용 PR로 진행한다.
 - develop/main 직접 커밋, force push, 공유 이력 재작성, 파괴적 Git 명령은 각각 명시적 허가 없이는 금지한다.
 - Conventional Commit 형식 type(scope): subject를 사용한다. 허용 type은 feat, fix, docs, refactor, test, chore, build, ci, perf, revert다.
