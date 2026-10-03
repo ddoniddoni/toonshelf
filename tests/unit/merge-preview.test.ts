@@ -3,7 +3,7 @@ import { describe,expect,it } from "vitest";
 import { mergePolicySchema,mergePreviewSchema } from "@/lib/catalogue/merge-model";
 const work = {id:"10000000-0000-4000-8000-000000000001",title:"[테스트] 작품",version:1,status:"published"};
 const preview = {source:work,target:{...work,id:"10000000-0000-4000-8000-000000000002"},previewToken:"20000000-0000-4000-8000-000000000001",blockedByPersonalDomains:false,sourceLinkCount:1,sourceGenreCount:1,sourceCoverWillBeRevoked:false,
- records:{library:2,overlappingLibrary:1,evaluations:1,reviews:1,drafts:1},conflicts:{notes:0,tags:0,plannedEvaluations:0,dates:0,reviews:0,unavailable:0,metadata:0},canMerge:true};
+ records:{library:2,overlappingLibrary:1,evaluations:1,reviews:1,drafts:1,tiers:0},conflicts:{notes:0,tags:0,plannedEvaluations:0,dates:0,reviews:0,unavailable:0,metadata:0},canMerge:true};
 describe("administrator merge projection",()=>{
  it("keeps only aggregate counts and metadata at the client boundary",()=>{
   const parsed = mergePreviewSchema.parse({...preview,privateNote:"private-secret",userId:"owner",records:{...preview.records,body:"draft-secret"}});

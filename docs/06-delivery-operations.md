@@ -12,7 +12,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
-| P4 | 실제 기능 미착수: 편집기 디자인 미리 보기만 작성 | 아래 16절. 작품 추가·배치·저장·게시·공유 미구현 |
+| P4 | 진행: 비공개 초안 편집·저장과 게시·공유·철회·현재 게시본 복제 증분 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키 적용·검수 대기, OG 이미지·PNG·기본 평가·인기/테마/소셜은 후속 |
 | P5 | 미착수 | 없음 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
@@ -459,6 +459,44 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **Git:** 새 작업 브랜치 준비에 대한 상시 허가에 따라 최신 origin/develop을 fetch하고 같은 기준 HEAD에서 `feature/personal-record-safe-merge`를 만들었다. 기존 AGENTS.md의 미커밋 Git 규칙 변경은 보존했다. stage·commit·push·통합 merge·PR는 하지 않았다.
 
 **외부 대기·다음 단계:** 공동 Supabase/Auth 연결, migration 적용·실제 생성 타입 대조·관리자 지정 후 요청된 검사로 미리보기→충돌 해결→병합→본인 원본/리뷰 확인·타인 접근 거절·동시 편집·성능을 확인해야 한다. P1~P3 검증과 시안 배너 승인 대기는 유지한다. 다음 개발은 P4 실제 티어 편집·자동 저장·게시·공유이며, 테이블 추가 시 이번 미래 도메인 guard와 티어 보존 handler를 함께 확장해야 한다. P7에서 병합 보관본의 export/탈퇴 정리를 포함한다.
+
+### 2026-10-03 · P4 비공개 티어 초안 편집·저장 첫 증분 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. TIER-01, TIER-02 일부(서재/카탈로그 검색), TIER-03~06, CAT-08 보존 경로를 작성했다. P4 전체 완료로 표시하지 않는다. 실제 Supabase·메일·OAuth 공동 연결은 계속 대기다.
+
+**작성한 변경:**
+- `/tiers` 진입, `/tiers/new`, `/me/tiers`, `/tiers/[id]/edit`: 생성·본인 초안 복사·확인 후 삭제, 작품 검색·페이지·추가/제거, 드래그/모바일 행 메뉴/순서 버튼/Alt+방향키 이동, 2–10행 이름·색상·순서·canonical 코드·추가/삭제, 미배치함·중복 방지, 50상태 undo/redo를 작성했다. 행 삭제는 작품을 미배치로 옮긴다. Stitch 320px 선택 영역/112px 이름/하단 보관함과 자체 글꼴을 유지한다.
+- 800ms 단일 요청 자동 저장과 최신 편집 후속 요청, 수동 저장·연결 실패 재시도·서버 시각, 유효성 오류 자동 복구, 충돌 시 최신 불러오기/새 티어표 저장을 작성했다. 늦은 응답은 새 편집을 덮지 않고 서버 버전을 이어받는다. 닫기/링크/폼 이탈과 Navigation API 지원 브라우저의 traverse 경고를 연결했으며 브라우저별 뒤로가기 동작은 미검증이다. 영구 로컬 백업은 사용하지 않고 저장 실패한 편집이 화면을 닫으면 사라진다고 안내한다.
+- `20261003130130_tier_draft_editor.sql`: private-only metadata/draft·RLS·직접 권한 제거·현재 owner RPC·50표/300작품/2–10행/256KiB·code point·참조·중복·canonical·연속 위치 검증, 전체 저장/version/time, 기존 unavailable placeholder/복사와 신규 숨김 주입 거절을 작성했다. canonical 평가/공개 통계는 수정하지 않는다. 수동 SDK RPC 계약을 갱신했다.
+- P3 merge의 fingerprint·NOWAIT 사용자/초안 잠금·도메인 건수에 tier를 추가했다. 기존 target 배치 유지/중복 정리/원래 draft 전체 owner archive/version+1을 기존 개인 기록 병합과 같은 transaction으로 처리한다. 관리자에게 원문·초안/digest를 제공하지 않는다. 편집기 최근 이력과 `/me/tiers/[id]/merges` 20건 페이지에서 소유자 원본을 확인한다. 기존 P3 공통 handler는 private으로 제한하고 public wrapper가 티어 잠금을 맡는다. 미구현 게시본/게시글 guard는 유지한다.
+
+**작성한 테스트:** `tests/unit/tier-drafts.test.ts`, `tier-save-queue.test.ts`, `tests/integration/tier-actions.test.ts`에 Unicode/상한/중복/참조/행 삭제·순서/50 undo·redo/800ms 직렬·늦은 응답/버전·오프라인·충돌·폐기/owner 액션·안전한 DTO/오류를 작성했다. `supabase/tests/08_tier_draft_editor.test.sql`은 rollback fixture로 직접 접근·owner/admin 격리·version·숨김 보존/주입·본인 복사·50표 상한·계정 게이트·tier 변경 미리보기 만료/병합 target 유지·원본·기본 평가 불변·삭제를 작성했다. 기존 미래 도메인 guard 테스트는 아직 미구현 publication으로 옮기고 admin DTO 테스트를 갱신했다. **파일만 작성했으며 실행하지 않았다.** 실제 동시 세션 lock/다중 탭·300작품 성능·전체 사용자 흐름은 별도 검수가 필요하다.
+
+**실행/결과:** 소스·설계·설치된 Next Server Action/page 안내, Supabase 함수/공식 changelog와 PostgreSQL JSON 안내를 읽었다. 의존성/lockfile을 유지했다. CLI `migration new --help` 읽기와 migration 파일 생성만 수행했으며 DB 연결/검사가 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 검수는 **모두 미실행**, 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/운영자 지정도 하지 않았다.
+
+**Git:** 최신 origin/develop fetch/fast-forward 기준 갱신 후 `feature/tier-draft-editor`에서 작성했다. 사용자 개발 요청의 상시 승인 범위이며 stage·commit·push·통합 merge·PR는 수행하지 않았다.
+
+**외부 대기·다음 단계:** 공동 DB/Auth 연결·migration 적용·실제 생성 타입 대조 후 요청된 검사로 생성→검색/배치→저장/복사/삭제, 두 탭 충돌/새 표 보존·숨김/계정 전환·병합 원본/권한을 확인해야 한다. 다음 P4 증분은 게시본 분리/public·unlisted·철회·URL/OG/PNG·공개 게시본 복제와 기본 평가 가져오기/명시적 반영이다. P1~P3 실행 검증·시안 배너 승인 대기와 P5~P7 범위를 유지하고 P7 export/탈퇴에는 티어 원본도 포함한다.
+
+### 2026-10-04 · P4 티어표 게시·공유 증분 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. TIER-07/12, TIER-08의 URL·기기 공유, TIER-10의 최신 공개 목록, CAT-08 게시본 보존과 SOC-06/OPS-01/02/04/06/07의 관련 경계 코드를 작성했다. OG 이미지·PNG·기본 평가 가져오기/반영·인기/테마/소셜 반응·대표 티어·과거 게시본 owner UI는 이번 증분에 포함하지 않았으며 최종 범위에서 생략하지 않는다. 요구사항 추적표는 실행 미검증으로 체크하지 않는다.
+
+**작성한 기능:** `/tiers/[id]/publish`에서 저장된 초안의 미배치 제외 미리보기·기대 초안/lifecycle 버전·현재 작품 DTO fingerprint·공개 범위/스포일러/게시 확인을 처리한다. 게시 후 초안 autosave는 별도다. `/tiers/[id]`와 `/share/t/[token]`은 현재 게시본만 제공하며 공개/링크 공개·작성자 상태·차단·운영/철회·버전을 재검사한다. spoiler title/description/rows는 초기 HTML·목록·metadata에서 제외하고 명시적 펼치기에서 가져온다. 텍스트 표지와 기존 Stitch 행 색상/112px 이름 칸·모바일 72px 칸을 사용한다. `/tiers`는 원본 기본 보드를 유지하고 실제 최신 공개 목록 12개 페이지를 추가한다.
+
+주소 확인/복사/기기 공유, CSPRNG 32바이트 token·SHA-256 hash·AAD에 list ID/형식 버전을 포함한 AES-256-GCM private 보관·owner 현재 버전 복구를 작성했다. 링크 공개 게시/업데이트·회전 때 이전 token을 철회하고 비공개 전환·삭제·운영 숨김에도 접근을 막는다. 키 누락·형식 오류 시 unlisted 발급/복구는 중단하며 plaintext 대체나 비밀 client 변수를 사용하지 않는다. 공개 게시와 비공개 철회는 공유 키가 없어도 가능하다. 공유 경로의 Next 로그 제외·no-store/no-referrer/noindex와 일반 metadata를 작성했으며 OG 이미지를 구현했다고 보고하지 않는다.
+
+현재 접근 가능한 게시본을 새 private 초안으로 복사하며 unavailable·미배치·원 작성자의 개인 기록/토큰은 가져오지 않는다. 평가/공개 통계는 수정하지 않는다. 신고자 `/me/tier-reports`, 운영자 `/admin/tier-reports`→`/admin/tiers/[id]`와 기존 차단 경로를 연결했다. 신고는 현재 타인 게시본/유효 token·pending 중복·서버/DB 입력·rate를 검사하며 운영자는 현재 게시본·최근 신고/감사만 받는다. 숨김/복구/신고 결과/감사는 private 역할·기대 version 아래 원자적으로 처리하며 복구만으로 이전 링크를 살리지 않는다. 비공개 초안/옛 게시본/토큰은 운영 DTO에 없다.
+
+**Migration/계약:** CLI가 생성한 `20261003145059_tier_publication_sharing.sql`에 immutable publication·현재 포인터/FK·단조 counter/lifecycle version, private token/report/audit·RLS/직접 권한 제거·제한된 owner/public/운영 RPC를 작성했다. P3 병합 fingerprint·도메인 건수·NOWAIT owner/metadata/draft 잠금에 현재 publication을 포함하고 lifecycle을 갱신한다. publication 원본은 보존하고 매 조회/복제에서 merged ID를 해석해 target 배치를 유지한다. 공개 불가능한 source가 현재 게시본에 있으면 병합을 거절한다. 미구현 tier_list_items/posts guard를 유지하고 이전 pgTAP sentinel을 posts로 이동했다. 수동 SDK 계약만 갱신했으며 생성 타입은 아직 없다.
+
+**작성한 테스트:** `tests/unit/tier-share-token.test.ts`는 entropy/nonce 독립·암호문만 보관·AAD/tag/nonce/hash 변조·키 누락/형식·token 정규화를, `tests/integration/tier-publication-actions.test.ts`는 owner/입력 주입·저장된 version/fingerprint·암호문 전달·CONFIG_REQUIRED·안전한 충돌·주소 복구·명시적 펼치기를 mock으로 다룬다. `supabase/tests/09_tier_publication_sharing.test.sql`에는 rollback fixture로 직접 권한·초안/게시본 분리·스포일러·placeholder·unlisted UUID/목록 차단·다른 owner 격리·복제/평가 불변·신고/운영 역할·링크 회전/철회·차단·publication 변경 미리보기 만료·병합 snapshot 보존/버전·삭제를 작성했다. **모두 파일 작성만 했고 실행하지 않았다.** 실제 동시 세션·300작품·DB/브라우저 통합 결과는 없다.
+
+**실행/검사 결과:** 소스·설계·설치된 Next 문서와 Supabase 함수/API/changelog·Node 24 crypto 공식 문서를 읽고 Git 상태/diff를 조회했다. Supabase CLI `migration new --help`와 빈 migration 파일 생성만 실행했다. 이는 DB 연결·검사·적용이 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 검수는 **모두 미실행**이고 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/운영자·키 지정은 수행하지 않았다. 의존성과 lockfile은 유지했다.
+
+**Git:** origin/develop을 fetch했고 이전 feature HEAD와 develop/origin/develop의 기준 commit이 동일함을 확인했다. 이전 미커밋 초안 코드를 그대로 보존하며 standing branch 준비 승인에 따라 최신 develop 기준 `feature/tier-publication-sharing`로 옮겼다. 사전 커밋은 필요하지 않아 앞서 요청한 진행 방식 답변 없이도 개발을 계속할 수 있었다. stage·commit·push·통합 merge·PR는 하지 않았다.
+
+**외부 대기·다음 단계:** 실제 Supabase/Auth·메일·OAuth 공동 연결, migration/생성 타입 적용·역할 지정, 서버 전용 32바이트 base64 SHARE_TOKEN_ENCRYPTION_KEY 등록과 배포 프록시/CDN token URL 로그 redaction은 공동 설정/검수 대기다. 이후 사용자 요청 시 저장→게시→다른 세션 열람/복제→링크 회전/비공개 철회·권한/경합·스포일러·차단/운영·병합을 검수해야 한다. 다음 P4 개발은 OG 이미지·권리 구분 PNG 분할·기본 평가 가져오기/명시적 반영이며 인기/테마·소셜·대표 티어와 P7 보관본 export/탈퇴 정리도 남아 있다. 기존 P1~P3 미검증·시안 배너 승인 대기는 유지한다.
 
 ## 17. 요구사항 추적표
 

@@ -1,0 +1,4 @@
+import type { TierMergeNotice } from "@/lib/tiers/model";
+export function TierMergeNoticeView({notice:n,titles}:{notice:TierMergeNotice;titles:Record<string,string>}) {
+ return <details><summary>{n.sourceTitle} → {n.targetTitle} · 중복 배치 {n.duplicatesRemoved}개 정리</summary><p>병합 시 기존 대상 작품의 배치를 유지했어요. 원본 배치는 아래에서 확인할 수 있어요.</p><p><time dateTime={n.createdAt}>{new Date(n.createdAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</time></p><div className="tier-archive"><h3>{n.draftBefore.title}</h3><p>{n.draftBefore.description}</p>{[...n.draftBefore.rows,{id:null,label:"미배치"}].map(row=><div key={row.id ?? "unplaced"}><strong>{row.label}</strong><ol>{n.draftBefore.placements.filter(p=>p.rowId === row.id).sort((a,b)=>a.position-b.position).map(p=><li key={p.workId}>{p.workId === n.sourceId ? n.sourceTitle : p.workId === n.targetId ? n.targetTitle : titles[p.workId] ?? "현재 제공할 수 없는 작품"}</li>)}</ol></div>)}</div></details>;
+}

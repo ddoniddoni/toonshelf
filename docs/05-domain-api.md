@@ -236,15 +236,41 @@ RPC 흐름: 인증/소유권/계정 상태 → 대상 행 FOR UPDATE → expecte
 
 응답 전에 브라우저를 닫으면 저장되지 않을 수 있으므로 상태를 표시하고 이탈 경고를 제공한다. 임시 로컬 백업은 user ID와 list ID로 분리하고 로그아웃 시 지운다. 다른 계정 로그인에서 이전 초안을 복구하지 않는다. 클라이언트 undo/redo는 최근 50개 상태를 기준으로 하되 서버 version은 되돌리지 않는다.
 
+**P4 첫 증분 RPC · 2026-10-03 (미적용/미검증):** `create_tier_draft(p_draft,p_origin)`은 본인 50표 상한을 검사한다. UI 신규 생성은 기본 6행, 본인 초안 복제는 `copy_tier_draft(id,version)`, 충돌 새 표 저장은 owner 검증된 origin의 기존 unavailable 작품만 보존할 수 있다. `save_tier_draft(id,version,draft)`은 성공 시 `{ok:true,version,savedAt,draft,works}`의 정규화된 초안과 현재 공개 작품 카드/placeholder를, 충돌 시 `{ok:false,conflict:{version,savedAt}}`만 반환하며 액션이 안전한 CONFLICT 메시지를 붙인다. 사용자 잠금 → 작품 UUID 순 SHARE → 초안 UPDATE 잠금으로 저장하고 merge의 반대 잠금은 NOWAIT 재확인으로 처리한다. hidden/merged 기존 작품을 보존/정규화하며 신규 숨김 주입은 거절한다. `delete_tier_draft(id,version,confirm)`은 초안/병합 원본을 지우고 metadata를 soft-delete한다.
+
+`get_my_tier_editor`는 owner draft/현재 공개 작품 카드 또는 placeholder/최근 병합 원본 10건을 반환한다. `get_my_tier_merge_history(id,page)`은 본인 원본 20건 페이지다. `list_my_tier_drafts(page)`는 본인 초안 20건, `search_tier_draft_works(origin,q,page)`는 library/catalogue 출처의 공개 작품만 24건으로 반환하며 개인 메모/평가/태그를 검색 응답에 넣지 않는다. 색상 token allowlist는 S/A/B/C/D/F이며 canonical과 독립적이다. 로컬 영구 백업은 이번 증분에서 사용하지 않는다. API 지원 범위 밖 SPA 뒤로가기 경고의 브라우저 동작은 미검증 상태다. 게시/기본 평가 가져오기·반영/공개 복제는 후속 증분이다.
+
 ### 게시
 
 발행은 별도 transaction이다. owner와 expectedDraftVersion을 확인하고 유효한 현재 초안에서 미배치 항목을 제거해 게시 payload를 만든다. `published_version`은 첫 게시 1, 이후 1씩 증가하는 게시 전용 번호다. 초안 version과 동일해야 할 필요가 없다.
 
-새 publication 저장과 tier_lists의 published_version/visibility 변경을 원자적으로 처리한다. 링크 공개이면 token 생성 또는 기존 유효 token 유지도 같은 논리적 작업에서 검증한다. 암호화 자료는 서버에서 준비하여 소유권을 검증하는 지정 RPC에 전달한다. 클라이언트가 전달한 actor ID를 권한 증거로 삼지 않는다.
+새 publication 저장과 tier_lists의 published_version/visibility 변경을 원자적으로 처리한다. 링크 공개 게시/업데이트는 매번 새 token을 발급하고 기존 token을 철회한다. 암호화 자료는 서버에서 준비하여 소유권을 검증하는 지정 RPC에 전달한다. 클라이언트가 전달한 actor ID를 권한 증거로 삼지 않는다.
 
 게시 성공 후 현재 공개 내용과 초안의 저장 상태를 따로 표시한다. 초안 autosave가 늦게 도착해도 게시본을 변경하지 않는다. 대표 티어표로 지정된 표를 private/unlisted로 바꾸거나 삭제하면 profiles.featured_tier_list_id도 같은 transaction에서 비운다. public→private/unlisted 변경 시 익명 일반 목록에서 사라지고, unlisted→private 변경 시 token 접근도 거절한다.
 
 ### 복제와 평가 반영
+
+**P4 게시·공유 RPC · 2026-10-04 (미적용/미검증):**
+
+| 기능 | RPC / 서버 규칙 |
+|---|---|
+| 저장된 초안 미리보기 | `preview_tier_publication(id)` → draftVersion/state/body/fingerprint, owner-only·30회/분 |
+| 본인 게시 상태 | `get_my_tier_publication_state(id)` → lifecycle version/visibility/current publication/moderation/token 유효 여부 |
+| 게시 | `publish_tier_list(id,draftVersion,listVersion,fingerprint,visibility,spoiler,encryptedToken,confirm)` → 새 state, user→works→metadata/draft 잠금·10회/분 |
+| 비공개 전환 | `withdraw_tier_publication(id,version,confirm)` → pointer 제거·token 철회·version+1, 초안/옛 snapshot 유지·20회/분 |
+| 링크 회전 | `rotate_tier_share_token(id,version,encryptedToken,confirm)` → unlisted/visible owner만 새 token·version+1·10회/분 |
+| owner 주소 복구 | `get_my_tier_share_token(id,version)` → owner만 현재 hash/ciphertext/nonce, 서버 AAD/tag/hash 검증 후 URL·30회/분 |
+| 현재 게시본 | `get_tier_publication(id?,hash?,reveal,version?)` → current DTO만, public은 UUID·unlisted는 hash 필수, 펼치기는 현재 lifecycle version |
+| 최신 공개 목록 | `list_public_tiers(page)` → 현재 게시 시각 최신순 12개, 본문/배치 없는 카드·spoiler title=null |
+| 현재 게시본 복제 | `clone_tier_publication(id,hash?,version,confirm)` → 새 private ID, 숨김 작품 제외/위치 압축·현재 접근/버전·50표 상한·10회/분 |
+| 신고 | `report_tier_publication(id,hash?,reason,detail)` → 현재 접근 가능한 타인 게시본, pending unique·5회/분 |
+| 신고자/운영 목록 | `list_my_tier_reports(page)` / `list_tier_reports(page)` → 본인 또는 private 역할 게이트·20개/페이지 |
+| 운영 현재 게시본 | `moderation_tier_snapshot(id)` → 현재 게시본/신고/감사만·private 초안/옛 게시본/token 제외 |
+| 운영 조치 | `moderate_tier_publication(id,version,action,reason,report?,result)` → hide/restore/reject_report, 결과/감사/version 원자 처리·30회/분 |
+
+암호문 자료는 `{hash,ciphertext,nonce}` 세 필드뿐이며 token은 32바이트 난수의 정규 base64url(43자), hash는 SHA-256 hex다. ciphertext는 43바이트 token과 16바이트 GCM tag, nonce는 12바이트를 hex로 보관한다. 공개/링크 payload는 title/description/tags/rows/placed work UUID만 보관한다. reader DTO는 행별 public WorkCard 또는 null 대체이며 숨김 UUID·미배치·비공개 메모·token·원격 이미지 URL을 포함하지 않는다. spoiler는 기본 표시이며 최초 body=null, 명시적 POST 확인 뒤 현재 권한/버전을 재검사한다. 제목/배치를 metadata/OG에 넣지 않는다.
+
+초안 version, lifecycle version, 단조 publication_counter는 별개다. 초안 저장은 lifecycle과 현재 게시본을 변경하지 않는다. 회전/철회/게시/운영/작품 병합은 lifecycle을 올려 오래된 작업을 거절한다. 삭제 RPC는 publication·token도 제거하며 현재 조회 경로는 모두 dynamic/no-store다. 현재 신고자 상세·결과는 private owner RPC만, 운영자 snapshot은 현재 public/unlisted 게시본만 제공한다. 보관한 옛 게시본의 owner UI·대표 티어 지정/철회 연동·PNG/OG 이미지·기본 평가 가져오기/반영·인기/테마/소셜 반응은 후속이며 실행 검증은 없다.
 
 다른 사용자 표 복제는 자신이 열람 가능한 **현재 게시본**만 복사한다. 새로운 표는 private이고 좋아요, 댓글, 원 작성자의 user ID, token은 복사하지 않는다. 복제 출처 표 ID는 선택 메타데이터로 보관할 수 있으나 원본 비공개 정보를 읽는 권한이 되지 않는다.
 
@@ -398,4 +424,4 @@ IP는 배포 플랫폼의 신뢰된 proxy chain에서만 읽고 공격자가 보
 
 덮어쓴 상태·평가·진행을 포함한 두 원래 서재 기록은 private owner 보관본에 저장하며 `/me/library/merges`에서 `get_my_work_merge_history(p_page)`로 20개씩 확인·복사한다. 보관본을 `delete_my_work_merge_history(p_id,p_confirm)`로 지워도 현재 서재/평가/리뷰는 유지한다. 일반 기록 편집/삭제만으로 이 별도 보관본이 바뀌지는 않는다고 안내한다. `get_my_work_merge_target`은 본인 원본 이력과 현재 본인 기록이 있을 때만 옛 ID의 이동 대상을 반환한다. 제목 표시와 리뷰 연결에는 현재 공개/미삭제 조건을 반영한다.
 
-리뷰 ID/게시/스포일러/운영 상태/본문/신고/운영 참조를 보존하고 미삭제 source 리뷰의 draft payload를 그대로 유지한다. 서재는 양쪽 version 최대+1, source 리뷰/초안은 각각 version+1로 이전 편집을 무효화한다. 통계에는 살아남은 canonical evaluation 한 행만 반영한다. 티어·게시글 보호는 유지하며 미래 handler와 P7 export/탈퇴 완결은 후속이다.
+리뷰 ID/게시/스포일러/운영 상태/본문/신고/운영 참조를 보존하고 미삭제 source 리뷰의 draft payload를 그대로 유지한다. 서재는 양쪽 version 최대+1, source 리뷰/초안은 각각 version+1로 이전 편집을 무효화한다. 통계에는 살아남은 canonical evaluation 한 행만 반영한다. P4에서는 초안 원본 보관/version+1과 현재 게시본 보존을 추가했다. source/target 중복은 target 배치를 유지하고 원 snapshot은 그대로 보관한다. 조회 때 merged ID를 정규화하며 lifecycle version도 올린다. fingerprint·NOWAIT 소유자/metadata/초안 잠금에 현재 publication을 포함한다. 미구현 tier_list_items/posts guard와 P7 export/탈퇴 완결은 후속이다.
