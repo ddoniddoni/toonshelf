@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: { serverActions: { bodySizeLimit: "3mb" } },
-  // Auth links and action arguments can contain credentials.
-  logging: { incomingRequests: { ignore: [/\/auth(?:\/|\?)/] }, serverFunctions: false, browserToTerminal: false },
+  // Auth links, share capabilities and action arguments can contain credentials.
+  logging: { incomingRequests: { ignore: [/\/auth(?:\/|\?)/,/\/share\/t(?:\/|\?)/] }, serverFunctions: false, browserToTerminal: false },
   async headers() {
     return [{
       source: "/:path*",
@@ -18,6 +18,15 @@ const nextConfig: NextConfig = {
     }, {
       source: "/auth/:path*",
       headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }],
+    }, {
+      source: "/share/:path*",
+      headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }],
+    }, {
+      source: "/tiers/:path*",
+      headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }],
+    }, {
+      source: "/me/:path*",
+      headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }],
     }, {
       source: "/settings/:path*",
       headers: [{ key: "Cache-Control", value: "private, no-store" }],

@@ -7,7 +7,7 @@ const work = z.object({id:uuidSchema,title:z.string(),version:z.number().int().p
 export const mergePreviewSchema = z.object({
   source:work,target:work,previewToken:uuidSchema,
   blockedByPersonalDomains:z.boolean(),sourceLinkCount:count,sourceGenreCount:count,sourceCoverWillBeRevoked:z.boolean(),
-  records:z.object({library:count,overlappingLibrary:count,evaluations:count,reviews:count,drafts:count}),
+  records:z.object({library:count,overlappingLibrary:count,evaluations:count,reviews:count,drafts:count,tiers:count}),
   conflicts:z.object({notes:count,tags:count,plannedEvaluations:count,dates:count,reviews:count,unavailable:count,metadata:count}),
   canMerge:z.boolean()
 });

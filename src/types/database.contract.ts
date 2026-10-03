@@ -1,4 +1,4 @@
-// Hand-authored P1/P2/P3 migration contract. This is NOT a generated/live DB type.
+// Hand-authored P1/P2/P3/P4 migration contract. This is NOT a generated/live DB type.
 // Replace the SDK generic with database.generated.ts after local db:types.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 export type Visibility = "public" | "private";
@@ -39,6 +39,28 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      preview_tier_publication:{Args:{p_id:string};Returns:Json};
+      get_my_tier_publication_state:{Args:{p_id:string};Returns:Json};
+      publish_tier_list:{Args:{p_id:string;p_draft_version:number;p_list_version:number;p_fingerprint:string;p_visibility:string;p_spoiler:boolean;p_token:Json|null;p_confirm:boolean};Returns:Json};
+      withdraw_tier_publication:{Args:{p_id:string;p_version:number;p_confirm:boolean};Returns:Json};
+      rotate_tier_share_token:{Args:{p_id:string;p_version:number;p_token:Json;p_confirm:boolean};Returns:Json};
+      get_my_tier_share_token:{Args:{p_id:string;p_version:number};Returns:Json};
+      get_tier_publication:{Args:{p_id:string|null;p_hash:string|null;p_reveal:boolean;p_version:number|null};Returns:Json};
+      list_public_tiers:{Args:{p_page:number};Returns:Json};
+      clone_tier_publication:{Args:{p_id:string;p_hash:string|null;p_version:number;p_confirm:boolean};Returns:string};
+      report_tier_publication:{Args:{p_id:string;p_hash:string|null;p_reason:string;p_detail:string};Returns:undefined};
+      list_my_tier_reports:{Args:{p_page:number};Returns:Json};
+      list_tier_reports:{Args:{p_page:number};Returns:Json};
+      moderation_tier_snapshot:{Args:{p_id:string};Returns:Json};
+      moderate_tier_publication:{Args:{p_id:string;p_version:number;p_action:string;p_reason:string;p_report:string|null;p_result:string};Returns:undefined};
+      create_tier_draft:{Args:{p_draft:Json;p_origin:string|null};Returns:string};
+      copy_tier_draft:{Args:{p_id:string;p_version:number};Returns:string};
+      save_tier_draft:{Args:{p_id:string;p_version:number;p_draft:Json};Returns:Json};
+      delete_tier_draft:{Args:{p_id:string;p_version:number;p_confirm:boolean};Returns:undefined};
+      get_my_tier_editor:{Args:{p_id:string};Returns:Json};
+      get_my_tier_merge_history:{Args:{p_id:string;p_page:number};Returns:Json};
+      list_my_tier_drafts:{Args:{p_page:number};Returns:Json};
+      search_tier_draft_works:{Args:{p_origin:string;p_q:string;p_page:number};Returns:Json};
       create_review_draft:{Args:{p_work:string};Returns:string};
       save_review_draft:{Args:{p_id:string;p_version:number;p_payload:Json};Returns:undefined};
       publish_review:{Args:{p_id:string;p_draft_version:number;p_review_version:number};Returns:undefined};

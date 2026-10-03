@@ -16,6 +16,7 @@ const desktopLinks = [
 function activePath(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   if (href === "/explore") return pathname === "/explore" || pathname.startsWith("/works/");
+  if (href === "/tiers" && pathname.startsWith("/me/tiers")) return true;
   if (href === "/settings/profile") return pathname.startsWith("/settings/");
   return pathname === href || pathname.startsWith(href + "/");
 }

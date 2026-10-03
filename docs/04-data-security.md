@@ -20,7 +20,7 @@
 
 전용 try-advisory lock → 작품 UUID 순서 NOWAIT → 관련 소유자 계정/개인 행/리뷰/초안 NOWAIT로 잠근 뒤 토큰·version·fingerprint를 다시 비교한다. 기존 owner→work/리뷰→work 잠금과 경합하면 기다리지 않고 CONFLICT로 rollback한다. source 행 삭제/cascade 전 target와 private 보관본을 작성한다. 공식 링크 ID를 유지하고 source 리뷰 ID/본문/게시/스포일러/운영 상태/신고 참조와 draft payload를 보존한다. source-only 기록도 version을 올린다. private details/evaluation과 inactive 공식 링크 이동을 위해 work_id 인덱스를 추가한다.
 
-P4 tier_lists/items/drafts/publications와 posts가 있으면 보존 handler 작성 전까지 계속 거절한다. SQL/RLS/동시 저장/권한/성능/advisor와 DB 적용·타입 생성·모든 테스트는 미실행이다. 아래 P2/P3 최초 작성 당시의 일괄 차단 기록은 역사이며 현재 개인 도메인 handler 범위는 이 절을 따른다.
+P4 tier_lists/drafts와 현재 tier_list_publications는 7절의 두 증분에서 보존 handler를 추가했다. 미구현 tier_list_items/posts는 보존 handler 작성 전까지 계속 거절한다. SQL/RLS/동시 저장/권한/성능/advisor와 DB 적용·타입 생성·모든 테스트는 미실행이다. 아래 P2/P3 최초 작성 당시의 일괄 차단 기록은 역사이며 현재 개인 도메인 handler 범위는 이 절과 7절을 따른다.
 
 ## P3 카탈로그 평점순 작성 상태 · 2026-10-03
 
@@ -183,6 +183,10 @@ comments는 `num_nonnulls(review_id,post_id,tier_list_id)=1`을 강제한다. �
 
 본인만 조회한다. 데이터 형식은 05 문서에 정의한다. 버전은 저장 성공 transaction에서 1 증가한다. 2-10개 행, 최대 300작품, 중복 work ID 금지, 모든 row ID 참조 유효성을 DB에서 검사한다.
 
+**P4 첫 증분 · 2026-10-03 (파일 작성, 미적용):** `20261003130130_tier_draft_editor.sql`은 위 두 테이블과 `private.tier_merge_history`를 생성한다. 모두 RLS를 켜고 anon/authenticated 직접 권한·정책을 부여하지 않는다. 빈 search_path의 owner RPC만 현재 실제 세션·활성/동의·auth.uid와 소유권을 확인해 읽고 변경한다. 관리자도 타인의 제목/설명/태그/행/배치/원본을 직접 조회할 수 없다. published_version=null/visibility=private CHECK가 있으며 게시본 테이블/토큰은 아직 생성하지 않았다. 신규 숨김 work ID는 거절하고 본인 기존 숨김 배치는 placeholder/제거·본인 복사로만 보존한다. 명시적 UUID·행·canonical·태그·참조·중복·연속 위치·크기 제한을 DB CHECK/RPC에서 검사하고 사용자별 잠금 아래 50표 상한을 검사한다.
+
+티어 병합 원본은 user_id/tier_list_id/source/target/원래 제목/draft_before/전후 버전/중복 정리 건수/시각을 private에 보관한다. 본인 활성 초안의 RPC로만 최근/20건 페이지 조회가 가능하고, 초안 삭제 시 draft와 원본을 제거한다. 계정 FK cascade는 있으나 P7 실제 탈퇴/export worker는 미완성이다. 병합 fingerprint와 NOWAIT 잠금은 양쪽 작품이 포함된 초안·현재 게시본·owner·metadata를 포함한다. 원 게시 snapshot은 수정하지 않고 매 조회/복제에서 merged ID를 해석하며 현재 target 배치를 보존해 중복을 제거한다. lifecycle version도 올려 옛 미리보기/펼치기/복제를 무효화한다. 공개 불가능한 source가 현재 게시본에 있으면 노출 확대를 막기 위해 병합을 거절한다. 기존 P3 처리·초안 archive·version 변경은 같은 transaction이고 관리자 응답/감사에는 건수만 들어간다. 미구현 `tier_list_items/posts`는 handler 작성 전 계속 차단한다.
+
 ### tier_list_publications
 
 `tier_list_id`, `version` composite PK, `payload` jsonb, `published_at`.
@@ -192,6 +196,12 @@ payload에는 검증한 제목/설명/태그/행/배치된 work ID만 저장한�
 일반 사용자는 현재 published_version이 가리키는 게시본만 읽을 수 있다. 과거 게시본은 작성자와 허용된 운영 기능만 접근한다. 숨겨진 작품은 payload에 ID가 남아 있어도 모든 렌더와 export에서 필터링하고 비식별 대체 카드로 처리한다. 이전 표지 URL을 snapshot에 박아 넣지 않는다.
 
 unlisted 게시본은 public table SELECT 정책으로 읽게 하지 않는다. 토큰 검증 전용 서버 경로/RPC를 통해 제한된 DTO만 반환한다. 토큰을 알았다는 이유로 초안이나 옛 게시본을 읽게 하지 않는다.
+
+**P4 게시 증분 · 2026-10-04 (미적용/미검증):** `20261003145059_tier_publication_sharing.sql`에 위 publication PK와 검증·미배치 금지·RLS/직접 SELECT/DML 제거를 작성했다. tier_lists의 private-only 임시 제약을 current publication FK/visibility 제약과 독립 lifecycle version·단조 publication_counter로 교체했다. 게시/회전/철회는 owner 현재 계정과 기대 버전을 검사한다. token은 `private.tier_share_tokens`의 hash unique와 암호문/nonce만 저장하며 키와 원문은 DB/public DTO에 없다. owner RPC만 현재 암호문을 반환하고 서버가 AAD/hash/tag를 검증해 복구한다. 오래된 번호를 재사용하지 않는다.
+
+게시 미리보기 hash에는 저장된 배치와 현재 공개 작품 DTO를 함께 넣는다. 게시 transaction은 owner→작품 SHARE→metadata/draft UPDATE 순서로 초안·lifecycle version과 hash를 재검사한다. public/current reader는 현재 작성자 활성·동의·온보딩·양방향 차단·visibility·운영 상태·토큰 철회/만료를 검사한다. 숨겨진 작품은 공개 DTO에서 UUID/원문 없이 null 대체 카드가 된다. spoiler body/목록 제목은 최초 응답에 없으며 펼치기에는 현재 lifecycle version이 필요하다. 목록 DTO는 본문·배치·token이 없고 12개 페이지다. 원 게시본은 현재 포인터 외 일반 경로에서 읽지 못한다.
+
+신고·감사는 `private.tier_reports/tier_moderation_events`에 RLS/직접 권한 제거와 owner/운영자 RPC를 둔다. reporter+list pending unique, 사유·길이·현재 접근/자기 신고 금지·DB rate를 검사한다. 운영 조치는 역할·버전·현재 게시 상태·사유/신고 소속을 확인하고 숨김/복구/신고 결과/감사를 원자적으로 저장한다. 숨김은 token도 철회하고 복구만으로 이전 token을 살리지 않는다. 삭제는 공개 포인터를 지우고 publication·token·초안·병합 원본을 제거하되 private 신고/감사는 유지한다. 대표 티어 필드/설정과 그 철회 연동·과거 게시본 owner UI·P7 보관본 export/계정 삭제 정리는 후속이다. DB 적용/권한/경합/성능/모든 검사는 실행하지 않았다.
 
 ## 8. 소셜 테이블
 

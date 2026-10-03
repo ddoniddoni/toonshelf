@@ -10,6 +10,22 @@
 
 Inter 4.1·Pretendard 1.3.9 폰트 원본과 라이선스를 `public/fonts`에 보관하고 `@font-face`로 자체 제공한다. 새 패키지나 런타임 CDN 호출은 추가하지 않았다. 시안의 배너 일러스트는 자동 승인 검토가 다운로드를 거절해 파일이 없으며 별도 승인 대기다. 표지 권리 proxy·세션 검증·스포일러 본문 게이트·공개 집계·private 기록 경계를 유지했다. 신규 DB/RPC/client 캐시·인증 연동·의존성은 추가하지 않았다. TypeScript/Next 컴파일·브라우저·실제 DB/저장 실행과 자동 검사는 모두 미실행이다.
 
+### P4 비공개 티어 초안 편집 · 2026-10-03 (실행 미검증)
+
+`/tiers/new`, `/me/tiers`, `/tiers/[id]/edit`, `/me/tiers/[id]/merges`는 동적/noindex Server Component에서 현재 계정을 확인하고 owner DAL/RPC로 읽는다. 편집기는 Client Component의 순수 배치/행/이력 연산과 메모리 상태를 사용한다. HTML Drag and Drop과 모바일 select/버튼·키보드는 같은 이동 연산을 호출하며 새 의존성은 추가하지 않았다. 공개/공유 조회·캐시·publication은 이번 증분에 만들지 않았다.
+
+입력 이벤트에서 현재 편집 상태와 저장 revision을 함께 갱신해 React effect 이전에 도착한 응답도 새 편집을 덮지 않는다. 저장 큐는 800ms 디바운스/단일 요청/ack 버전/최신 후속 편집/충돌 정지를 처리하고 timer의 Server Action은 transition 안에서 호출한다. 저장 성공 시 owner 목록만 revalidate해 현재 편집기가 재조회로 초기화되지 않게 한다. 응답은 정규화된 draft와 현재 공개 작품 DTO/placeholder를 포함한다. 서버 오류/DB 증거는 안전한 액션 오류로 축소한다. 영구 브라우저 백업은 사용하지 않는다.
+
+새 migration은 사용자 세션의 현재 계정 게이트와 본인 소유권 아래 전체 저장·버전 검사를 수행한다. P3 merge에 private fingerprint/소유자·draft NOWAIT 잠금/원본 archive를 확장하고 기존 개인 handler를 private으로 제한한 public wrapper로 원자성을 유지한다. 관리자 원문 접근은 부여하지 않는다. SDK는 수동 RPC 계약이며 DB 생성 타입·컴파일·브라우저·실제 저장/권한·모든 자동 검사는 미실행이다.
+
+### P4 게시·공유 · 2026-10-04 (작성·실행 미검증)
+
+설치된 Next Server Actions/Route Handler/Metadata/Link 문서를 읽고 기존 동적 Server Component와 사용자 세션의 no-store Supabase SDK를 사용했다. `publication-model/data/actions`는 제한된 DTO·owner/현재 계정·서버 입력 검증·RPC를 담당한다. 편집 autosave는 공개 metadata/version을 바꾸지 않는다. 게시 미리보기와 공개 설정 panel은 편집기와 별도 경로이며 저장된 초안만 서버에서 게시한다. public/unlisted 상세·목록은 현재 게시본만 조회하고 스포일러 펼치기는 명시적 action의 현재 버전 검사로 처리한다. 공유된 본문과 원격 표지 URL을 공용 cache나 metadata에 복사하지 않는다.
+
+`share-token.ts`는 server-only Node crypto이며 32바이트 CSPRNG token을 SHA-256으로 찾고 AES-256-GCM/12바이트 nonce/16바이트 tag로 암호화해 private에 보관한다. tier UUID와 형식 버전이 AAD이고 복구 때 인증 tag와 hash를 검사한다. owner version RPC를 거쳐 주소 확인을 요청할 때만 복호화한다. 키가 없거나 32바이트 정규 base64가 아니면 발급/복구를 중단한다. 일반 public 게시와 비공개 철회는 키를 사용하지 않는다. 비밀 값을 가져오거나 등록하거나 브라우저에 전달하지 않았다.
+
+공유 경로의 no-store/no-referrer/noindex 헤더와 Next 요청/Server Action/browser-to-terminal 로그 제외를 작성했다. 배포 프록시/CDN access log의 경로 redaction/미기록은 외부 설정 대기이며 Next 설정만으로 전체 인프라 로그 차단을 주장하지 않는다. 사용자가 이미 받은 본문/링크/복사본을 회수할 수 없고 철회는 이후 DB 요청에 적용한다. 역할은 기존 private 운영자 게이트를 재사용하며 티어 신고/감사는 private 별도 테이블, 운영 DTO는 현재 게시본/제한된 신고/감사만 제공한다. 새 의존성·테스트 실행·브라우저·DB 적용·타입 생성은 없다.
+
 ### P3 개인 기록 보존 병합 · 2026-10-03
 
 관리자 Server Action은 현재 계정/DB 역할, UUID/version, 미리보기 토큰과 `latest_private` 정책/확인을 검증한다. 개인 내용은 SQL transaction 안에서 처리하며 RPC의 관리자 DTO는 합계와 충돌 건수로 제한한다. SQL의 SHA-256 snapshot은 private에만 보관하고 브라우저에는 무작위 관리자 전용 10분 토큰만 반환한다. 이전 6-argument `admin_merge_works`를 제거하고 토큰/정책을 포함한 단일 signature로 교체한다.
@@ -50,8 +66,8 @@ Supabase 공식 functions/RLS 문서와 설치된 Next Server Actions 안내를 
 | DB/인증/파일 | Supabase Postgres, Auth, Storage |
 | Supabase SDK | `@supabase/supabase-js`, `@supabase/ssr` |
 | 입력 검증 | Zod, 복잡한 폼에 React Hook Form |
-| 드래그 | dnd-kit의 구현 시점 공식 React 패키지/API 확인 |
-| 상태 | 서버 데이터는 Server Components/DAL, 티어 초안은 클라이언트 reducer |
+| 드래그 | P4 첫 증분은 기본 HTML Drag and Drop + 동일한 모바일/키보드 이동 연산, dnd-kit은 필요 시 공식 API/호환성 확인 후 도입 |
+| 상태 | 서버 데이터는 Server Components/DAL, 티어 초안은 클라이언트 상태와 순수 배치/이력 연산 |
 | 테스트 | Vitest, Testing Library, Playwright, Supabase 로컬 통합/RLS 테스트 |
 | 이미지 생성 | OG는 Next.js ImageResponse, 전체 PNG는 제한된 서버 렌더 파이프라인 |
 | 배포 | Vercel 앱 + 별도 Supabase 프로젝트, 개발/스테이징/운영 분리 |

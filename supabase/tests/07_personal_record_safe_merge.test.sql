@@ -167,10 +167,10 @@ select is(public.get_my_work_merge_history(1)->>'total','0','Target-only unrelat
 select is(public.get_my_work_merge_target('55000000-0000-4000-8000-000000000001'),null::uuid,'Unrelated owner cannot resolve another original URL');
 reset role;
 -- Keep the future-domain guard even when those tables are empty.
-create table public.tier_list_drafts(id uuid);
+create table public.posts(id uuid);
 select set_config('request.jwt.claims','{"sub":"35000000-0000-4000-8000-000000000001","session_id":"45000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
-select ok((public.admin_merge_preview('55000000-0000-4000-8000-000000000003','55000000-0000-4000-8000-000000000004')->>'blockedByPersonalDomains')::boolean,'Future unhandled tier domain still blocks merge');
+select ok((public.admin_merge_preview('55000000-0000-4000-8000-000000000003','55000000-0000-4000-8000-000000000004')->>'blockedByPersonalDomains')::boolean,'Future unhandled post domain still blocks merge');
 reset role;
 select * from finish();
 rollback;

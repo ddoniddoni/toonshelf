@@ -97,7 +97,7 @@ export async function mergeWorks(_state:FormState,form:FormData):Promise<FormSta
       p_target_version:version("targetVersion"),p_reason:reason,p_confirm:true,
       p_preview_token:uuidSchema.parse(field(form,"previewToken")),p_conflict_policy:mergePolicySchema.parse(field(form,"conflictPolicy"))});
     catalogueError(error);
-    revalidatePath("/");revalidatePath("/me","layout");revalidatePath("/u/[username]","layout");revalidatePath("/reviews","layout");
+    revalidatePath("/");revalidatePath("/me","layout");revalidatePath("/u/[username]","layout");revalidatePath("/reviews","layout");revalidatePath("/tiers","layout");
     return "/admin/works/"+target+"/edit?merged=1";
   });
 }
