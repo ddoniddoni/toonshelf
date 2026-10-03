@@ -73,7 +73,7 @@ export type DatabaseContract = {
       consume_reauth_ticket: { Args: { p_token_hash: string; p_purpose: string }; Returns: boolean };
       set_user_avatar: { Args: { p_user_id: string; p_session_id: string; p_path: string | null }; Returns: undefined };
       get_my_catalogue_role:{Args:Record<string,never>;Returns:boolean};
-      search_catalogue:{Args:{p_q:string;p_platforms:string[];p_genres:string[];p_status:string|null;p_days:number[];p_age:string|null;p_sort:string;p_after:Json|null;p_limit:number};Returns:Json};
+      search_catalogue:{Args:{p_q:string;p_platforms:string[];p_genres:string[];p_status:string|null;p_days:number[];p_age:string|null;p_sort:"latest"|"title"|"rating";p_after:Json|null;p_limit:number};Returns:Json};
       get_catalogue_detail:{Args:{p_slug:string};Returns:Json};
       admin_upsert_work:{Args:{p_id:string|null;p_expected_version:number|null;p_payload:Json;p_reason:string};Returns:string};
       admin_catalogue_snapshot:{Args:{p_id:string};Returns:Json};

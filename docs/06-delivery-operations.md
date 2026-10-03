@@ -11,7 +11,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P0 | 조건부: 코드 구성, DB 검증 대기 | 아래 16절. 로컬 Docker 엔진 필요 |
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
-| P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터 코드 작성, 실행 미검증·잔여 범위 있음 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
+| P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색 코드 작성, 실행 미검증·잔여 범위 있음 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 실제 기능 미착수: 편집기 디자인 미리 보기만 작성 | 아래 16절. 작품 추가·배치·저장·게시·공유 미구현 |
 | P5 | 미착수 | 없음 |
 | P6 | 미착수 | 없음 |
@@ -425,6 +425,23 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **실행한 작업·검사 결과:** 소스/설계/설치된 Next Promise page 안내와 공식 [Supabase functions](https://supabase.com/docs/guides/database/functions)·[RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)·[changelog](https://supabase.com/changelog)를 읽고 파일을 작성했다. CLI help는 최초 sandbox 밖 telemetry 파일 접근으로 실패한 뒤 승인된 재실행에서 안내를 읽었고 빈 migration 파일 생성은 성공했다. 이 명령들은 DB 적용/검사가 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 검수는 **모두 미실행**이며 실제로 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/운영자 지정은 수행하지 않았다. Git은 status/diff 조회만 허용 범위에서 수행하고 branch 생성·stage·commit·push·merge·PR는 하지 않았다.
 
 **외부 대기·다음 단계:** 공동 Supabase/Auth 연결과 새 migration 적용·실제 DB 타입 대조 후 사용자 요청 범위에서 공개 프로필→검색/필터→페이지 이동→내 서재 저장과 A/B·차단·독립 공개 조건을 검수해야 한다. P3 개인 기록을 보존하는 작품 병합과 평점순 카탈로그, 이후 P4 실제 티어 편집/저장/게시/공유는 남아 있다. 시안 배너 일러스트 승인은 별도 대기다.
+
+### 2026-10-03 · P3 카탈로그 공개 평균 평점순 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. 다음 기능 개발 요청에 따라 CAT-03 평점순 카탈로그와 RATE-03의 단일 public 별점 집계 코드를 작성했다. 공개 서재의 개인 평가 정렬과 독립된 작품별 평균이며 P3 전체 완료가 아니다. 실제 동작/권한 검사 없이 요구사항 추적표를 완료로 바꾸지 않았다.
+
+**작성한 변경:**
+- `/explore`에서 평점순을 선택하고 모든 필터/다음 페이지 URL을 유지하도록 연결했다. 카드에 공개 평균(소수 둘째 자리)·별점 평가 수 또는 `평가 없음`을 표시한다. 평균 내림차순·동률 평가 수 내림차순·작품 ID 순서이며 평가 없는 작품도 뒤에 포함한다. 기존 Stitch 필터/카드 배치에 작은 요약/공개 평가 안내만 추가했다. form key는 URL 조건 변경 때 uncontrolled 입력을 갱신한다.
+- `catalogue/model.ts`/`cursor.ts`/`data.ts`: 별도 public 별점 요약 스키마, rating sort와 v2 cursor를 작성했다. 입력/limit/cursor를 SDK 생성 전에 검사하고 한 번의 사용자 세션 RPC로 카드/요약/page를 받는다. cursor는 반올림한 평균 대신 정수 합계·건수·조회자 자신 ID를 사용하고 기존 latest/title v1을 유지한다. 공개 기준이 바뀌면 초기화 안내를 제공한다. 기본 카드/개인 서재/상세 DTO는 기존 계약을 유지했다.
+- Supabase CLI `migration new catalogue_rating_sort`로 만든 `20261003053412_catalogue_rating_sort.sql`에서 기존 `search_catalogue` 본문을 교체한다. signature는 유지하며 public/활성/차단/작품 가시성 조건을 적용한 별점만 먼저 집계해 분모 중복을 막는다. 개인 상태·메모·태그·진행/수정 시각은 읽지 않는다. 서재가 private이고 평가가 public인 별점은 포함하고 자기 private 평가·tier-only·정지/미온보딩/동의 누락 평가는 제외한다. 기존 인덱스를 재사용하고 latest/title은 page/lookahead만, rating은 일치하는 작품 전체의 평가를 집계한다.
+- 직접 RPC도 cursor type/키/2KiB/정수 합계·건수/현재 auth.uid/기준 작품의 현재 공개 집계를 검사한다. 변경/숨김 기준 작품은 페이지 재시작을 요구한다. 읽기는 현재 공개 상태이며 전체 결과 snapshot은 아니어서 다른 작품의 평가가 바뀌면 위치가 달라질 수 있다. 기존 빈 search_path/제한된 EXECUTE/statement timeout/로그인 검색 요청 제한을 유지하고 table/RLS/DML grant는 변경하지 않았다.
+- `database.contract.ts`의 수동 sort 계약과 README/02~05 문서의 UI·집계·cursor·권한 설명을 갱신했다. 새 의존성·합성 운영 데이터·이미지 다운로드는 추가하지 않았다. P6의 최소 5건/weighted_score/완독자·경험별 표본은 별도 후속 계약이다.
+
+**작성한 테스트:** unit에 rating URL 보존/정렬 변경/두 cursor 버전/Unicode 제목/정수·빈 분모·safe integer/요약 경계를 작성했다. `tests/integration/catalogue-search.test.ts`에는 mock DAL의 SDK 호출 전 거절·단일 RPC·정확한 next cursor·안전한 재시작/오류를 작성했다. `supabase/tests/06_catalogue_rating_sort.test.sql`은 rollback 전용 anon/본인/차단/정지 합성 fixture로 독립 공개 경계·관계 중복 분모·LIKE/공식 링크 조건·동점·반복 소수·평가 없는 page 경계·private 변경에 따른 응답 불변·공개 변경/숨김/로그인 cursor 재시작·다음 요청 비공개 전환을 작성했다. 파일만 작성했고 실행하지 않았다.
+
+**실행한 작업·검사 결과:** 소스/설계/설치된 Next Promise page 안내와 공식 [Supabase functions](https://supabase.com/docs/guides/database/functions)·[RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)·[changelog](https://supabase.com/changelog)를 읽었다. changelog markdown은 web의 content-type 미지원 후 문서 파일로 받아 읽었고 관련 minor Postgres/Data API 변경 안내를 읽었다. 고정 package/lockfile 버전을 유지했다. CLI help 읽기와 빈 migration 파일 생성만 성공했다. 이는 DB 연결/검사가 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동 검수는 **모두 미실행**이며 실제로 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/운영자 지정은 하지 않았다. Git은 status/diff 읽기만 수행하고 branch 생성·stage·commit·push·merge·PR는 수행하지 않았다.
+
+**외부 대기·다음 단계:** 공동 Supabase/Auth 연결과 새 migration 적용·실제 DB 생성 타입 대조 후 사용자 요청 범위에서 탐색→평점순→조건 적용→페이지 이동과 공개/비공개/차단/정지/동시 평가 변경·검색 성능을 검수해야 한다. 다음 개발은 P3의 개인 기록을 보존하는 작품 병합이며 그 뒤 P4 실제 티어 편집/저장/게시/공유를 진행한다. P1~P3 실행 검증과 시안 배너 일러스트 승인 대기는 유지한다.
 
 ## 17. 요구사항 추적표
 

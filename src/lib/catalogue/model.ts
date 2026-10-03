@@ -61,12 +61,20 @@ export const detailSchema = cardSchema.extend({description:z.string(),links:z.ar
   weekdays:z.array(z.number()),serialStatus:serialSchema,ageRating:publicAgeSchema,verifiedAt:z.string()
 }))});
 export type WorkDetail = z.infer<typeof detailSchema>;
-export const cursorPositionSchema = z.strictObject({id:uuidSchema,createdAt:z.iso.datetime({offset:true}),title:z.string().max(400)});
-export const searchResponseSchema = z.object({items:z.array(cardSchema),total:z.number().int().nonnegative(),next:cursorPositionSchema.nullable()});
+export const catalogueRatingSchema = z.strictObject({average:z.number().min(0.5).max(5).nullable(),ratingCount:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)})
+ .refine(v=>(v.ratingCount === 0) === (v.average === null),"평가 수와 평균이 일치하지 않아요.");
+export type CatalogueRating = z.infer<typeof catalogueRatingSchema>;
+export const catalogueCardSchema = cardSchema.extend({rating:catalogueRatingSchema});
+export const cursorPositionSchema = z.strictObject({id:uuidSchema,createdAt:z.iso.datetime({offset:true}),title:text(0,200)});
+export const ratingCursorPositionSchema = z.strictObject({id:uuidSchema,ratingSum:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),ratingCount:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),viewerId:uuidSchema.nullable()})
+ .refine(v=>v.ratingCount === 0 ? v.ratingSum === 0 : v.ratingSum >= v.ratingCount && v.ratingSum <= v.ratingCount * 10,"평점 페이지 주소가 올바르지 않아요.");
+export const catalogueCursorPositionSchema = z.union([cursorPositionSchema,ratingCursorPositionSchema]);
+export type CatalogueCursorPosition = z.infer<typeof catalogueCursorPositionSchema>;
+export const searchResponseSchema = z.object({items:z.array(catalogueCardSchema),total:z.number().int().nonnegative(),next:catalogueCursorPositionSchema.nullable()});
 export const filtersSchema = z.strictObject({
   q:text(0,100),platform:z.array(z.string().regex(/^[a-z0-9_]{1,40}$/)).max(8),
   genre:z.array(z.string().regex(/^[a-z0-9-]{1,40}$/)).max(12),status:serialSchema.nullable(),
-  day:z.array(z.number().int().min(0).max(6)).max(7),age:publicAgeSchema.nullable(),sort:z.enum(["latest","title"])
+  day:z.array(z.number().int().min(0).max(6)).max(7),age:publicAgeSchema.nullable(),sort:z.enum(["latest","title","rating"])
 });
 export type CatalogueFilters = z.infer<typeof filtersSchema>;
 export type SearchParams = Record<string,string|string[]|undefined>;
