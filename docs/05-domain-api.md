@@ -278,6 +278,16 @@ RPC 흐름: 인증/소유권/계정 상태 → 대상 행 FOR UPDATE → expecte
 
 GET `/api/og/tiers/[id]`는 query/hash를 받지 않고 현재 public을 전후 조회한다. 스포일러는 일반 카드, 그 외 현재 일부 행의 텍스트 미리보기며 private/unlisted/숨김/철회는 404다. `/api/og/tiers`는 ID/token/사용자 내용과 무관한 일반 카드다. PNG/OG 모두 자체 텍스트 표지·로컬 OTF만 사용하고 no-store/no-referrer/noindex다. 이미 받은 이미지와 외부 플랫폼 재캐시는 회수하지 못하며 다음 요청의 현재 권한을 검사한다. OG edge 제한과 허가된 표지의 목적별 선택은 후속이다.
 
+**P4 기본 평가 연결 계약 · 2026-10-04 (작성·미적용/미검증):** 아래 RPC는 활성 소유자와 현재 세션만 사용하며 관리자도 타인 자료를 조회/적용할 수 없다.
+
+| RPC | 계약 |
+|---|---|
+| `get_my_tier_evaluations(id,mode,page)` | import/apply 후보 24개·1–1000페이지, 현재 초안 version/title·hasMore와 사유. import는 본인 canonical 평가, apply는 저장된 배치. 비공개 상세는 제외 |
+| `preview_tier_evaluations(id,mode,version,choices)` | strict `{workId,status:null|reading|completed|dropped}` 1–100개, expected draft version. 변경 목록/nextStatus/fingerprint·60회/분 |
+| `commit_tier_evaluations(id,mode,version,choices,fingerprint,confirm)` | 같은 선택·64자 hash·confirm=true, 잠금 후 현재 snapshot 재검사, 원자 처리 후 `{version,changed}`·30회/분 |
+
+UI는 한 페이지의 선택을 적용하며 이동 시 초기화한다. 상태 선택은 apply의 새 기록/planned에서만 필수이고 그 밖의 상태 입력은 거절한다. source 개인 tier/별점·두 공개 범위·서재 version와 현재 public 작품 version/제목·원래/대상 행·명시 코드·상태 선택이 snapshot에 포함된다. 임의 사용자 ID·별점·반영할 코드 입력은 허용하지 않는다. 불가/미배치/사용자 행/대응 코드 없음/이미 동일 값은 사유를 표시하고 선택 시 재확인을 요구한다. 가져오기는 선택한 기존 배치를 제거한 뒤 대응 행 끝에 UUID순으로 붙이고 다른 작품 순서와 연속 위치를 보존하며 새 추가 뒤 300 상한을 검사한다. apply는 draft/publication을 변경하지 않는다. import는 publication을 변경하지 않고 draft version만 올린다. 개인 평가·서재 갱신 원칙은 다음 문단과 같다. 모든 검사는 미실행이다.
+
 다른 사용자 표 복제는 자신이 열람 가능한 **현재 게시본**만 복사한다. 새로운 표는 private이고 좋아요, 댓글, 원 작성자의 user ID, token은 복사하지 않는다. 복제 출처 표 ID는 선택 메타데이터로 보관할 수 있으나 원본 비공개 정보를 읽는 권한이 되지 않는다.
 
 개인 기본 티어로 반영할 때 변경 목록을 보여주고 적용 작품마다 읽기 상태가 필요하다. 새 서재 항목이나 planned 항목은 사용자가 명시적으로 reading/completed/dropped 중 선택하게 한다. 이미 있는 별점은 유지하고 canonical_tier만 변경한다. 기존 공개 범위는 유지하며 새 평가는 기본 private다. 미배치/사용자 지정 행은 건너뛴다.

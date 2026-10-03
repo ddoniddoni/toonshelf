@@ -1,6 +1,6 @@
 # ToonShelf 개발 문서
 
-**문서 버전:** 1.11 / **갱신일:** 2026-10-04 / **상태:** P1~P4 코드·Stitch 화면·티어 PNG/OG 증분 작성, 실제 연동·실행 검증 대기
+**문서 버전:** 1.12 / **갱신일:** 2026-10-04 / **상태:** P1~P4 코드·Stitch 화면·티어 기본 평가 연결 증분 작성, 실제 연동·실행 검증 대기
 
 ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 이름이 아니다.
 
@@ -93,6 +93,14 @@ TIER-08/09, OPS-03/04/07의 이미지 증분 코드를 작성했다. 초안 편�
 `/api/og/tiers/[id]`는 현재 전체 공개만 확인한다. 스포일러는 내용 없는 일반 카드, 스포일러 없는 표는 제목/일부 행 텍스트 미리보기다. 링크 공개 metadata는 ID/token/내용을 넣지 않고 모두 같은 `/api/og/tiers` 일반 카드를 사용한다. 모든 이미지 경로는 no-store/no-referrer/noindex다. PNG/OG는 원격 표지·아바타·허가 이미지 대신 자체 텍스트 카드만 사용하고, 공식 Pretendard 1.3.9 Regular OTF/SIL OFL을 로컬 Sharp/Pango에 제공한다. 의존성/lockfile 변경은 없다.
 
 `20261003171347_tier_image_export.sql`과 단위/route·DAL mock/DB rollback 테스트를 작성했다. 사용자 세션과 DB 권한 아래 회원별 고정 10분 구간 5번 제한을 예약하며 분할 전체를 한 요청으로 센다. 실패/취소된 렌더의 예약도 유지한다. **비회원 PNG와 신뢰된 token/IP 제한·OG edge 제한은 후속**, DB/Auth 연결과 migration 적용·타입 생성·배포 폰트 패키징·실제 PNG/ZIP/한글/모바일/동시 철회 검수도 대기다. 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수는 모두 미실행이며 실제 확인한 사용자 흐름은 없다. 다음 개발은 기본 평가 가져오기/명시적 반영이다.
+
+## P4 내 기본 티어 가져오기·명시적 반영 · 2026-10-04 (작성·실행 미검증)
+
+TIER-11의 `/tiers/[id]/evaluations` 소유자 화면과 사용자 세션 RPC를 작성했다. 편집기에서 저장이 완료된 초안만 이동한다. 24개씩 작품을 선택하고 변경 미리보기와 확인 동의를 거친다. 가져오기는 개인 기본 티어와 같은 명시적 canonical 코드의 행으로 이동/추가하고 다른 작품의 순서를 보존한다. 대응 행 없음·미배치/사용자 행·현재 이용할 수 없음·이미 같은 배치를 설명하며 표시 이름/색상에서 코드를 추정하지 않는다. 선택은 페이지 이동 시 초기화한다.
+
+반영은 선택한 작품의 canonical_tier만 변경하고 기존 별점·읽기 상태·서재/평가 공개 범위·메모/회차/태그를 유지한다. 새 기록/예정 상태는 보는 중·완독·중도하차를 직접 선택해야 하며 새 서재/평가는 private다. 초안 가져오기와 평가 반영은 기존 게시본을 업데이트하지 않는다. 기대 초안 version과 owner/선택/개인 기록 version·별점/공개 범위/작품 상태/읽기 선택 fingerprint를 잠금 후 다시 확인하며 변경 시 전체 거절한다. 반영은 서재 version을 올려 기존 편집의 덮어쓰기를 막는다.
+
+`20261003182649_tier_canonical_evaluations.sql`, 수기 DB 계약, 단위/액션 mock/DB rollback 테스트 파일을 작성했다. **실행하지 않았다.** 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수와 DB 연결/적용/타입 생성은 모두 미실행이며 실제 확인한 사용자 흐름은 없다. Supabase/Auth 공동 연결·migration 적용과 요청된 검수가 대기다. 이번 작업 브랜치는 `feature/tier-canonical-evaluations`이며 Git 반영은 사용자 요청의 기본 커밋·push·develop merge·push 순서를 따른다. P4 인기/테마·소셜/대표 티어, 비회원 PNG/edge 제한·허가 표지 목적별 사용과 P5~P7은 남아 있다.
 
 ## 로컬 Supabase 준비
 

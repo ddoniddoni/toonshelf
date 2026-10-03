@@ -205,6 +205,10 @@ unlisted 게시본은 public table SELECT 정책으로 읽게 하지 않는다. 
 
 **P4 PNG 증분 · 2026-10-04 (파일만 작성·미적용):** `20261003171347_tier_image_export.sql`의 `get_tier_image_source`/`begin_tier_image_export`는 authenticated execute만 허용하고 현재 실제 세션/활성/이메일 확인/동의를 다시 검사한다. 초안은 소유자만, 게시본은 현재 public 또는 유효 hash와 차단/author/운영/버전 조건을 통과해야 한다. 관리자 역할도 타인 초안 export 권한이 아니다. 스포일러 게시본은 별도 확인하며 text-only DTO에서 work/asset ID·URL·메모·회차·token을 제거한다. private helper의 직접 execute도 제거하고 빈 search_path/statement timeout을 작성했다. 예약 RPC는 기존 private 회원별 rate bucket을 5회/고정 600초로 사용한다. 원시 IP 수집·임의 header 신뢰·service key 사용자 접근은 구현하지 않았다. 비회원 PNG/token·IP/HMAC 제한은 후속이고 이번에는 로그인 안내/DB execute 거절로 처리한다. 렌더 직후 현재 DTO/권한을 재확인하고 모든 이미지 응답은 no-store다. 이미 수신한 파일과 외부 OG cache는 회수할 수 없다. 이미지에는 원격/허가된 표지까지 사용하지 않고 텍스트 카드만 포함해 표시 권한을 재배포 권한으로 추정하지 않는다. 실제 DB/RLS/권한/동시 철회·이미지/배포 검수는 미실행이다.
 
+**P4 기본 평가 연결 · 2026-10-04 (파일만 작성·미적용):** `20261003182649_tier_canonical_evaluations.sql`은 새 테이블/직접 DML 권한 없이 owner 전용 후보/미리보기/적용 RPC를 추가한다. PUBLIC/anon과 private helper execute는 제거하고 authenticated만 실제 세션·활성·이메일·동의·초안 소유권을 검사한다. 후보는 본인 평가/서재와 현재 작품 제목·배치·필요한 별점/공개 범위/version만 투영하고 메모/태그/회차/token은 반환하지 않는다. 선택 1–100개·UUID 중복·읽기 상태·명시 코드·작품/행 가용성과 300작품 상한을 DB에서도 검사한다.
+
+owner→UUID순 원본/병합 대상 작품 SHARE→표/초안/서재 UPDATE 순서로 잠근 후 owner/방향/초안 version/선택과 해당 개인 기록 상태·version·별점·공개 범위·작품 상태 fingerprint를 재계산한다. 충돌은 전체 rollback이며 가져오기는 기존 저장 함수의 검증/정규화로 초안 version만 올린다. 반영은 기존 별점·각 visibility·private details를 건드리지 않고 canonical_tier와 필요한 planned 상태만 변경한다. 새 서재/평가는 private, 기존 서재 version+1로 오래된 편집을 거절한다. 미배치/사용자 행/불가 작품은 평가 삭제나 코드 추정의 근거가 아니다. 게시본·개인 통계 원본 단일 PK는 유지한다. 미리보기 60회/분·적용 30회/분의 기존 회원 bucket을 사용한다. DB 적용/권한/동시성/성능 검사는 모두 미실행이다.
+
 ## 8. 소셜 테이블
 
 | 테이블 | 주요 컬럼과 불변식 |

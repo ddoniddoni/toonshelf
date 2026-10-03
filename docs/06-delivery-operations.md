@@ -12,7 +12,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
-| P4 | 진행: 초안 편집·게시·공유·복제와 회원 PNG/분할 ZIP·OG 증분 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 비회원 PNG/edge 제한·기본 평가·인기/테마/소셜은 후속 |
+| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 비회원 PNG/edge 제한·인기/테마/소셜/대표 티어는 후속 |
 | P5 | 미착수 | 없음 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
@@ -511,6 +511,22 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **실행/검사 결과:** 소스/문서/Git 상태·diff와 설치된 Next Route Handler/ImageResponse/Metadata/output 안내, [Supabase 함수](https://supabase.com/docs/guides/database/functions)·공식 changelog의 PG 15.19/17.11 변경, [Sharp 텍스트](https://sharp.pixelplumbing.com/api-constructor/)·composite 및 공식 Pretendard 배포/라이선스를 읽었다. CLI 도움말 읽기/빈 migration 파일 생성과 허가된 공식 폰트 가져오기만 실행했으며 DB/앱 실행 검증이 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 검수는 **모두 미실행**, 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/역할·키 등록도 하지 않았다.
 
 **Git/다음 단계:** 최신 origin/develop fetch/fast-forward 기준 갱신과 새 기능 브랜치 생성/전환은 개발 요청의 기본 승인을 따랐다. stage·commit·push·통합 merge·PR는 하지 않았다. 실제 DB/Auth 공동 연결과 migration·생성 타입·배포 폰트 tracing·PNG/ZIP/한글/모바일·외부 OG 갱신 검수가 대기다. 비회원 PNG의 신뢰된 token/IP/HMAC 제한과 OG/전체 익명 경로의 edge 제한·인프라 token 로그 redaction은 후속이다. 다음 P4 기능은 기본 평가 가져오기/명시적 반영이며 인기/테마·소셜·대표 티어·이미지 권리별 승인 표지 선택, P5~P7과 기존 실행 검증도 남아 있다.
+
+### 2026-10-04 · P4 내 기본 티어 가져오기·명시적 반영 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. TIER-11과 RATE-02, LIB-01/03, TIER-05의 개인 평가·저장 경계를 작성했다. P4 완료나 실제 DB/사용자 흐름 통과로 표시하지 않는다.
+
+**변경:** 저장 완료된 편집기→owner `/tiers/[id]/evaluations`→방향/24개 후보 선택→서버 변경 미리보기→확인 동의→적용 코드를 작성했다. canonical 코드가 없는 행을 이름/색상으로 추정하지 않고 unavailable/미배치/사용자 행/대응 행 없음/이미 동일 값의 제외 사유를 표시한다. 가져오기는 대응 행 끝으로 이동/추가하고 다른 배치 순서를 보존한다. apply는 기존 별점·상태·두 공개 범위·메모/진행/태그를 유지하고 canonical만 변경하며 새/planned 기록의 읽기 상태는 직접 선택한다. 새 서재·평가는 private다. 기존 게시본은 양쪽 작업에서 유지하고 import의 초안 version과 apply의 서재 version을 각각 갱신한다.
+
+**파일/migration:** `evaluation-model/data/actions`, `evaluation-panel`, owner page, 편집기 링크·Stitch CSS·수기 DB 계약을 작성했다. CLI가 생성한 `20261003182649_tier_canonical_evaluations.sql`은 owner/RLS 기존 경계·직접 권한 제거·DB 검증·원자 적용/300상한·회원 rate를 사용한다. owner/선택/초안 version·별점/공개 범위·읽기 상태·서재/작품 version fingerprint를 일관된 잠금 순서 뒤 재계산해 stale preview를 거절한다. 개인 상세·token은 projection에 없고 서비스 키·localStorage·새 의존성·lockfile 변경은 없다.
+
+**테스트 파일:** `tests/unit/tier-evaluations.test.ts`는 동의/hash/상태·중복/상한/임의 ownership·코드 주입/사용자 행·private DTO 제거를 작성했다. `tests/integration/tier-evaluation-actions.test.ts`는 mock 계정 gate/엄격 입력·RPC 인자/방향별 캐시 갱신/안전한 오류를 작성했다. `supabase/tests/11_tier_canonical_evaluations.test.sql`은 rollback fixture로 별점/공개 범위/메모 보존·새/planned 상태/비공개·부분 실패 방지·성인/미배치/사용자 행·두 방향/게시본 유지·stale 개인 기록/초안·타인 관리자·정지/세션 철회 경계를 작성했다. **파일 작성만 했고 실행하지 않았다.**
+
+**실행/검사 결과:** 소스/문서/Git status·diff와 설치된 Next Server Actions/page/revalidatePath 안내, [Supabase 함수](https://supabase.com/docs/guides/database/functions)·공식 changelog의 PG 15.19/17.11 변경, [Postgres 잠금](https://www.postgresql.org/docs/17/explicit-locking.html)을 읽었다. 공식 changelog 읽기·CLI 도움말/빈 migration 파일 생성은 DB 실행 검증이 아니다. 사용자 지시로 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수를 모두 미실행으로 남긴다. 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/키·역할 등록도 하지 않았다.
+
+**Git/다음 단계:** 최신 develop fetch/fast-forward 후 새 `feature/tier-canonical-evaluations`에서 작업했으며 stage·commit·push·통합 merge·PR는 하지 않았다. 실제 Supabase/Auth 공동 연결과 migration/생성 타입 적용·가져오기/변경 동의→원자 반영→공개 통계/두 탭/권한 검수는 별도 요청 대기다. P4 인기/테마·소셜 반응/대표 티어·비회원 PNG/edge 제한·허가 표지 목적별 선택, P5~P7과 기존 P1~P4 실행 검수는 남아 있다.
+
+**Git 반영 요청 · 2026-10-04:** 사용자가 이번 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 기존 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
 
 ## 17. 요구사항 추적표
 
