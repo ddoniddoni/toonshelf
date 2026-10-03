@@ -12,7 +12,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
-| P4 | 진행: 비공개 초안 편집·저장과 게시·공유·철회·현재 게시본 복제 증분 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키 적용·검수 대기, OG 이미지·PNG·기본 평가·인기/테마/소셜은 후속 |
+| P4 | 진행: 초안 편집·게시·공유·복제와 회원 PNG/분할 ZIP·OG 증분 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 비회원 PNG/edge 제한·기본 평가·인기/테마/소셜은 후속 |
 | P5 | 미착수 | 없음 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
@@ -497,6 +497,20 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **Git:** origin/develop을 fetch했고 이전 feature HEAD와 develop/origin/develop의 기준 commit이 동일함을 확인했다. 이전 미커밋 초안 코드를 그대로 보존하며 standing branch 준비 승인에 따라 최신 develop 기준 `feature/tier-publication-sharing`로 옮겼다. 사전 커밋은 필요하지 않아 앞서 요청한 진행 방식 답변 없이도 개발을 계속할 수 있었다. stage·commit·push·통합 merge·PR는 하지 않았다.
 
 **외부 대기·다음 단계:** 실제 Supabase/Auth·메일·OAuth 공동 연결, migration/생성 타입 적용·역할 지정, 서버 전용 32바이트 base64 SHARE_TOKEN_ENCRYPTION_KEY 등록과 배포 프록시/CDN token URL 로그 redaction은 공동 설정/검수 대기다. 이후 사용자 요청 시 저장→게시→다른 세션 열람/복제→링크 회전/비공개 철회·권한/경합·스포일러·차단/운영·병합을 검수해야 한다. 다음 P4 개발은 OG 이미지·권리 구분 PNG 분할·기본 평가 가져오기/명시적 반영이며 인기/테마·소셜·대표 티어와 P7 보관본 export/탈퇴 정리도 남아 있다. 기존 P1~P3 미검증·시안 배너 승인 대기는 유지한다.
+
+### 2026-10-04 · P4 티어 PNG 분할·OG 이미지 증분 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. TIER-08 OG, TIER-09 회원 이미지 저장, OPS-03/04/07의 이미지 경계를 작성했다. P4 전체 완료나 실제 공유/저장 통과로 표시하지 않는다. 비회원 PNG는 이번 증분에서 로그인 안내를 표시하며 전체 요구사항은 후속 token/IP 제한 구현까지 남는다.
+
+**작성한 변경:** `feature/tier-image-export`에서 저장된 본인 초안·현재 접근 가능한 게시본의 POST PNG 저장, 7작품/줄·7줄/페이지·최대 8장 분할 ZIP, 파일 저장·지원 기기 파일 공유를 작성했다. 초안만 미배치함을 포함하며 편집 중/저장 실패는 비활성화한다. 스포일러 게시본은 별도 확인을 요구한다. `begin_tier_image_export`는 현재 회원/소유권 또는 public·유효 token·차단/author·운영 상태/버전 아래 텍스트 DTO를 만들고 사용자별 고정 10분 구간 5번 DB 예약을 커밋한다. 한 ZIP은 한 요청이며 실패/취소도 예약을 유지한다. 렌더 뒤 `get_tier_image_source`로 다시 읽어 내용/현재 가시성 fingerprint가 바뀌면 반환을 거절한다. 서버 입력 2KiB, 최대 PNG 합계 16MiB·8장, 렌더/요청 timeout, POST Origin/JSON·strict 입력·query token 거절과 안전한 오류를 작성했다.
+
+공개 OG는 token 인자를 받지 않는 현재 public reader를 두 번 읽는다. 스포일러는 내용 없는 공통 카드, 스포일러 없는 public만 제목·최대 3행의 일부 텍스트 미리보기다. unlisted metadata에는 내용·ID·token URL 없이 공통 `/api/og/tiers`만 넣는다. 모든 이미지 응답과 metadata는 no-store/no-referrer/noindex다. PNG/OG에 remote 표지/아바타/asset URL을 사용하지 않고 자체 텍스트·Stitch 행/초록색 토큰을 Sharp/Pango로 그린다. Pretendard 1.3.9 공식 OTF/SIL OFL 파일과 Next font tracing 설정을 추가했으며 CDN/폰트 fallback 서비스에 사용자 텍스트를 보내지 않는다. 긴 설명/제목 일부는 말줄임 처리하고 행/작품 순서와 unavailable placeholder를 보존한다. 공통 일반 OG bytes만 서버 메모리에 재사용하고 사용자 이미지·ZIP은 디스크/Storage/shared cache에 보관하지 않는다. 저장/수신한 파일과 외부 공유 플랫폼의 재캐시는 회수할 수 없으며 철회는 이후 응답을 막는다.
+
+**Migration/테스트 파일:** `20261003171347_tier_image_export.sql`은 private 텍스트 projection helper와 회원 전용 읽기/예약 RPC, PUBLIC/anon 권한 제거·빈 search_path·현재 세션·회원별 제한을 작성했다. 새 테이블/서비스 키/의존성/lockfile 변경은 없다. `tests/unit/tier-images.test.ts`, `tests/integration/tier-image-data.test.ts`, `tier-image-routes.test.ts`는 페이지 경계·markup/control·CRC/ZIP 제한·입력/Origin/계정·hash만 전달·철회 재확인·스포일러/metadata 비노출을 작성했다. `supabase/tests/10_tier_image_export.test.sql`은 rollback fixture로 owner/admin 격리·초안/게시본 분리·미배치·현재 숨김·차단/author/session·token철회·버전·공유 제한 bucket을 작성했다. **파일 작성만 했고 실행하지 않았다.** 실제 Sharp/Pango/ZIP/한글·모바일·동시 철회/권한 테스트 결과는 없다.
+
+**실행/검사 결과:** 소스/문서/Git 상태·diff와 설치된 Next Route Handler/ImageResponse/Metadata/output 안내, [Supabase 함수](https://supabase.com/docs/guides/database/functions)·공식 changelog의 PG 15.19/17.11 변경, [Sharp 텍스트](https://sharp.pixelplumbing.com/api-constructor/)·composite 및 공식 Pretendard 배포/라이선스를 읽었다. CLI 도움말 읽기/빈 migration 파일 생성과 허가된 공식 폰트 가져오기만 실행했으며 DB/앱 실행 검증이 아니다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 검수는 **모두 미실행**, 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/역할·키 등록도 하지 않았다.
+
+**Git/다음 단계:** 최신 origin/develop fetch/fast-forward 기준 갱신과 새 기능 브랜치 생성/전환은 개발 요청의 기본 승인을 따랐다. stage·commit·push·통합 merge·PR는 하지 않았다. 실제 DB/Auth 공동 연결과 migration·생성 타입·배포 폰트 tracing·PNG/ZIP/한글/모바일·외부 OG 갱신 검수가 대기다. 비회원 PNG의 신뢰된 token/IP/HMAC 제한과 OG/전체 익명 경로의 edge 제한·인프라 token 로그 redaction은 후속이다. 다음 P4 기능은 기본 평가 가져오기/명시적 반영이며 인기/테마·소셜·대표 티어·이미지 권리별 승인 표지 선택, P5~P7과 기존 실행 검증도 남아 있다.
 
 ## 17. 요구사항 추적표
 

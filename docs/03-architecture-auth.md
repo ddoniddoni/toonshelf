@@ -26,6 +26,14 @@ Inter 4.1·Pretendard 1.3.9 폰트 원본과 라이선스를 `public/fonts`에 �
 
 공유 경로의 no-store/no-referrer/noindex 헤더와 Next 요청/Server Action/browser-to-terminal 로그 제외를 작성했다. 배포 프록시/CDN access log의 경로 redaction/미기록은 외부 설정 대기이며 Next 설정만으로 전체 인프라 로그 차단을 주장하지 않는다. 사용자가 이미 받은 본문/링크/복사본을 회수할 수 없고 철회는 이후 DB 요청에 적용한다. 역할은 기존 private 운영자 게이트를 재사용하며 티어 신고/감사는 private 별도 테이블, 운영 DTO는 현재 게시본/제한된 신고/감사만 제공한다. 새 의존성·테스트 실행·브라우저·DB 적용·타입 생성은 없다.
 
+### P4 이미지 내보내기 · 2026-10-04 (작성·실행 미검증)
+
+Node Route Handler에서 strict JSON/2KiB·Origin·현재 회원·source/version/token 확인 후 사용자 세션의 예약 RPC를 호출한다. DB는 소유권/현재 게시본/스포일러/차단/author/운영·작품 가시성과 회원별 고정 구간 제한을 적용해 텍스트 전용 DTO만 반환한다. source=draft는 미배치까지 owner-only, publication은 공개 가능한 current snapshot만 사용한다. server-only Sharp/Pango는 공식 로컬 OTF와 코드 소유 도형/escaped plain text로 최대 8장/16MiB PNG를 만들고 다중 페이지를 stored ZIP으로 묶는다. 사용자 이미지·ZIP/토큰을 Storage·디스크·로그·공용 cache에 넣지 않는다.
+
+렌더 뒤 source RPC의 현재 권한과 전체 제한 DTO fingerprint를 비교한 후에만 파일을 반환한다. 실제 응답 전 동시 철회/세션 만료·여러 인스턴스 검수는 미실행이며 이미 수신한 파일은 회수되지 않는다. public OG는 현재 reader를 전후 확인하고 스포일러 없는 일부 텍스트만 담는다. 스포일러·unlisted는 ID/token/내용과 무관한 일반 이미지다. 공통 일반 OG bytes만 제한된 서버 메모리 cache로 재사용한다. 이미지 헤더는 no-store/no-referrer/noindex, 폰트는 outputFileTracingIncludes로 패키징하도록 작성했다. private 사용자 DB 접근에 service key를 사용하지 않는다.
+
+기존 고정 sharp 0.35.5/Next 16.3.8 API와 공식 Supabase 함수/changelog를 읽었다. 새 패키지·lockfile 변경·DB 적용·생성 타입·앱/이미지 생성/검사 실행은 없다. Supabase/Auth·배포 font tracing/Sharp 지원·익명 PNG의 신뢰된 token/IP 제한·OG edge 제한·CDN/access log redaction은 공동 설정/후속 검수 대기다.
+
 ### P3 개인 기록 보존 병합 · 2026-10-03
 
 관리자 Server Action은 현재 계정/DB 역할, UUID/version, 미리보기 토큰과 `latest_private` 정책/확인을 검증한다. 개인 내용은 SQL transaction 안에서 처리하며 RPC의 관리자 DTO는 합계와 충돌 건수로 제한한다. SQL의 SHA-256 snapshot은 private에만 보관하고 브라우저에는 무작위 관리자 전용 10분 토큰만 반환한다. 이전 6-argument `admin_merge_works`를 제거하고 토큰/정책을 포함한 단일 signature로 교체한다.
