@@ -60,7 +60,7 @@ P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며
 
 | 서버 함수 | 사용자 세션 DB RPC | 현재 동작 |
 |---|---|---|
-| searchWorks | search_catalogue | 공개 DTO·필터·keyset; 최근/제목 정렬 |
+| searchWorks | search_catalogue | 공개 DTO·필터·keyset; 최근/제목/공개 평균 별점 정렬 |
 | getWorkDetail | get_catalogue_detail | 현재 공개 가능한 상세; merged slug는 공개 target만 반환 |
 | submitSuggestion | submit_catalogue_suggestion | current UID/pending/요청 제한 |
 | upsertWork | admin_upsert_work | 역할·source·expectedVersion·관계 저장·감사 log transaction |
@@ -71,7 +71,11 @@ P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며
 
 작품 입력은 제목 200자, 별칭 20개·각 200자, 직접 쓴 소개 2000자, 작가/공식 링크 각각 최대 20개, 장르 최대 12개, 전체 관리 payload 최대 256KiB(DB)를 기준으로 작성했다. 글자 수는 Unicode code point로 확인한다. source는 제목·연령·공식 링크 확인을 필수로 요구한다. 단순 같은 제목의 자동 병합이나 외부 플랫폼 소개/표지 수집을 제공하지 않는다.
 
-평점순·평가/리뷰 DTO는 P3에서 실제 데이터와 연결한다. P2 제보 결과는 `/submissions`에서 확인하며 P5에서 알림을 연결한다. P3+ 개인 도메인 table이 추가되면 아래 13절의 전체 보존 규칙을 해당 단계에서 구현하기 전까지 P2 병합 RPC가 명시적으로 거절한다.
+**P3 평점순 카탈로그 계약 · 2026-10-03 (작성·미검증):** `search_catalogue`의 기존 argument signature를 유지하며 sort에 rating을 허용한다. 모든 검색 결과 카드에 `rating:{average:number|null,ratingCount:number}`를 추가하고 별점이 없으면 null/0이다. 평가 표본은 현재 볼 수 있는 활성 회원의 public rating_steps 한 행/회원/작품이며 비공개 상태에 종속되지 않는다. canonical tier만 있는 평가나 private 평가는 별점 분모에 넣지 않는다. 분류/작가 관계는 평가 집계 이후 카드에 붙여 중복을 방지한다. 검색·분류·공식 링크 필터와 page limit 기본 24/최대 50을 유지한다.
+
+rating 정렬은 공개 별점 평균 내림차순(null last) → ratingCount 내림차순 → 작품 UUID 오름차순이다. 표시에만 소수 둘째 자리 반올림을 사용한다. rating next는 `{id,ratingSum,ratingCount,viewerId}`이며 ratingSum은 반점 단위 정수 합계다. 합계/건수는 0~JS safe integer 범위이고 건수 0이면 합계도 0, 양수면 건수~건수×10이다. server cursor v2는 모든 필터 fingerprint에 묶고 DB는 정수/키/현재 조회자/기준 작품의 현재 공개 합계·건수를 검증한다. 기준이 바뀌거나 접근 불가능하면 VALIDATION_ERROR로 첫 페이지 재시작을 안내한다. 기존 latest/title cursor v1 `{id,createdAt,title}`은 유지하며 title은 200 Unicode code point다. 페이지는 실시간 조회이며 다른 작품의 평가가 이동 중 바뀌면 순서/위치가 달라질 수 있다. snapshot/cross-user 캐시에 오래된 공개 점수를 남기지 않는다.
+
+CAT-03 탐색의 rating은 일반 공개 평균 기준이며 평가 없는 작품도 포함한다. 아래 P6 순위용 최소 표본/weighted_score와 경험별 세부 표본 계약은 별도 후속 구현이다. P2 제보 결과는 `/submissions`에서 확인하며 P5에서 알림을 연결한다. P3+ 개인 도메인 table이 추가되면 아래 13절의 전체 보존 규칙을 해당 단계에서 구현하기 전까지 P2 병합 RPC가 명시적으로 거절한다.
 
 | 기능 | 입력/출력 | 규칙 |
 |---|---|---|
@@ -92,7 +96,7 @@ P2의 실제 함수 매핑은 다음과 같다. 아래는 작성한 계약이며
 
 sort는 title/rating/tier만 허용한다. rating은 공개 별점 내림차순, tier는 공개 S→F이며 미공개/미지정 값은 마지막이다. 동률은 공개 제목·작품 UUID로 정리하고 개인 생성/수정 시각은 사용하지 않는다. items는 기존 `{work,status,ratingSteps,canonicalTier}` public DTO이며 total/hasNext도 같은 필터 집합에서 계산한다. 가시성이 없는 회원은 null이고 현재 차단·계정·작품 공개 조건을 재사용한다. 공개 endpoint의 필터/총수/정렬에는 비공개 데이터를 넣지 않는다.
 
-`get_reading_stats(null)`은 확인된 본인의 공개·비공개 기록, username을 전달하면 해당 사용자의 공개 상태와 공개 평가만 각각 집계한다. 장르는 작품별 장르 수로 비중을 나눈다. `get_work_evaluation_stats`는 활성 회원의 public evaluation 한 행씩으로 별점/티어 분모와 평균을 계산한다. 평가 없음은 null/0이다. 모두 현재 공개 가능한 작품만 포함하며 미실행·미검증이다. 평점순 카탈로그/보정 순위/완독자 세부 표본은 아직 연결하지 않았다.
+`get_reading_stats(null)`은 확인된 본인의 공개·비공개 기록, username을 전달하면 해당 사용자의 공개 상태와 공개 평가만 각각 집계한다. 장르는 작품별 장르 수로 비중을 나눈다. `get_work_evaluation_stats`는 활성 회원의 public evaluation 한 행씩으로 별점/티어 분모와 평균을 계산한다. 평가 없음은 null/0이다. 모두 현재 공개 가능한 작품만 포함하며 미실행·미검증이다. 평점순 카탈로그는 위 계약으로 작성했고 보정 순위/완독자 세부 표본은 아직 연결하지 않았다.
 
 | 기능 | 입력 | 규칙 |
 |---|---|---|

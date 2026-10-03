@@ -12,6 +12,14 @@
 
 이는 작성한 migration 계약이며 실제 DB 적용·RLS/Storage 권한·ticket 경쟁 소비·advisors는 미검증이다. 현재 정책 버전은 내부 검수용 `2026-10-02-preview`다. 버전 변경 시 SQL과 서버 검증·온보딩 UI·법적 안내를 함께 바꾸고 실제 운영 정책으로 재동의해야 한다.
 
+## P3 카탈로그 평점순 작성 상태 · 2026-10-03
+
+`20261003053412_catalogue_rating_sort.sql`은 기존 `search_catalogue`의 signature를 보존해 public 별점 요약/정렬을 추가한다. 공개 가능한 작품에 속한 visibility=public, rating_steps가 있는 평가만 작품별로 먼저 집계하며 `private.profile_visible`로 현재 활성/동의/양방향 차단 조건을 검사한다. 본인 방문도 자기 private 평가를 집계하지 않는다. 비공개 library status는 읽지 않으므로 서재 공개와 평가 공개의 독립 경계를 유지한다. tier만 있는 평가는 별점 분모가 아니며 여러 링크/장르/작가가 평가 행을 곱하지 않는다.
+
+기존 SECURITY DEFINER는 private 표지 helper/활성 계정 확인과 명시적인 공개 투영을 위한 경계다. 빈 search_path, 고정 schema-qualified SQL, 입력/페이지/cursor 상한과 제한된 anon/authenticated EXECUTE를 유지하고 table/RLS/DML grant는 넓히지 않는다. private details/개인 시각/사용자별 평가/별점 작성자 ID는 DTO에 넣지 않는다. rating next에는 현재 조회자 자신의 ID 또는 익명 null만 들어가며 token이나 타인 ID가 아니다. DB는 그 값이 실제 auth.uid와 같은지 검사한다. 공개 평가가 철회되거나 기준 작품이 숨겨지면 저장된 cursor 값으로 진행하지 않는다.
+
+기존 evaluation_public_work_idx와 관계 인덱스를 재사용하고 최신/제목은 page 내 별점만 집계한다. 평점순은 현재 일치하는 작품의 평가를 집계하므로 실제 데이터에서 성능 검수가 필요하다. 결과 캐시는 no-store이고 공개 평균/건수에는 차단 상태가 반영된다. 실제 DB 적용·권한/경쟁 저장/성능/advisor/타입 생성과 모든 검사는 미실행이다.
+
 ## 1. 공통 규칙
 
 ### P2 작성 상태 · 2026-10-02

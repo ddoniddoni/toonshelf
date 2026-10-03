@@ -10,6 +10,12 @@
 
 Inter 4.1·Pretendard 1.3.9 폰트 원본과 라이선스를 `public/fonts`에 보관하고 `@font-face`로 자체 제공한다. 새 패키지나 런타임 CDN 호출은 추가하지 않았다. 시안의 배너 일러스트는 자동 승인 검토가 다운로드를 거절해 파일이 없으며 별도 승인 대기다. 표지 권리 proxy·세션 검증·스포일러 본문 게이트·공개 집계·private 기록 경계를 유지했다. 신규 DB/RPC/client 캐시·인증 연동·의존성은 추가하지 않았다. TypeScript/Next 컴파일·브라우저·실제 DB/저장 실행과 자동 검사는 모두 미실행이다.
 
+### P3 카탈로그 평점순 · 2026-10-03
+
+기존 Server Component 탐색·GET 폼·`/api/works/search`와 `searchWorks` DAL을 재사용한다. 입력/페이지 상한/cursor 조건을 SDK 생성 전에 검증하고 검색 결과에 별도 `CatalogueRating` public summary를 포함한다. 기본 `WorkCard`/서재/상세 DTO에는 새 필드를 요구하지 않으며 탐색만 카드의 rating prop을 전달한다. 조회는 사용자 세션의 기존 no-store SDK와 한 번의 RPC이며 작품별 추가 SDK 요청이나 공용 client 캐시를 도입하지 않았다. 필터 form key로 URL 조건이 바뀔 때 uncontrolled 입력도 새 조건을 반영하도록 작성했다.
+
+`search_catalogue`의 argument/return JSON signature는 유지하고 migration에서 본문을 교체한다. 최근/제목 정렬은 기존 cursor v1을 유지하고 해당 page/lookahead의 평가만 집계한다. 평점순은 필터에 맞는 작품의 공개 평가를 한 번 집계하며 정렬/페이지/총수가 같은 결과 집합을 사용한다. rating cursor v2는 정수 별점 합계/평가 수/현재 조회자 ID를 사용하고 DB에서 현재 기준 작품의 공개 집계·조회자를 다시 검사한다. 새 기능의 버전을 수동 DB 계약에 반영했으며 실제 생성 타입은 아니다. 설치된 Next Promise page 안내와 Supabase 공식 functions/RLS/changelog를 읽고 고정 의존성을 유지했다. migration 적용·SQL·컴파일·브라우저·모든 테스트/자동 검사는 미실행이다.
+
 ### P3 공개 서재 검색·필터 · 2026-10-03
 
 새 `/u/[username]/library`는 Server Component이며 Promise `params/searchParams`를 읽고 username·단일 query·페이지·조건을 서버에서 검증한다. 공개 목록과 분류 선택지는 병렬 조회한다. 필터가 있는 `getPublicLibrary`는 사용자 세션의 기존 `createClient`로 `search_public_library`를 호출하고, 필터를 전달하지 않는 기존 프로필 조회는 `get_public_library`를 유지한다. 둘 다 기존 public DTO 스키마를 사용하며 private owner DTO나 비밀 키 SDK를 사용하지 않는다. `PublicLibraryItems`는 두 화면이 같은 공개 카드·내 서재 저장 경로를 재사용하도록 분리했다.

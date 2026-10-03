@@ -3,9 +3,10 @@ import { cache } from "react";
 import { z } from "zod";
 import { getPublicEnv } from "@/lib/env/public";
 import { createClient } from "@/lib/supabase/server";
+import { AuthFailure } from "@/lib/auth/errors";
 import { catalogueError } from "./errors";
 import { readCursor,writeCursor } from "./cursor";
-import { detailSchema,genreSchema,platformSchema,searchResponseSchema,slugSchema,type CatalogueFilters } from "./model";
+import { detailSchema,filtersSchema,genreSchema,platformSchema,searchResponseSchema,slugSchema,type CatalogueFilters } from "./model";
 
 export const catalogueOptions = cache(async ()=>{
   if (!getPublicEnv().supabase) return null;
@@ -18,10 +19,13 @@ export const catalogueOptions = cache(async ()=>{
   return {platforms:z.array(platformSchema).parse(platforms.data),genres:z.array(genreSchema).parse(genres.data)};
 });
 export async function searchWorks(filters:CatalogueFilters,cursor:unknown,limit=24) {
+  filters = filtersSchema.parse(filters);
+  limit = z.number().int().min(1).max(50).parse(limit);
   const after = readCursor(cursor,filters);
   const client = await createClient();
   const {data,error} = await client.rpc("search_catalogue",{p_q:filters.q,p_platforms:filters.platform,p_genres:filters.genre,p_status:filters.status,
     p_days:filters.day,p_age:filters.age,p_sort:filters.sort,p_after:after,p_limit:limit});
+  if (error?.message === "VALIDATION_ERROR") throw new AuthFailure("VALIDATION_ERROR","검색 조건이나 페이지 주소를 다시 확인해 주세요. 공개 평가가 바뀌었다면 첫 페이지부터 찾아 주세요.");
   catalogueError(error);
   const result = searchResponseSchema.parse(data);
   return {items:result.items,total:result.total,nextCursor:writeCursor(result.next,filters)};
