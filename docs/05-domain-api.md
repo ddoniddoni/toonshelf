@@ -270,7 +270,17 @@ RPC 흐름: 인증/소유권/계정 상태 → 대상 행 FOR UPDATE → expecte
 
 암호문 자료는 `{hash,ciphertext,nonce}` 세 필드뿐이며 token은 32바이트 난수의 정규 base64url(43자), hash는 SHA-256 hex다. ciphertext는 43바이트 token과 16바이트 GCM tag, nonce는 12바이트를 hex로 보관한다. 공개/링크 payload는 title/description/tags/rows/placed work UUID만 보관한다. reader DTO는 행별 public WorkCard 또는 null 대체이며 숨김 UUID·미배치·비공개 메모·token·원격 이미지 URL을 포함하지 않는다. spoiler는 기본 표시이며 최초 body=null, 명시적 POST 확인 뒤 현재 권한/버전을 재검사한다. 스포일러/링크 공개의 제목·배치를 metadata/OG에 넣지 않는다. OG 텍스트 metadata는 모두 일반 안내이며 스포일러 없는 public 이미지에만 현재 일부 행 텍스트를 포함한다.
 
-초안 version, lifecycle version, 단조 publication_counter는 별개다. 초안 저장은 lifecycle과 현재 게시본을 변경하지 않는다. 회전/철회/게시/운영/작품 병합은 lifecycle을 올려 오래된 작업을 거절한다. 삭제 RPC는 publication·token도 제거하며 현재 조회 경로는 모두 dynamic/no-store다. 현재 신고자 상세·결과는 private owner RPC만, 운영자 snapshot은 현재 public/unlisted 게시본만 제공한다. 보관한 옛 게시본의 owner UI·대표 티어 지정/철회 연동·비회원 PNG·기본 평가 가져오기/반영·인기/테마/소셜 반응은 후속이며 실행 검증은 없다.
+초안 version, lifecycle version, 단조 publication_counter는 별개다. 초안 저장은 lifecycle과 현재 게시본을 변경하지 않는다. 회전/철회/게시/운영/작품 병합은 lifecycle을 올려 오래된 작업을 거절한다. 삭제 RPC는 publication·token도 제거하며 현재 조회 경로는 모두 dynamic/no-store다. 현재 신고자 상세·결과는 private owner RPC만, 운영자 snapshot은 현재 public/unlisted 게시본만 제공한다. 보관한 옛 게시본의 owner UI·비회원 PNG 등은 후속이며 실행 검증은 없다. 기본 평가/반응/탐색·대표 지정과 철회 연동은 아래 후속 증분으로 작성했다.
+
+**P4 대표 티어표 계약 · 2026-10-05 (작성·미적용/미검증):**
+
+| 경로 | 계약 |
+|---|---|
+| 본인 대표 조회 | `get_my_featured_tier_state()` → 현재 계정의 `{id:null|uuid,version}`. 타 사용자 인자를 받지 않음 |
+| 지정·교체·해제 | `set_featured_tier(id:null|uuid,tier_version:null|bigint,featured_version:bigint)` → 본인 public/visible/미삭제 표의 현재 lifecycle·대표 revision을 검사하고 `{id,version}` 반환. null/null은 해제, 20회/분 제한 |
+| 공개 프로필 카드 | `get_public_featured_tier(username)` → 현재 접근 가능한 본인 대표의 현재 게시본 카드 또는 null. 스포일러 title/tags=null, 기존 유효 likeCount/recentLikeCount, body/초안/옛 게시본/token/대표 revision 없음 |
+
+대표 포인터 변경/자동 해제만 대표 revision을 올린다. 같은 값의 재요청도 기대 revision은 검사하고 일치하면 idempotent다. public 게시본 업데이트는 대표를 유지하며 private/unlisted/hidden/삭제는 같은 transaction에서 해제한다. 복구/재공개만으로 되살리지 않는다. A→B→A 후 옛 해제/교체와 대상 lifecycle 변경은 CONFLICT다. 새 보호 열은 raw profiles SELECT로 읽지 않으며 `/u/*`는 private/no-store, 관련 action은 프로필 page를 무효화한다. 모든 실제 DB/권한/경합/캐시/화면 검수는 미실행이다.
 
 **P4 PNG/OG 계약 · 2026-10-04 (작성·미적용/미검증):** POST `/api/tiers/[id]/export`의 strict JSON은 `{source: draft|publication,version,token:null|string,confirm:true,confirmSpoiler:boolean}`이며 2KiB 이하·서비스 Origin만 허용한다. 활성/이메일 확인/동의 회원만 이용하고 token은 POST body에서 hash로 바꾼다. `begin_tier_image_export(id,source,version,hash?,confirmSpoiler)`는 owner 초안 또는 현재 접근 가능한 게시본을 검사해 `{id,source,version,isSpoiler,body:{title,description,tags,rows:[row+items:[{title}|null]]},unplaced:[{title}|null]}`를 반환하며 공통 계정 bucket을 5회/고정 600초로 예약한다. source=publication은 lifecycle version, draft는 draft version이며 전자 unplaced=[]다. 스포일러 게시본은 confirmSpoiler=true를 요구한다. 계정/소유권/차단/author/운영/숨김 작품을 UI와 무관하게 RPC에서도 검사하며 raw work/asset/token/개인 메모를 projection하지 않는다.
 

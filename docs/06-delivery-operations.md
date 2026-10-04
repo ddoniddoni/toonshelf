@@ -12,7 +12,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
-| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·최근 7일 좋아요순/태그 탐색 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 댓글 가중 인기·댓글/팔로우/대표 티어·비회원 PNG/edge 제한은 후속 |
+| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·최근 7일 좋아요순/태그 탐색·대표 티어표 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 댓글 가중 인기·댓글/팔로우·비회원 PNG/edge 제한은 후속 |
 | P5 | 전체 단계 미착수: 공개 티어 반응의 SOC-04 공통 기반만 P4에서 작성, 실행 미검증 | 아래 16절. 리뷰/글/댓글 반응·팔로우·피드·알림은 후속 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
@@ -559,6 +559,22 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **Git/다음 단계:** 최신 origin/develop fetch/fast-forward 후 새 `feature/tier-discovery`에서 개발했다. 개발 보고 시점에는 stage/commit/push/통합 merge/PR를 하지 않았다. 실제 Supabase/Auth 공동 연결·migration/생성 타입과 요청된 최근순/태그/권한/페이지/성능 검수는 대기다. 다음은 대표 티어표 지정·현재 공개 프로필 표시이며 댓글 가중 인기·댓글/팔로우/알림·다른 대상 반응, 비회원 PNG/token·IP/OG edge 제한·허가 표지 목적별 선택과 P5~P7 및 기존 실행 검수도 남아 있다.
 
 **Git 반영 요청 · 2026-10-05:** 사용자가 공개 티어 탐색 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 모든 실행 검증의 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
+
+### 2026-10-05 · P4 대표 티어표 지정·공개 프로필 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. SOC-01의 대표 표와 TIER-07/12의 공개 철회, 기존 SOC-06/OPS-01 경계를 작성했다. P4/P5나 SOC-01 전체 완료로 체크하지 않는다.
+
+**변경:** 게시·공유 화면에서 본인의 현재 전체 공개 표를 대표 지정/교체/해제하고 내 티어표 목록에서 현재 대표 관리/해제한다. 공개 프로필은 현재 게시본의 제한된 카드만 읽으며 스포일러 제목/태그는 일반 안내, 없는/현재 접근 불가능한 표는 빈 상태다. 현재 작성자 활성/동의/차단·가시성·운영 상태를 DB에서 재확인한다. 처리는 서버 응답 이후에만 성공으로 표시하며 중복 제출·버전 충돌/응답 유실 시 새 서버 상태 재조회 경로를 작성했다. `/u/*` private/no-store와 관련 게시/철회/운영/삭제 action의 프로필 cache 무효화를 추가했다. 서비스 키·가짜 자료·새 의존성은 없다.
+
+**Migration/권한:** CLI가 생성한 `20261004171418_featured_tier_profile.sql`에 nullable featured FK/JS safe integer 대표 revision·index·owner 조회/변경·현재 public 카드 RPC를 작성했다. 기존 profile 열만 직접 SELECT 가능하고 새 포인터/revision은 RPC 전용이다. setter는 회원 세션/계정과 소유권·현재 public·대상 lifecycle·대표 revision·20회/분을 검사한다. tier→profile 잠금 순서와 변경 시에만 revision 증가로 두 화면/ABA를 처리한다. private/unlisted/숨김/soft delete trigger는 같은 transaction에서 대표를 해제하고 hard delete FK SET NULL도 revision을 올린다. 재공개/운영 복구는 지정을 복원하지 않는다. 현재 공개 게시본 업데이트는 대표를 유지한다. DTO에는 본문/초안/옛 게시본/token/개인 기록/대표 revision을 넣지 않는다.
+
+**테스트 파일:** `tier-featured.test.ts`, `tier-featured-ui.test.tsx`, `tier-featured-actions.test.ts`에 strict 입력·separate revision·계정 gate·최소 DTO·미설정/오류·중복 요청/서버 확인/충돌·공개 조건/스포일러 카드를 작성했다. `supabase/tests/14_featured_tier_profile.test.sql`은 rollback fixture로 직접 권한·본인/다른 소유자·idempotence/교체/ABA·현재 게시본·스포일러·차단/비활성·실제 철회/unlisted 게시/운영 hide/restore/삭제 RPC·FK hard delete·실제 세션 철회 경계를 작성했다. **모두 파일만 작성했고 실행하지 않았다.** 단일 세션 fixture는 select/철회/운영/삭제 경합이나 다중 탭의 실제 잠금 동작을 입증하지 않는다.
+
+**실행/외부 상태:** Git status/diff·소스/문서·설치 버전 메타데이터와 Next use-server/page 안내, [Supabase 함수](https://supabase.com/docs/guides/database/functions)·[열 권한](https://supabase.com/docs/guides/database/postgres/column-level-security)·공식 changelog, [PG FK](https://www.postgresql.org/docs/17/ddl-constraints.html)·[trigger](https://www.postgresql.org/docs/17/sql-createtrigger.html)를 읽었다. changelog 가져오기와 CLI 도움말/빈 migration 생성은 DB 실행 검증이 아니다. 사용자 지시대로 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수를 **전부 미실행**으로 남긴다. 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/역할·키 등록도 하지 않았다. 실제 Supabase/Auth·migration·생성 타입·권한/경합/성능/캐시/화면 검수는 공동 작업·별도 요청 대기다.
+
+**Git/다음 단계:** 탐색 feature `b1b20dc`와 develop merge `170e1e0` push 후 최신 develop fetch/fast-forward에서 새 `feature/featured-tier`를 생성했다. 개발 보고 시점에는 stage·commit·push·통합 merge·PR를 수행하지 않았다. 다음은 공개 티어표 댓글·답글과 신고/차단 연동이다. 댓글 가중 인기·팔로우/피드/알림·다른 도메인 반응, P4 비회원 PNG/edge 제한·허가 표지 목적별 선택 및 P5~P7·기존 실행 검수도 남아 있다.
+
+**Git 반영 요청 · 2026-10-05:** 사용자가 대표 티어표 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 모든 실행 검증의 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
 
 ## 17. 요구사항 추적표
 

@@ -29,7 +29,7 @@ export async function deleteTierDraft(_state:FormState,form:FormData):Promise<Fo
   const {client}=await requireAccount();if (!checked(form,"confirm")) throw new AuthFailure("VALIDATION_ERROR","초안 삭제에 동의해 주세요.");
   const {error}=await client.rpc("delete_tier_draft",{p_id:uuidSchema.parse(field(form,"id")),p_version:versionSchema.parse(Number(field(form,"version"))),p_confirm:true});tierError(error);
  } catch(error) {return actionError(error);}
- revalidatePath("/me/tiers");revalidatePath("/tiers","layout");revalidatePath("/share/t/[token]","page");redirect("/me/tiers?deleted=1");
+ revalidatePath("/u/[username]","page");revalidatePath("/me/tiers");revalidatePath("/tiers","layout");revalidatePath("/share/t/[token]","page");redirect("/me/tiers?deleted=1");
 }
 export async function saveTierDraft(input:unknown):Promise<SaveReply> {
  try {

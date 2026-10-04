@@ -28,7 +28,8 @@ type SettingsArgs = { p_library: Visibility; p_evaluation: Visibility; p_theme: 
 export type DatabaseContract = {
   public: {
     Tables: {
-      profiles:Table<Profile>;user_settings:Table<UserSettings>;genres:Table<Genre>;
+      // Featured columns are RPC-only; Profile contains the raw-readable columns.
+      profiles:Table<Profile & {featured_tier_list_id:string|null;featured_tier_version:number}>;user_settings:Table<UserSettings>;genres:Table<Genre>;
       works:Table<WorkRow>;platforms:Table<PlatformRow>;creators:Table<CreatorRow>;
       work_genres:Table<{work_id:string;genre_id:string}>;
       work_creators:Table<{work_id:string;creator_id:string;role:string;sort_order:number}>;
@@ -39,6 +40,9 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      get_my_featured_tier_state:{Args:Record<string,never>;Returns:Json};
+      set_featured_tier:{Args:{p_id:string|null;p_tier_version:number|null;p_featured_version:number};Returns:Json};
+      get_public_featured_tier:{Args:{p_username:string};Returns:Json};
       get_tier_like_state:{Args:{p_id:string};Returns:Json};
       set_tier_like:{Args:{p_id:string;p_version:number;p_liked:boolean};Returns:Json};
       get_my_tier_evaluations:{Args:{p_id:string;p_mode:string;p_page:number};Returns:Json};

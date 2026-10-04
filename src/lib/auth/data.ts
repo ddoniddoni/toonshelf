@@ -8,7 +8,7 @@ export async function getGenres() {
 }
 export async function getMyProfile(allowPending = false) {
   const {client,user} = await requireAccount(!allowPending);
-  const {data,error} = await client.from("profiles").select("*").eq("id",user.id).single();
+  const {data,error} = await client.from("profiles").select("id,username,display_name,bio,avatar_path,discovery_opt_in,onboarding_completed_at,created_at,updated_at").eq("id",user.id).single();
   databaseError(error); return data;
 }
 export async function getMySettings() {

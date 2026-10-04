@@ -26,3 +26,9 @@ export function likeError(error:{code?:string;message?:string}|null) {
  if (error?.message === "NOT_FOUND") throw new AuthFailure("NOT_FOUND","현재 좋아요를 표시할 수 있는 공개 티어표가 없어요.");
  tierError(error);
 }
+export function featuredError(error:{code?:string;message?:string}|null) {
+ if (error?.message === "CONFLICT") throw new AuthFailure("CONFLICT","대표 지정이나 티어표 게시 상태가 바뀌었어요. 최신 상태를 불러와 다시 선택해 주세요.");
+ if (error?.message === "FEATURED_UNAVAILABLE") throw new AuthFailure("FORBIDDEN","현재 전체 공개된 내 티어표만 대표로 지정할 수 있어요.");
+ if (error?.message === "NOT_FOUND") throw new AuthFailure("NOT_FOUND","대표로 지정할 내 티어표를 찾을 수 없어요.");
+ tierError(error);
+}
