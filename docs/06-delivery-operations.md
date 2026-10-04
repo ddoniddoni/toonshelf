@@ -12,7 +12,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
-| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·공개 티어 좋아요 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 비회원 PNG/edge 제한·인기/테마·댓글/팔로우/대표 티어는 후속 |
+| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·최근 7일 좋아요순/태그 탐색 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 댓글 가중 인기·댓글/팔로우/대표 티어·비회원 PNG/edge 제한은 후속 |
 | P5 | 전체 단계 미착수: 공개 티어 반응의 SOC-04 공통 기반만 P4에서 작성, 실행 미검증 | 아래 16절. 리뷰/글/댓글 반응·팔로우·피드·알림은 후속 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
@@ -543,6 +543,22 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **Git/다음 단계:** 최신 origin/develop fetch/fast-forward 기준 갱신 뒤 새 `feature/tier-likes`에서 작업했다. stage·commit·push·통합 merge·PR는 하지 않았다. 실제 Supabase/Auth 공동 연결과 migration/생성 타입 적용·좋아요/취소/차단/권한·다중 세션·집계 성능 검수는 별도 요청 대기다. 다음은 공개 티어 인기순·테마 필터이며 댓글·팔로우·알림·대표 티어와 다른 도메인 반응은 후속이다. 비회원 PNG/token·IP 제한·OG edge 제한·허가 표지 목적별 선택, P5~P7 및 기존 P1~P4 실행 검수도 남아 있다.
 
 **Git 반영 요청 · 2026-10-05:** 사용자가 공개 티어 좋아요 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 모든 실행 검증의 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
+
+### 2026-10-05 · P4 최근 7일 좋아요순·게시본 태그 탐색 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. TIER-10의 최신/최근 좋아요 정렬·테마 필터와 기존 SOC-04/06 반응/차단 집계 경계를 작성했다. 전체 `recent_unique_likes + 2 × recent_unique_commenters` 인기 점수·댓글·작성자 팔로우와 P4 전체 완료로 표시하지 않는다.
+
+**작성한 변경:** `/tiers`에 최신 게시순/최근 7일 좋아요순·정확한 태그 입력·조건 초기화, 카드의 전체/최근 수 구분·실제 태그 링크, 조건을 유지하는 이전/다음·빈 페이지의 첫 페이지 복귀를 작성했다. form/태그 변경은 page=1이고 정렬/tag/page는 strict 서버 schema로 검증한다. 중복 인자·지원하지 않는 조건·reveal/token/actor/count 주입은 거절한다. 태그는 1~20 Unicode code point, 저장된 대소문자/공백까지 정확히 비교한다. private/unlisted/숨김/삭제·비활성/차단된 작성자는 후보에서 제외하며 스포일러 제목/태그는 null, 태그 필터에서는 해당 표를 제외한다. 현재 게시본만 검색하고 초안/과거 게시본/개인 태그를 사용하지 않는다. 기존 Stitch 배치/토큰과 GET 폼·dynamic/private/no-store를 유지하며 서비스 키·공유 캐시·새 의존성/lockfile 변경은 없다.
+
+**Migration/계약:** CLI가 생성한 `20261004162937_tier_discovery.sql`은 고유 이름 `search_public_tiers(sort,tag,page)`와 기존 `list_public_tiers(page)` 최신순 호환 위임, private 총수/최근 수 공통 helper·기존 상세 집계 위임을 작성했다. 최근 구간은 transaction 시각 기준 168시간이며 미래 시각은 제외하고 idempotent true는 생성 시각을 올리지 않는다. 최근 수→게시 시각 내림차순→ID 오름차순, 최신순은 게시 시각→ID다. 출력 12개와 다음 페이지 판정 13개, 페이지 1~1000의 bounded offset이다. 최신순은 페이지 후보를 먼저 제한해 집계하고 인기순은 현재 접근 가능한 후보를 집계 후 정렬한다. 태그 JSON containment GIN partial index와 반응 시간 index·private helper/원문 직접 권한 제거·정밀 RPC grant를 작성했다. 수기 TS 계약과 index 파일은 실제 DB/타입/성능 검증이 아니다. 반응/가시성 변경 중 페이지 이동은 위치가 바뀔 수 있으며 snapshot cursor와 익명 edge 제한은 후속이다.
+
+**테스트 파일:** `tests/unit/tier-discovery.test.ts`에 strict 인자·Unicode·literal 태그/URL 왕복·페이지 조건 유지·최소 DTO/스포일러 metadata/누락된 수 거절을 작성했다. `tests/integration/tier-discovery-data.test.ts`와 `tests/unit/tier-discovery-feed.test.tsx`는 세션 RPC의 검증된 인자·미설정·안전한 오류·목록/폼/태그/페이지 링크·전체/최근 수 구분·스포일러 일반 카드/빈 상태를 mock으로 작성했다. `supabase/tests/13_tier_discovery.test.sql`은 rollback fixture로 최근 168시간 경계/옛·미래 반응·중복 true/취소 후 새 반응·자기/정지 제외·동률/12개 페이지·literal/스포일러/초안/옛 게시본 태그·공개/운영/차단/동의/삭제·legacy 위임·권한을 작성했다. **파일만 작성했고 모두 실행하지 않았다.** 실제 DB·다중 세션·query plan·대량 집계·브라우저/접근성 검수 근거는 없다.
+
+**실행/검사 결과:** Git status/diff·소스/문서/설치된 버전 메타데이터와 Next page/searchParams 안내, [Supabase 함수](https://supabase.com/docs/guides/database/functions)·[공식 changelog](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes), [Postgres JSON containment/index](https://www.postgresql.org/docs/17/datatype-json.html)·[CTE materialization](https://www.postgresql.org/docs/17/queries-with.html)을 읽었다. 공식 changelog 가져오기·CLI 도움말/빈 migration 생성만 수행했으며 DB 실행 검증이 아니다. 사용자 지시로 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수를 **모두 미실행**으로 남긴다. 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/키·역할 등록도 하지 않았다.
+
+**Git/다음 단계:** 최신 origin/develop fetch/fast-forward 후 새 `feature/tier-discovery`에서 개발했다. 개발 보고 시점에는 stage/commit/push/통합 merge/PR를 하지 않았다. 실제 Supabase/Auth 공동 연결·migration/생성 타입과 요청된 최근순/태그/권한/페이지/성능 검수는 대기다. 다음은 대표 티어표 지정·현재 공개 프로필 표시이며 댓글 가중 인기·댓글/팔로우/알림·다른 대상 반응, 비회원 PNG/token·IP/OG edge 제한·허가 표지 목적별 선택과 P5~P7 및 기존 실행 검수도 남아 있다.
+
+**Git 반영 요청 · 2026-10-05:** 사용자가 공개 티어 탐색 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 모든 실행 검증의 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
 
 ## 17. 요구사항 추적표
 

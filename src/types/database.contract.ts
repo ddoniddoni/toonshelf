@@ -54,6 +54,7 @@ export type DatabaseContract = {
       get_my_tier_share_token:{Args:{p_id:string;p_version:number};Returns:Json};
       get_tier_publication:{Args:{p_id:string|null;p_hash:string|null;p_reveal:boolean;p_version:number|null};Returns:Json};
       list_public_tiers:{Args:{p_page:number};Returns:Json};
+      search_public_tiers:{Args:{p_sort:string;p_tag:string|null;p_page:number};Returns:Json};
       clone_tier_publication:{Args:{p_id:string;p_hash:string|null;p_version:number;p_confirm:boolean};Returns:string};
       report_tier_publication:{Args:{p_id:string;p_hash:string|null;p_reason:string;p_detail:string};Returns:undefined};
       list_my_tier_reports:{Args:{p_page:number};Returns:Json};

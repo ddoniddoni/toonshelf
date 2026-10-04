@@ -3,6 +3,7 @@ import { cardSchema,uuidSchema } from "@/lib/catalogue/model";
 import { rowSchema,versionSchema } from "./model";
 import { reportReasonSchema } from "@/lib/reviews/model";
 import { likeCountSchema } from "./like-model";
+import { tierThemeTagSchema } from "./discovery-model";
 
 // A 32-byte base64url token: the last character has two zero padding bits.
 export const shareTokenSchema=z.string().regex(/^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/);
@@ -25,7 +26,14 @@ export const revealInputSchema=accessInputSchema.extend({version:versionSchema,c
 export const publicationSchema=z.object({id:uuidSchema,version:versionSchema,publishedVersion:versionSchema,publishedAt:z.string(),
  authorId:uuidSchema,username:z.string(),name:z.string(),isSpoiler:z.boolean(),likeCount:likeCountSchema.nullable(),body:publicationBodySchema.nullable()});
 export type TierPublication=z.infer<typeof publicationSchema>;
-export const publicTierListSchema=z.object({items:z.array(publicationSchema.omit({body:true}).extend({title:z.string().nullable()})),hasNext:z.boolean()});
+export const publicTierCardSchema=publicationSchema.omit({body:true}).extend({title:z.string().nullable(),
+ tags:z.array(tierThemeTagSchema).max(5).nullable(),likeCount:likeCountSchema,recentLikeCount:likeCountSchema})
+ .superRefine((v,ctx)=>{
+  if (v.recentLikeCount > v.likeCount) ctx.addIssue({code:"custom",message:"최근 반응 수를 확인해 주세요."});
+  if (v.isSpoiler ? v.title !== null || v.tags !== null : v.title === null || v.tags === null)
+   ctx.addIssue({code:"custom",message:"현재 공개 범위를 확인해 주세요."});
+ });
+export const publicTierListSchema=z.object({items:z.array(publicTierCardSchema).max(12),hasNext:z.boolean()});
 export const tierReportSchema=z.object({id:uuidSchema,tierId:uuidSchema,reason:reportReasonSchema,detail:z.string(),
  status:z.enum(["pending","resolved","rejected"]),result:z.string(),createdAt:z.string()});
 export const tierReportQueueSchema=z.object({items:z.array(tierReportSchema),hasNext:z.boolean()});
