@@ -225,6 +225,8 @@ reactions는 대상 유형별 `(user_id,target_id)` partial unique를 둔다. �
 
 현재 사용자 access lock→정렬된 사용자 쌍의 advisory transaction lock→tier SHARE 순서로 변경한다. set_user_block도 같은 pair lock을 사용하고 양쪽이 상대 표에 남긴 반응을 같은 transaction에서 삭제한다. 타인의 다른 작성자 콘텐츠 반응은 삭제하지 않고 조회자 차단에 따라 집계에서만 제외한다. 유효 수는 활성/확인/온보딩/현재 동의 반응자만 포함하며 작성자↔반응자 및 조회자↔반응자 차단을 검사한다. 숫자는 사용자별로 달라질 수 있다. private/unlisted/숨김/삭제/비활성 작성자는 상태/수를 노출하지 않는다. private/unlisted 전환의 기존 반응은 보관하고 이후 public 재게시 때 현재 조건으로만 다시 집계한다. soft delete trigger와 profile FK cascade는 반응을 정리한다. 현재 표 ID에 붙는 반응은 공개 게시본 갱신/작품 병합으로 복제되지 않는다. 실제 DB/RLS/성능/다중 세션 동시성은 모두 미검증이며 알림 dedupe/생성·다른 소셜 도메인은 후속이다.
 
+**P4 탐색 증분 · 2026-10-05 (작성·미적용):** `20261004162937_tier_discovery.sql`의 `search_public_tiers`는 현재 public/미삭제/visible·활성 작성자/조회자 차단 검사를 통과한 후보만 집계·정렬·페이지 수에 넣는다. `private.tier_like_metrics`가 총수와 최근 168시간 수의 동일한 반응자/작성자/조회자 가시성 규칙을 적용하며 기존 상세 수 helper도 이를 사용한다. 미래 시각은 최근 수에서 제외하고 repeated desired true는 기존 created_at을 유지한다. 태그는 현재 published_version의 payload에 literal JSON containment로 비교한다. 스포일러 payload는 태그 필터에서 제외하고 카드 제목/태그도 null이다. 초안/옛 게시본/개인 태그를 보지 않으며 숨겨진 반응자 ID·개인 기록·공유 token은 DTO에 없다. 익명/회원은 제한 RPC만 실행하고 private helper·원문/반응 table 직접 권한은 계속 제거한다. 새 공개 table/정책/서비스 키는 없다. 태그 GIN partial index와 반응 시간 index는 migration 파일에만 작성했으며 적용·query plan/성능·권한/동시성은 미검증이다. 전체 댓글 가중 인기 점수와 익명 edge 제한은 후속이다.
+
 activity_events는 첫 공개 게시 이벤트를 중복 없이 만든다. 공개 필드의 원문을 복제하지 않고 대상 ID를 참조한다. 조회 시 원본이 현재도 공개/활성 상태인지 검증한다. 공개 취소와 차단 이후 과거 피드 항목이 남지 않는다.
 
 notifications는 recipient만 SELECT와 read_at 변경이 가능하다. 생성은 신뢰된 DB trigger/RPC만 할 수 있다. 알림 payload에는 리뷰/댓글 본문을 복사하지 않는다. FK가 삭제로 없어져도 일반 안내로 표시할 수 있어야 한다.

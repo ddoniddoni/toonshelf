@@ -467,6 +467,9 @@ html { scroll-padding-top: 76px; }
 .tier-entry-actions p { color:var(--muted); font-size:13px; }
 .tier-list-page { padding-block:32px; }
 .tier-publication-feed { padding-block:24px; }
+.tier-discovery-filters > fieldset { margin:0; padding:0; border:0; }
+.tier-publication-tags { display:flex; flex-wrap:wrap; gap:6px; margin-block:10px; }
+.tier-publication-tags a { max-width:100%; overflow-wrap:anywhere; }
 .tier-draft-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:16px; margin-block:16px; }
 .tier-publication-panel { display:grid; gap:20px; margin-top:24px; }
 .tier-like-panel { display:grid; gap:10px; padding-block:20px; border-block:1px solid var(--line); margin-block:20px; }

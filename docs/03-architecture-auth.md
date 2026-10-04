@@ -336,6 +336,10 @@ OG는 공개 게시본을 바탕으로 생성하고 원본 표지를 직접 긁�
 - APP_ENV/실제 로컬 DB 호스트를 확인해 로컬 가입을 허용한다. 원격은 AUTH_REGISTRATION_ENABLED를 명시해야 앱 가입/OAuth 진입이 열린다. Supabase 자체 signup/provider 활성화와 확정 운영 정책은 별도 설정이며 앱 플래그만으로 Auth API가 차단된다고 주장하지 않는다.
 - Sharp 0.35.5를 직접 의존성으로 고정했다. 아바타 입력은 2MB/16M pixels/JPEG·PNG·WebP, 단일 프레임만 허용한다. 디코딩한 형식과 MIME을 대조하고 회전·최대 512px·WebP 재인코딩으로 메타데이터를 제거한다. Server Action body limit은 multipart 여유를 포함해 3MB다.
 
+## P4 공개 티어표 탐색 메모 · 2026-10-05 (작성·실행 미검증)
+
+정렬/tag/page는 Promise searchParams에서 strict schema로 검증한다. 중복 인자·지원하지 않는 filter·reveal/token/actor/count 주입을 거절하며 네이티브 GET 폼과 URLSearchParams 링크로 탐색한다. DAL은 사용자 세션 SDK의 `search_public_tiers` 한 호출만 사용하고 연결 미설정은 null로 표시한다. 현재 공개 카드만 총수/최근 수·비스포일러 제목/태그를 투영하고 클라이언트 입력이나 누락된 필드를 0으로 보완하지 않는다. 목록 schema는 12개 상한·최근 수≤총수·스포일러 제목/태그 비노출을 검사한다. 개인화된 차단 집계 때문에 기존 dynamic/private/no-store와 요청별 SDK fetch를 유지한다. 새 클라이언트 상태·공유 캐시·카드별 네트워크 호출·서비스 키·의존성은 없다. 수기 RPC 타입 계약이며 실제 DB/생성 타입/성능/화면 검수는 대기다.
+
 ## P4 공개 티어표 좋아요 메모 · 2026-10-05 (작성·실행 미검증)
 
 `like-data/actions`는 일반 사용자 세션 SDK만 사용한다. 변경 액션은 requireAccount 후 strict `{id,version,liked:boolean}`만 허용하며 user ID/count/token을 받지 않는다. 공개 상태 조회는 anon도 현재 접근 가능한 public 표의 수/본인 boolean만 읽고 private/unlisted/숨김/차단/비활성 작성자는 null이다. 상태 DTO에는 반응자 ID/본문이 없다. 공개 목록의 기존 RPC에 집계를 포함해 카드별 네트워크 호출을 추가하지 않았다. 상세의 계정/좋아요 조회는 병렬이며 요청별 SDK fetch와 `/tiers`의 private/no-store, dynamic 처리를 유지한다. 변경 후 목록/현재 상세 캐시만 갱신한다. OG 내용 재확인에서 집계 수를 제외하되 현재 공개 접근/lifecycle/body는 계속 재확인한다. 수기 DB 계약이며 실제 생성 타입·DB/Auth/브라우저 검수는 대기다.
