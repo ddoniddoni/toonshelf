@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
       source: "/tiers/:path*",
       headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }],
     }, {
+      source: "/u/:path*",
+      headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }],
+    }, {
       source: "/me/:path*",
       headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }],
     }, {

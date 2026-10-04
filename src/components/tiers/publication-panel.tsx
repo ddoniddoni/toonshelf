@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { getTierShareUrl,publishTier,rotateTierLink,withdrawTier } from "@/lib/tiers/publication-actions";
 import type { PublicationPreview } from "@/lib/tiers/publication-model";
 import { PublicationBoard } from "./publication-board";
+import { FeaturedTierControl } from "./featured-tier-control";
+import type { FeaturedState } from "@/lib/tiers/featured-model";
 
-export function PublicationPanel({preview,siteUrl}:{preview:PublicationPreview;siteUrl:string}) {
+export function PublicationPanel({preview,featured,siteUrl}:{preview:PublicationPreview;featured:FeaturedState;siteUrl:string}) {
  const router=useRouter();const [state,setState]=useState(preview.state),[url,setUrl]=useState(""),[message,setMessage]=useState(""),[linkBusy,setLinkBusy]=useState(false);
  const [feedback,action,pending]=useActionState(async(_previous:{ok:boolean;message:string}|null,form:FormData)=>{
   setUrl("");setMessage("");
@@ -18,7 +20,7 @@ export function PublicationPanel({preview,siteUrl}:{preview:PublicationPreview;s
    fingerprint:preview.fingerprint,visibility:form.get("visibility"),isSpoiler:form.get("isSpoiler") === "on",confirm:confirmed})
    : operation === "rotate" ? await rotateTierLink(input) : await withdrawTier(input);
   if (!reply.ok) return {ok:false,message:reply.error.message};
-  setState(reply.state);return {ok:true,message:operation === "publish" ? "저장된 초안을 게시했어요. 링크 공개는 새 공유 링크를 확인해 주세요." : operation === "rotate" ? "이전 링크를 철회했어요. 새 공유 링크를 확인해 주세요." : "비공개로 전환했어요. 초안과 게시 이력은 유지돼요."};
+  setState(reply.state);router.refresh();return {ok:true,message:operation === "publish" ? "저장된 초안을 게시했어요. 링크 공개는 새 공유 링크를 확인해 주세요." : operation === "rotate" ? "이전 링크를 철회했어요. 새 공유 링크를 확인해 주세요." : "비공개로 전환했어요. 초안과 게시 이력은 유지돼요."};
   } catch {return {ok:false,message:"처리 결과를 확인하지 못했어요. 최신 상태와 미리보기를 불러와 주세요."};}
  },null);
  function obtainLink() {
@@ -49,5 +51,6 @@ export function PublicationPanel({preview,siteUrl}:{preview:PublicationPreview;s
   {state.visibility === "unlisted" && canPublish ? <details className="library-privacy-panel"><summary>{state.hasShareToken ? "공유 링크 새로 발급" : "철회된 링크 대신 새 링크 발급"}</summary><form action={action} className="account-form"><fieldset disabled={busy}><input type="hidden" name="operation" value="rotate"/><label className="form-checkbox"><input name="confirm" type="checkbox" required/><span>이전 링크를 철회하고 새 링크를 발급할게요.</span></label><button className="button button-secondary">새 링크 발급</button></fieldset></form></details> : null}
   {state.visibility !== "private" ? <details className="library-privacy-panel"><summary>게시 취소 · 비공개로 전환</summary><form action={action} className="account-form"><fieldset disabled={busy}><input type="hidden" name="operation" value="withdraw"/><label className="form-checkbox"><input name="confirm" type="checkbox" required/><span>공개 목록과 상세에서 숨기고 기존 공유 링크를 철회할게요.</span></label><button className="button button-secondary">비공개로 전환</button></fieldset></form></details> : null}
   <Link className="text-link" href={`/tiers/${state.id}/edit`}>← 초안 편집으로 돌아가기</Link>
+  <FeaturedTierControl key={`${featured.version}:${state.version}`} featured={featured} tier={state} disabled={busy}/>
  </div>;
 }

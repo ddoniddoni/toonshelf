@@ -23,6 +23,7 @@ function shareError(error:unknown) {
 }
 
 function invalidate(id:string) {
+ revalidatePath("/u/[username]","page");
  revalidatePath("/tiers","layout");revalidatePath("/me/tiers","layout");revalidatePath("/share/t/[token]","page");
  revalidatePath(`/tiers/${id}/publish`);revalidatePath("/admin/tiers","layout");revalidatePath("/admin/tier-reports");revalidatePath("/me/tier-reports");
 }

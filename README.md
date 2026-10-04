@@ -1,6 +1,6 @@
 # ToonShelf 개발 문서
 
-**문서 버전:** 1.14 / **갱신일:** 2026-10-05 / **상태:** P1~P4 코드·Stitch 화면·공개 티어표 탐색 증분 작성, 실제 연동·실행 검증 대기
+**문서 버전:** 1.15 / **갱신일:** 2026-10-05 / **상태:** P1~P4 코드·Stitch 화면·대표 티어표 증분 작성, 실제 연동·실행 검증 대기
 
 ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 이름이 아니다.
 
@@ -118,7 +118,15 @@ TIER-10의 최신 게시순·최근 7일 좋아요순과 게시본 테마 태그
 
 `20261004162937_tier_discovery.sql`은 새로운 `search_public_tiers`와 기존 `list_public_tiers`의 최신순 호환 위임, 유효 반응의 총수/최근 수 공통 helper와 태그 GIN/반응 시간 index를 작성했다. 최신순은 13개 후보를 먼저 제한하고 인기순은 현재 접근 가능한 후보의 집계 뒤 12개 페이지를 만든다. 사용자 세션 SDK/RLS·기존 private/no-store를 유지하며 반응자 ID/가짜 수/공유 token/서비스 키·새 의존성은 없다. 단위·DAL/목록 mock·DB rollback 테스트 **파일만 작성했고 실행하지 않았다**. 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수와 DB 연결/SQL 실행/적용/타입 생성은 모두 미실행이며 실제 확인한 사용자 흐름은 없다. Supabase/Auth 공동 연결·migration/생성 타입·실제 정렬/권한/성능/페이지 이동 검수는 대기다.
 
-작업 브랜치는 `feature/tier-discovery`이며 2026-10-05 사용자 요청으로 기본 커밋·push·develop merge·push 순서를 따른다. 검사 미실행 상태는 유지하며 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다. 다음은 대표 티어표 지정·공개 프로필 표시다. 댓글 가중 인기 점수·댓글/팔로우/알림, 비회원 PNG/edge 제한·허가 표지 목적별 사용과 P5~P7은 후속이다.
+탐색 증분은 2026-10-05 `feature/tier-discovery`의 `b1b20dc`와 develop merge `170e1e0`으로 push했다. 검사 미실행 상태는 유지한다. 대표 티어표 개발은 아래 새 증분으로 이어졌다. 댓글 가중 인기 점수·댓글/팔로우/알림, 비회원 PNG/edge 제한·허가 표지 목적별 사용과 P5~P7은 후속이다.
+
+## P4 대표 티어표 · 2026-10-05 (작성·실행 미검증)
+
+SOC-01의 대표 티어표와 TIER-07/12의 공개 철회 연동을 작성했다. `/tiers/[id]/publish`에서 현재 전체 공개된 본인 표를 지정·교체·해제하고 `/me/tiers`에서 현재 대표 관리로 이동하거나 해제한다. `/u/[username]`은 현재 게시본의 제한된 카드만 표시한다. 스포일러 표는 제목/태그를 가린 일반 링크이며 본문·초안·옛 게시본·token·개인 기록은 전달하지 않는다. 비활성/차단된 작성자와 현재 접근 불가능한 표는 표시하지 않는다.
+
+CLI가 생성한 `20261004171418_featured_tier_profile.sql`에 profiles의 nullable FK/독립 대표 revision·FK index, 현재 계정/본인 소유권/공개 상태/기대 lifecycle·대표 revision/20회·분 제한 RPC를 작성했다. private/unlisted/운영 숨김/soft delete는 같은 transaction에서 대표 지정을 지우며 hard delete는 FK SET NULL과 revision trigger로 정리한다. 재공개/운영 복구는 대표 지정을 복원하지 않는다. 두 화면의 지정·해제/ABA 충돌은 revision으로 거절하고 공개 게시본 업데이트는 현재 대표 포인터를 유지한다. 원시 profiles SELECT는 기존 열만 허용하며 새 포인터/revision은 제한된 RPC로 조회한다. `/u/*` private/no-store와 게시/철회/운영/삭제 action의 프로필 캐시 무효화를 작성했다.
+
+단위·액션/DAL/UI mock·rollback SQL 테스트 **파일만 작성했고 실행하지 않았다**. 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수와 DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성은 전부 미실행이며 실제 확인한 사용자 흐름은 없다. 실제 Supabase/Auth 공동 연결·migration/생성 타입 적용·권한/다중 세션/화면 검수는 대기다. 새 `feature/featured-tier`에서 작성했으며 개발 보고 시점에는 stage·commit·push·통합 merge·PR를 하지 않았다. 2026-10-05 사용자 요청으로 기본 커밋·push·develop merge·push 순서를 진행하고 develop에서 종료한다. 검사 미실행 상태는 유지하며 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다. 다음은 공개 티어표 댓글·답글과 신고/차단 연동이다. P4 잔여 이미지/제한 범위와 P5~P7 전체도 후속이다.
 
 ## 로컬 Supabase 준비
 

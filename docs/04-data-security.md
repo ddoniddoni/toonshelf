@@ -4,7 +4,7 @@
 
 ## P1 작성 상태 · 2026-10-02
 
-`20261001162407_accounts_auth.sql`에 profiles/user_settings/genres, private.user_access/consent_records/reauth_tickets/rate_limit_buckets, Auth 생성 trigger와 기존 Auth 사용자에 대한 pending 기반 행 생성을 작성했다. 모든 앱 테이블에 RLS와 명시적 grant를 적용하며 일반 사용자 DML은 제거하고 허용 RPC만 사용한다. featured_tier_list_id와 차단 관계는 P4/P5 의존 기능이므로 해당 단계에서 추가한다.
+`20261001162407_accounts_auth.sql`에 profiles/user_settings/genres, private.user_access/consent_records/reauth_tickets/rate_limit_buckets, Auth 생성 trigger와 기존 Auth 사용자에 대한 pending 기반 행 생성을 작성했다. 모든 앱 테이블에 RLS와 명시적 grant를 적용하며 일반 사용자 DML은 제거하고 허용 RPC만 사용한다. featured_tier_list_id/대표 revision과 차단 관계는 후속 P4/리뷰 migration에 작성했으며 모두 적용·실행 미검증이다.
 
 현재 역할과 정지/삭제 상태는 private.user_access에서 판단한다. 앱 쓰기는 auth.sessions의 실제 session_id, 확인된 Auth 이메일, active 상태, 최신 동의를 확인한다. 온보딩 RPC만 pending→active와 버전별 필수 동의를 원자적으로 저장한다. 사용자 이름은 온보딩 후 바꿀 수 없다. 프로필 공개 조회는 활성·동의·온보딩 상태를 재확인한다.
 
@@ -85,7 +85,7 @@ reports는 현재 공개된 타인 리뷰만 대상으로 하며 신고자/revie
 
 ### profiles
 
-`id` PK/FK auth.users, `username` nullable unique lower-case, `display_name`, `bio`, `avatar_path`, `discovery_opt_in` boolean 기본 false, `featured_tier_list_id` nullable, `onboarding_completed_at`, `created_at`, `updated_at`.
+`id` PK/FK auth.users, `username` nullable unique lower-case, `display_name`, `bio`, `avatar_path`, `discovery_opt_in` boolean 기본 false, `featured_tier_list_id` nullable, `featured_tier_version` bigint 기본 1(RPC 전용), `onboarding_completed_at`, `created_at`, `updated_at`.
 
 onboarding_completed_at은 완료 RPC만 설정하고 일반 프로필 UPDATE에서는 허용하지 않는다. featured_tier_list_id는 현재 공개된 본인 티어표만 가리킬 수 있다. username은 온보딩 후 고정하며 표시 닉네임과 소개는 변경 가능하다.
 
@@ -197,11 +197,13 @@ payload에는 검증한 제목/설명/태그/행/배치된 work ID만 저장한�
 
 unlisted 게시본은 public table SELECT 정책으로 읽게 하지 않는다. 토큰 검증 전용 서버 경로/RPC를 통해 제한된 DTO만 반환한다. 토큰을 알았다는 이유로 초안이나 옛 게시본을 읽게 하지 않는다.
 
+**P4 대표 티어표 · 2026-10-05 (미적용/미검증):** `20261004171418_featured_tier_profile.sql`에 `featured_tier_list_id` nullable FK(ON DELETE SET NULL)와 `featured_tier_version` bigint 기본 1·JS safe integer 상한, non-null FK index를 작성했다. profiles의 기존 RLS/열 SELECT는 유지하고 새 포인터/revision은 raw SELECT에서 제외한다. 사용자 DML은 기존처럼 금지하며 owner RPC만 현재 세션/활성·동의/이메일·본인 소유권·public/visible/미삭제·현재 게시본·기대 lifecycle 및 대표 revision을 검사한다. 대표 변경 시에만 revision을 올리고 A→B→A도 오래된 요청을 거절한다. 대상 tier UPDATE 잠금→profile UPDATE 잠금 순서이며 미지정 해제는 profile만 잠근다. 가시성/운영/삭제 trigger는 같은 transaction에서 포인터를 비우고 FK hard delete도 revision을 올린다. 복구/재공개로 대표를 복원하지 않는다. 공개 RPC는 현재 profile/표 접근과 소유 관계를 재확인하며 현재 publication 카드만 반환한다. 스포일러 제목/태그·초안/옛 게시본/body/token/대표 revision은 방문자 DTO에 없다. 다중 세션 잠금/권한/성능과 migration 적용은 미검증이며 P7 탈퇴/export 정리는 후속이다.
+
 **P4 게시 증분 · 2026-10-04 (미적용/미검증):** `20261003145059_tier_publication_sharing.sql`에 위 publication PK와 검증·미배치 금지·RLS/직접 SELECT/DML 제거를 작성했다. tier_lists의 private-only 임시 제약을 current publication FK/visibility 제약과 독립 lifecycle version·단조 publication_counter로 교체했다. 게시/회전/철회는 owner 현재 계정과 기대 버전을 검사한다. token은 `private.tier_share_tokens`의 hash unique와 암호문/nonce만 저장하며 키와 원문은 DB/public DTO에 없다. owner RPC만 현재 암호문을 반환하고 서버가 AAD/hash/tag를 검증해 복구한다. 오래된 번호를 재사용하지 않는다.
 
 게시 미리보기 hash에는 저장된 배치와 현재 공개 작품 DTO를 함께 넣는다. 게시 transaction은 owner→작품 SHARE→metadata/draft UPDATE 순서로 초안·lifecycle version과 hash를 재검사한다. public/current reader는 현재 작성자 활성·동의·온보딩·양방향 차단·visibility·운영 상태·토큰 철회/만료를 검사한다. 숨겨진 작품은 공개 DTO에서 UUID/원문 없이 null 대체 카드가 된다. spoiler body/목록 제목은 최초 응답에 없으며 펼치기에는 현재 lifecycle version이 필요하다. 목록 DTO는 본문·배치·token이 없고 12개 페이지다. 원 게시본은 현재 포인터 외 일반 경로에서 읽지 못한다.
 
-신고·감사는 `private.tier_reports/tier_moderation_events`에 RLS/직접 권한 제거와 owner/운영자 RPC를 둔다. reporter+list pending unique, 사유·길이·현재 접근/자기 신고 금지·DB rate를 검사한다. 운영 조치는 역할·버전·현재 게시 상태·사유/신고 소속을 확인하고 숨김/복구/신고 결과/감사를 원자적으로 저장한다. 숨김은 token도 철회하고 복구만으로 이전 token을 살리지 않는다. 삭제는 공개 포인터를 지우고 publication·token·초안·병합 원본을 제거하되 private 신고/감사는 유지한다. 대표 티어 필드/설정과 그 철회 연동·과거 게시본 owner UI·P7 보관본 export/계정 삭제 정리는 후속이다. DB 적용/권한/경합/성능/모든 검사는 실행하지 않았다.
+신고·감사는 `private.tier_reports/tier_moderation_events`에 RLS/직접 권한 제거와 owner/운영자 RPC를 둔다. reporter+list pending unique, 사유·길이·현재 접근/자기 신고 금지·DB rate를 검사한다. 운영 조치는 역할·버전·현재 게시 상태·사유/신고 소속을 확인하고 숨김/복구/신고 결과/감사를 원자적으로 저장한다. 숨김은 token도 철회하고 복구만으로 이전 token을 살리지 않는다. 삭제는 공개 포인터를 지우고 publication·token·초안·병합 원본을 제거하되 private 신고/감사는 유지한다. 대표 티어 필드/설정과 철회 연동은 아래 2026-10-05 증분으로 작성했다. 과거 게시본 owner UI·P7 보관본 export/계정 삭제 정리는 후속이다. DB 적용/권한/경합/성능/모든 검사는 실행하지 않았다.
 
 **P4 PNG 증분 · 2026-10-04 (파일만 작성·미적용):** `20261003171347_tier_image_export.sql`의 `get_tier_image_source`/`begin_tier_image_export`는 authenticated execute만 허용하고 현재 실제 세션/활성/이메일 확인/동의를 다시 검사한다. 초안은 소유자만, 게시본은 현재 public 또는 유효 hash와 차단/author/운영/버전 조건을 통과해야 한다. 관리자 역할도 타인 초안 export 권한이 아니다. 스포일러 게시본은 별도 확인하며 text-only DTO에서 work/asset ID·URL·메모·회차·token을 제거한다. private helper의 직접 execute도 제거하고 빈 search_path/statement timeout을 작성했다. 예약 RPC는 기존 private 회원별 rate bucket을 5회/고정 600초로 사용한다. 원시 IP 수집·임의 header 신뢰·service key 사용자 접근은 구현하지 않았다. 비회원 PNG/token·IP/HMAC 제한은 후속이고 이번에는 로그인 안내/DB execute 거절로 처리한다. 렌더 직후 현재 DTO/권한을 재확인하고 모든 이미지 응답은 no-store다. 이미 수신한 파일과 외부 OG cache는 회수할 수 없다. 이미지에는 원격/허가된 표지까지 사용하지 않고 텍스트 카드만 포함해 표시 권한을 재배포 권한으로 추정하지 않는다. 실제 DB/RLS/권한/동시 철회·이미지/배포 검수는 미실행이다.
 
