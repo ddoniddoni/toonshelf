@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cardSchema,uuidSchema } from "@/lib/catalogue/model";
 import { rowSchema,versionSchema } from "./model";
 import { reportReasonSchema } from "@/lib/reviews/model";
+import { likeCountSchema } from "./like-model";
 
 // A 32-byte base64url token: the last character has two zero padding bits.
 export const shareTokenSchema=z.string().regex(/^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/);
@@ -22,7 +23,7 @@ export const lifecycleInputSchema=z.strictObject({id:uuidSchema,version:versionS
 export const accessInputSchema=z.strictObject({id:uuidSchema,token:shareTokenSchema.nullable()});
 export const revealInputSchema=accessInputSchema.extend({version:versionSchema,confirm:z.literal(true)});
 export const publicationSchema=z.object({id:uuidSchema,version:versionSchema,publishedVersion:versionSchema,publishedAt:z.string(),
- authorId:uuidSchema,username:z.string(),name:z.string(),isSpoiler:z.boolean(),body:publicationBodySchema.nullable()});
+ authorId:uuidSchema,username:z.string(),name:z.string(),isSpoiler:z.boolean(),likeCount:likeCountSchema.nullable(),body:publicationBodySchema.nullable()});
 export type TierPublication=z.infer<typeof publicationSchema>;
 export const publicTierListSchema=z.object({items:z.array(publicationSchema.omit({body:true}).extend({title:z.string().nullable()})),hasNext:z.boolean()});
 export const tierReportSchema=z.object({id:uuidSchema,tierId:uuidSchema,reason:reportReasonSchema,detail:z.string(),

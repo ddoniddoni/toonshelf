@@ -336,6 +336,10 @@ OG는 공개 게시본을 바탕으로 생성하고 원본 표지를 직접 긁�
 - APP_ENV/실제 로컬 DB 호스트를 확인해 로컬 가입을 허용한다. 원격은 AUTH_REGISTRATION_ENABLED를 명시해야 앱 가입/OAuth 진입이 열린다. Supabase 자체 signup/provider 활성화와 확정 운영 정책은 별도 설정이며 앱 플래그만으로 Auth API가 차단된다고 주장하지 않는다.
 - Sharp 0.35.5를 직접 의존성으로 고정했다. 아바타 입력은 2MB/16M pixels/JPEG·PNG·WebP, 단일 프레임만 허용한다. 디코딩한 형식과 MIME을 대조하고 회전·최대 512px·WebP 재인코딩으로 메타데이터를 제거한다. Server Action body limit은 multipart 여유를 포함해 3MB다.
 
+## P4 공개 티어표 좋아요 메모 · 2026-10-05 (작성·실행 미검증)
+
+`like-data/actions`는 일반 사용자 세션 SDK만 사용한다. 변경 액션은 requireAccount 후 strict `{id,version,liked:boolean}`만 허용하며 user ID/count/token을 받지 않는다. 공개 상태 조회는 anon도 현재 접근 가능한 public 표의 수/본인 boolean만 읽고 private/unlisted/숨김/차단/비활성 작성자는 null이다. 상태 DTO에는 반응자 ID/본문이 없다. 공개 목록의 기존 RPC에 집계를 포함해 카드별 네트워크 호출을 추가하지 않았다. 상세의 계정/좋아요 조회는 병렬이며 요청별 SDK fetch와 `/tiers`의 private/no-store, dynamic 처리를 유지한다. 변경 후 목록/현재 상세 캐시만 갱신한다. OG 내용 재확인에서 집계 수를 제외하되 현재 공개 접근/lifecycle/body는 계속 재확인한다. 수기 DB 계약이며 실제 생성 타입·DB/Auth/브라우저 검수는 대기다.
+
 ## P4 기본 평가 연결 메모 · 2026-10-04 (작성·실행 미검증)
 
 `evaluation-data/actions`는 각 요청에서 requireAccount와 사용자 세션 RPC를 사용하며 서비스 키를 사용하지 않는다. owner 전용 dynamic/noindex/no-store 페이지와 최소 DTO만 client에 전달한다. 액션 입력은 id/방향/기대 version/작품 ID와 필요한 읽기 상태만 허용하며 사용자 ID·별점·대상 canonical 코드는 서버가 현재 자료에서 구한다. DB 미리보기 fingerprint는 권한 토큰이 아니며 매 요청의 실제 세션/활성/동의와 소유권을 대체하지 않는다. React 선택 폼은 후보 변경 시 초기화하고 실패/모호한 응답 뒤 확인 상태를 지운다. 성공 시 방향에 맞는 초안 또는 서재·작품·공개 프로필 경로를 갱신한다. SDK generic은 수기 계약이며 실제 생성 타입·DB/브라우저 확인은 공동 연동과 별도 검사 요청 대기다.

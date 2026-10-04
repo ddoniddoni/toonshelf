@@ -221,6 +221,10 @@ owner→UUID순 원본/병합 대상 작품 SHARE→표/초안/서재 UPDATE 순
 
 reactions는 대상 유형별 `(user_id,target_id)` partial unique를 둔다. 좋아요는 공개된 접근 가능한 활성 콘텐츠에만 가능하고 자기 콘텐츠에는 할 수 없다. 좋아요 수를 사용자가 직접 update하지 못하도록 한다.
 
+**P4 좋아요 첫 대상 · 2026-10-05 (작성·미적용):** `20261004144839_tier_likes.sql`은 reactions의 tier_list_id를 not-null FK로만 도입한다. 위 표의 review/post/comment 대상은 각 도메인 migration에서 FK·정확히 한 대상 제약·partial unique/RPC와 함께 확장한다. 임의의 미구현 대상 ID를 보관하지 않는다. RLS를 켜고 PUBLIC/anon/authenticated의 직접 SELECT/DML을 제거해 반응자 ID나 private 대상 조회를 막는다. 변경 RPC는 현재 실제 세션·활성/이메일/동의/소유자가 아닌 회원·public/운영/작성자 상태·양방향 차단·expected lifecycle version을 검사한다. desired boolean과 unique로 idempotent insert/delete를 사용하며 40회/분 DB 제한을 적용한다.
+
+현재 사용자 access lock→정렬된 사용자 쌍의 advisory transaction lock→tier SHARE 순서로 변경한다. set_user_block도 같은 pair lock을 사용하고 양쪽이 상대 표에 남긴 반응을 같은 transaction에서 삭제한다. 타인의 다른 작성자 콘텐츠 반응은 삭제하지 않고 조회자 차단에 따라 집계에서만 제외한다. 유효 수는 활성/확인/온보딩/현재 동의 반응자만 포함하며 작성자↔반응자 및 조회자↔반응자 차단을 검사한다. 숫자는 사용자별로 달라질 수 있다. private/unlisted/숨김/삭제/비활성 작성자는 상태/수를 노출하지 않는다. private/unlisted 전환의 기존 반응은 보관하고 이후 public 재게시 때 현재 조건으로만 다시 집계한다. soft delete trigger와 profile FK cascade는 반응을 정리한다. 현재 표 ID에 붙는 반응은 공개 게시본 갱신/작품 병합으로 복제되지 않는다. 실제 DB/RLS/성능/다중 세션 동시성은 모두 미검증이며 알림 dedupe/생성·다른 소셜 도메인은 후속이다.
+
 activity_events는 첫 공개 게시 이벤트를 중복 없이 만든다. 공개 필드의 원문을 복제하지 않고 대상 ID를 참조한다. 조회 시 원본이 현재도 공개/활성 상태인지 검증한다. 공개 취소와 차단 이후 과거 피드 항목이 남지 않는다.
 
 notifications는 recipient만 SELECT와 read_at 변경이 가능하다. 생성은 신뢰된 DB trigger/RPC만 할 수 있다. 알림 payload에는 리뷰/댓글 본문을 복사하지 않는다. FK가 삭제로 없어져도 일반 안내로 표시할 수 있어야 한다.

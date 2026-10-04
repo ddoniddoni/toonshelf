@@ -12,8 +12,8 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
-| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 비회원 PNG/edge 제한·인기/테마/소셜/대표 티어는 후속 |
-| P5 | 미착수 | 없음 |
+| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·공개 티어 좋아요 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 비회원 PNG/edge 제한·인기/테마·댓글/팔로우/대표 티어는 후속 |
+| P5 | 전체 단계 미착수: 공개 티어 반응의 SOC-04 공통 기반만 P4에서 작성, 실행 미검증 | 아래 16절. 리뷰/글/댓글 반응·팔로우·피드·알림은 후속 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
 
@@ -527,6 +527,22 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **Git/다음 단계:** 최신 develop fetch/fast-forward 후 새 `feature/tier-canonical-evaluations`에서 작업했으며 stage·commit·push·통합 merge·PR는 하지 않았다. 실제 Supabase/Auth 공동 연결과 migration/생성 타입 적용·가져오기/변경 동의→원자 반영→공개 통계/두 탭/권한 검수는 별도 요청 대기다. P4 인기/테마·소셜 반응/대표 티어·비회원 PNG/edge 제한·허가 표지 목적별 선택, P5~P7과 기존 P1~P4 실행 검수는 남아 있다.
 
 **Git 반영 요청 · 2026-10-04:** 사용자가 이번 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 기존 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
+
+### 2026-10-05 · P4 공개 티어 좋아요 첫 증분 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. TIER-10의 좋아요 부분과 SOC-04의 공개 티어 반응, SOC-06 차단 및 OPS-04 회원 제한 경계를 작성했다. 인기/테마·댓글·대표 티어를 포함한 TIER-10 전체와 P4/P5 전체 완료로 표시하지 않는다.
+
+**화면/서버 변경:** `/tiers` 목록에 실제 좋아요 수, 현재 public 상세에 좋아요·취소·현재 상태 재조회·로그인 안내를 작성했다. 자기 표·비공개·링크 공개에는 반응할 수 없다. 입력은 `id/version/liked`만 받고 현재 회원 세션으로 접근하며 목표 boolean으로 재시도 중복을 막는다. 버튼은 서버 응답 뒤에만 수/눌림을 바꾸고 처리 중 중복 요청을 막는다. 응답 유실이나 접근/버전 변경은 기존 상태를 비우고 현재 상태를 다시 읽도록 했다. 스포일러 원문·좋아요 회원 ID는 DTO에 없으며 목록은 카드별 추가 RPC 없이 기존 projection에서 수를 받는다. OG 재확인 fingerprint는 좋아요 수를 제외하고 가시성·게시 version·스포일러/본문 변경을 계속 비교한다.
+
+**Migration/권한:** CLI가 생성한 `20261004144839_tier_likes.sql`에 첫 대상인 티어표 FK만 있는 `reactions`와 사용자/티어 unique partial index, RLS·직접 SELECT/DML 권한 제거, 현재 공개 접근/계정·차단·세션·버전/회원 rate(40회/분) 검사를 작성했다. 리뷰/글/댓글 반응 FK와 대상 하나만 허용하는 제약·RPC는 해당 도메인 후속 migration에서 확장한다. 두 사용자 사이 advisory 잠금을 좋아요와 차단 RPC가 공유하고, 차단 시 서로가 작성한 표의 상호 반응을 삭제하며 해제해도 복원하지 않는다. 제3자 표 반응은 보존하되 현재 조회자와 차단된 반응자는 그 조회자의 집계에서 제외한다. 수는 활성·현재 동의 회원의 실제 유효 행만 집계하며 익명/회원의 차단 관계에 따라 달라질 수 있다. private/unlisted 전환은 반응을 보존하지만 상태/수를 숨기고, soft delete와 회원/표의 FK hard delete는 정리한다. 서비스 키·새 의존성·lockfile 변경은 없다. 수기 DB 계약은 실제 생성 타입 검증이 아니다.
+
+**테스트 파일:** `tests/unit/tier-likes.test.ts`, `tier-like-button.test.tsx`, `tests/integration/tier-like-actions.test.ts`에 엄격 입력·최소 DTO·계정 gate·목표 상태·서버 확인 전 수 보존·응답 유실/재조회·안전한 오류·자기/익명 읽기 전용을 작성했다. 기존 `tier-image-routes.test.ts`에는 수만 바뀐 OG 요청과 게시 version 변경을 구분하는 mock 사례를 추가했다. `supabase/tests/12_tier_likes.test.sql`은 rollback fixture로 직접 권한·중복·취소·자기 반응·public/private/unlisted·스포일러·조회자별 차단 집계·양방향 차단 정리·계정/세션·숨김/삭제·회원 제한을 작성했다. **모두 파일 작성만 했고 실행하지 않았다.** 단일 세션 SQL 파일은 동시 좋아요/차단의 잠금 동작을 입증하지 않으며 다중 세션 검수는 대기다.
+
+**실행/검사 결과:** 소스/문서/Git status·diff와 설치된 Next Server Actions/Route Handler 안내, [Supabase 함수](https://supabase.com/docs/guides/database/functions)·공식 changelog의 PG 15.19/17.11 변경, [Postgres partial index](https://www.postgresql.org/docs/17/indexes-partial.html)·[잠금](https://www.postgresql.org/docs/17/explicit-locking.html)을 읽었다. 공식 changelog 읽기·CLI 도움말/빈 migration 파일 생성은 DB 실행 검증이 아니다. 사용자 지시로 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수를 **모두 미실행**으로 남긴다. 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성/키·역할 등록도 하지 않았다.
+
+**Git/다음 단계:** 최신 origin/develop fetch/fast-forward 기준 갱신 뒤 새 `feature/tier-likes`에서 작업했다. stage·commit·push·통합 merge·PR는 하지 않았다. 실제 Supabase/Auth 공동 연결과 migration/생성 타입 적용·좋아요/취소/차단/권한·다중 세션·집계 성능 검수는 별도 요청 대기다. 다음은 공개 티어 인기순·테마 필터이며 댓글·팔로우·알림·대표 티어와 다른 도메인 반응은 후속이다. 비회원 PNG/token·IP 제한·OG edge 제한·허가 표지 목적별 선택, P5~P7 및 기존 P1~P4 실행 검수도 남아 있다.
+
+**Git 반영 요청 · 2026-10-05:** 사용자가 공개 티어 좋아요 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 모든 실행 검증의 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
 
 ## 17. 요구사항 추적표
 

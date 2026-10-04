@@ -39,6 +39,8 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      get_tier_like_state:{Args:{p_id:string};Returns:Json};
+      set_tier_like:{Args:{p_id:string;p_version:number;p_liked:boolean};Returns:Json};
       get_my_tier_evaluations:{Args:{p_id:string;p_mode:string;p_page:number};Returns:Json};
       preview_tier_evaluations:{Args:{p_id:string;p_mode:string;p_version:number;p_choices:Json};Returns:Json};
       commit_tier_evaluations:{Args:{p_id:string;p_mode:string;p_version:number;p_choices:Json;p_fingerprint:string;p_confirm:boolean};Returns:Json};

@@ -7,11 +7,15 @@ import { TierPublicationGate } from "./publication-gate";
 import { CloneTierForm,ReportTierForm } from "./publication-forms";
 import { PublicationShare } from "./publication-share";
 import { TierImageExport } from "./image-export";
+import { getTierLikeState } from "@/lib/tiers/like-data";
+import { TierLikeButton } from "./like-button";
 export async function PublicationDetail({publication,token=null}:{publication:TierPublication;token?:string|null}) {
- const account=await getCurrentAccount(),own=account?.user.id === publication.authorId;
+ const [account,likes]=await Promise.all([getCurrentAccount(),token ? Promise.resolve(null) : getTierLikeState(publication.id)]);
+ const own=account?.user.id === publication.authorId;
  const active=account?.access.status === "active" && account.access.consents_current && Boolean(account.user.email_confirmed_at);
  return <article className="page-container tier-list-page"><Link className="text-link" href="/tiers">← 공개 티어표</Link><p className="eyebrow">TASTE MAP</p><h1>{token ? "링크로 공유된 티어표" : "공개 티어표"}</h1><p><Link href={`/u/${publication.username}`} prefetch={false} className="text-link">{publication.name}</Link> · 게시본 {publication.publishedVersion} · <time dateTime={publication.publishedAt}>{new Date(publication.publishedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</time></p>
   {publication.body ? <PublicationBoard body={publication.body}/> : <TierPublicationGate key={publication.version} id={publication.id} version={publication.version} token={token}/>}
+  {token ? <p className="field-hint">링크로 공유된 티어표에는 좋아요를 표시할 수 없어요.</p> : <TierLikeButton key={`${publication.version}:${likes?.version}:${likes?.likeCount}:${likes?.liked}:${likes?.canLike}`} initial={likes} id={publication.id} version={publication.version} own={own} active={active}/>}
   <PublicationShare/>
   {active ? <TierImageExport id={publication.id} version={publication.version} source="publication" token={token} isSpoiler={publication.isSpoiler}/> : <p><Link className="text-link" href="/auth/sign-in">로그인</Link>하면 게시본을 PNG로 저장할 수 있어요.</p>}
   {own ? <Link href={`/tiers/${publication.id}/publish`} className="button button-secondary">내 게시·공유 설정</Link> : null}
