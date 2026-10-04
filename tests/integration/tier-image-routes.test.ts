@@ -19,7 +19,7 @@ const source={id,version:2,source:"draft",isSpoiler:true,body,unplaced:[]};
 const input={source:"draft",version:2,token:null,confirm:true,confirmSpoiler:false};
 const params={params:Promise.resolve({id})};
 const request=(value:unknown=input,origin="https://example.test")=>new Request(`https://example.test/api/tiers/${id}/export`,{method:"POST",headers:{origin,"content-type":"application/json"},body:JSON.stringify(value)});
-const publication={id,version:2,publishedVersion:1,publishedAt:"2026-10-04T00:00:00Z",authorId:id,username:"author",name:"author",isSpoiler:true,body:null};
+const publication={id,version:2,publishedVersion:1,publishedAt:"2026-10-04T00:00:00Z",authorId:id,username:"author",name:"author",isSpoiler:true,likeCount:0,body:null};
 describe("tier image HTTP boundaries",()=>{
   beforeEach(()=>{vi.resetAllMocks();mocks.read.mockResolvedValue(source);mocks.render.mockResolvedValue([Buffer.from("png mock")]);mocks.generic.mockResolvedValue(Buffer.from("generic mock"));mocks.og.mockResolvedValue(Buffer.from("public mock"));mocks.publication.mockResolvedValue(publication);});
   it("rejects cross-origin, token-in-query, malformed/oversized and injected requests before rendering",async()=>{
@@ -51,6 +51,12 @@ describe("tier image HTTP boundaries",()=>{
     mocks.read.mockRejectedValue(new AuthFailure("RATE_LIMITED","잠시 후 다시 시도해 주세요."));const response=await POST(request(),params);
     expect(response.status).toBe(429);expect(response.headers.get("retry-after")).toBe("600");expect(mocks.render).not.toHaveBeenCalled();
     mocks.read.mockRejectedValue(new Error("database token private title"));expect(await (await POST(request(),params)).text()).not.toContain("database token");
+  });
+  it("does not reject an unchanged OG when only the actual like count changes",async()=>{
+    mocks.publication.mockResolvedValueOnce(publication).mockResolvedValueOnce({...publication,likeCount:1});
+    expect((await publicOg(new Request(`https://example.test/api/og/tiers/${id}`),params)).status).toBe(200);
+    mocks.publication.mockResolvedValueOnce(publication).mockResolvedValueOnce({...publication,version:3});
+    expect((await publicOg(new Request(`https://example.test/api/og/tiers/${id}`),params)).status).toBe(409);
   });
   it("keeps spoiler/unlisted OG generic and never passes a token to public OG lookup",async()=>{
     let response=await publicOg(new Request(`https://example.test/api/og/tiers/${id}`),params);expect(response.status).toBe(200);

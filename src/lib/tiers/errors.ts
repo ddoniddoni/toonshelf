@@ -20,3 +20,9 @@ export function evaluationError(error:{code?:string;message?:string}|null) {
  if (error?.message === "TIER_CAPACITY") throw new AuthFailure("VALIDATION_ERROR","가져오면 300작품 제한을 넘어요. 선택한 작품 수를 줄이거나 초안을 정리해 주세요.");
  tierError(error);
 }
+export function likeError(error:{code?:string;message?:string}|null) {
+ if (error?.message === "SELF_REACTION") throw new AuthFailure("FORBIDDEN","내 티어표에는 좋아요를 표시할 수 없어요.");
+ if (error?.message === "CONFLICT") throw new AuthFailure("CONFLICT","티어표의 게시 상태가 바뀌었어요. 최신 게시본과 좋아요 상태를 다시 확인해 주세요.");
+ if (error?.message === "NOT_FOUND") throw new AuthFailure("NOT_FOUND","현재 좋아요를 표시할 수 있는 공개 티어표가 없어요.");
+ tierError(error);
+}

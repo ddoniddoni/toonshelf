@@ -1,12 +1,18 @@
 import { AuthFailure } from "@/lib/auth/errors";
 import { uuidSchema } from "@/lib/catalogue/model";
 import { getTierPublication } from "@/lib/tiers/publication-data";
+import type { TierPublication } from "@/lib/tiers/publication-model";
 import { imageSourceSchema } from "@/lib/tiers/image-model";
 import { renderTierOg,genericTierOg } from "@/lib/tiers/image-render";
 import { imageErrorResponse,imageFingerprint,tierImageHeaders } from "@/lib/tiers/image-http";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
+function visualFingerprint(publication:TierPublication) {
+  // Likes do not change pixels. Keep lifecycle/body checks and fresh access reads.
+  return imageFingerprint({id:publication.id,version:publication.version,publishedVersion:publication.publishedVersion,
+    isSpoiler:publication.isSpoiler,body:publication.body});
+}
 export async function GET(request:Request,{params}:{params:Promise<{id:string}>}) {
   try {
     const {id}=await params;
@@ -24,7 +30,7 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
     const bytes=source === null ? await genericTierOg() : await renderTierOg(source,signal);
     const latest=await getTierPublication(id);
     if (!latest) throw new AuthFailure("NOT_FOUND","공유 카드를 찾을 수 없어요.");
-    if (imageFingerprint(publication) !== imageFingerprint(latest)) throw new AuthFailure("CONFLICT","티어표가 바뀌었어요. 다시 열어 주세요.");
+    if (visualFingerprint(publication) !== visualFingerprint(latest)) throw new AuthFailure("CONFLICT","티어표가 바뀌었어요. 다시 열어 주세요.");
     signal.throwIfAborted();
     return new Response(new Uint8Array(bytes),{headers:{...tierImageHeaders,"Content-Type":"image/png"}});
   } catch(error) {return imageErrorResponse(error);}

@@ -278,6 +278,10 @@ RPC 흐름: 인증/소유권/계정 상태 → 대상 행 FOR UPDATE → expecte
 
 GET `/api/og/tiers/[id]`는 query/hash를 받지 않고 현재 public을 전후 조회한다. 스포일러는 일반 카드, 그 외 현재 일부 행의 텍스트 미리보기며 private/unlisted/숨김/철회는 404다. `/api/og/tiers`는 ID/token/사용자 내용과 무관한 일반 카드다. PNG/OG 모두 자체 텍스트 표지·로컬 OTF만 사용하고 no-store/no-referrer/noindex다. 이미 받은 이미지와 외부 플랫폼 재캐시는 회수하지 못하며 다음 요청의 현재 권한을 검사한다. OG edge 제한과 허가된 표지의 목적별 선택은 후속이다.
 
+**P4 공개 티어표 좋아요 계약 · 2026-10-05 (작성·미적용/미검증):** `get_tier_like_state(id)`는 현재 접근 가능한 public 표만 `{id,version,likeCount,liked,canLike}`로 반환하며 불가 대상은 null이다. anon도 수를 읽지만 liked/canLike=false이고 유효한 실제 세션과 활성 계정만 본인 상태/변경 가능 여부를 받는다. 반응자 ID·제목/본문/token은 반환하지 않는다. `set_tier_like(id,version,liked)`는 활성 타인 회원/현재 public·차단/작성자 상태/lifecycle version을 잠금 뒤 확인하고 같은 DTO를 반환한다. boolean은 원하는 상태이며 중복 호출이 수를 늘리거나 상태를 뒤집지 않는다. 클라이언트 actor/count/token 입력은 거절한다. DB 40회/분 제한은 좋아요/취소/중복 요청 모두 같은 회원 bucket에 적용한다.
+
+`get_tier_publication`의 제한 DTO와 `list_public_tiers`의 카드에 likeCount를 추가한다. unlisted 게시본의 count는 null이다. 작성자/조회자와 상호 차단된 반응자 또는 비활성/미확인/동의 변경 계정은 집계에서 제외되므로 조회자별 유효 수가 달라질 수 있다. 저장된 count 컬럼·가짜 수·반응자 목록은 없다. 목록은 기존 최신순을 유지한다. 차단 시 두 사용자가 상대 표에 한 반응만 transaction으로 삭제하고 해제는 복원하지 않는다. soft delete/탈퇴는 정리하고 비공개/링크 전환은 보관 후 공개 재게시 때 재검사한다. 인기/테마·다른 대상/알림·댓글/팔로우는 후속이다. OG에는 수를 넣지 않으며 수 변경만으로 이미지 내용 충돌을 발생시키지 않는다. 모든 실행 검수는 미실행이다.
+
 **P4 기본 평가 연결 계약 · 2026-10-04 (작성·미적용/미검증):** 아래 RPC는 활성 소유자와 현재 세션만 사용하며 관리자도 타인 자료를 조회/적용할 수 없다.
 
 | RPC | 계약 |
