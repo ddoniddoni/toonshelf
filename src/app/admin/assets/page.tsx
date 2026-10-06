@@ -7,7 +7,7 @@ export const metadata = {title:"표지 권리 관리",robots:{index:false,follow
 export const dynamic = "force-dynamic";
 export default async function Page({searchParams}:{searchParams:Promise<SearchParams>}) {
   const account = await guardAdminPage("/admin/assets");const params = await searchParams;
-  const result = account ? await account.client.from("works").select("id,title").neq("catalogue_status","merged").eq("is_test",false).order("updated_at",{ascending:false}).limit(200) : null;
+  const result = account ? await account.client.from("toon_works").select("id,title").neq("catalogue_status","merged").eq("is_test",false).order("updated_at",{ascending:false}).limit(200) : null;
   if(result)catalogueError(result.error);
   const selected = typeof params.work === "string" ? uuidSchema.parse(params.work) : result?.data?.[0]?.id;
   const snapshot = account && selected ? await getAdminSnapshot(selected) : null;

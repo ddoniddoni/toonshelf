@@ -15,7 +15,7 @@ describe("catalogue rating search boundary",()=>{
     const filters = parseFilters({sort:"rating",q:"작품",platform:"ridi",genre:"fantasy",status:"ongoing",day:"1",age:"15"});
     const result = await searchWorks(filters,undefined);
     expect(mocks.client).toHaveBeenCalledTimes(1);expect(mocks.rpc).toHaveBeenCalledTimes(1);
-    expect(mocks.rpc).toHaveBeenCalledWith("search_catalogue",{p_q:"작품",p_platforms:["ridi"],p_genres:["fantasy"],p_status:"ongoing",p_days:[1],p_age:"15",p_sort:"rating",p_after:null,p_limit:24});
+    expect(mocks.rpc).toHaveBeenCalledWith("toon_search_catalogue",{p_q:"작품",p_platforms:["ridi"],p_genres:["fantasy"],p_status:"ongoing",p_days:[1],p_age:"15",p_sort:"rating",p_after:null,p_limit:24});
     expect(result.items[0].rating).toEqual({average:4.5,ratingCount:2});expect(result.nextCursor).toBe(null);
   });
   it("rejects invalid filters, oversized pages, and changed cursor conditions before contacting Supabase",async()=>{
@@ -34,7 +34,7 @@ describe("catalogue rating search boundary",()=>{
     const result = await searchWorks(filters,undefined);
     expect(readCursor(result.nextCursor,filters)).toEqual(position);
     await searchWorks(filters,result.nextCursor);
-    expect(mocks.rpc).toHaveBeenLastCalledWith("search_catalogue",expect.objectContaining({p_after:position}));
+    expect(mocks.rpc).toHaveBeenLastCalledWith("toon_search_catalogue",expect.objectContaining({p_after:position}));
   });
   it("asks for a new page when the DB rejects a changed rating or viewer cursor",async()=>{
     mocks.rpc.mockResolvedValue({data:null,error:{code:"P0001",message:"VALIDATION_ERROR"}});

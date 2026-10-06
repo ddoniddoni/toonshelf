@@ -15,17 +15,21 @@ const publicSchema = z.object({
   NEXT_PUBLIC_SITE_URL: httpUrl.default("http://localhost:3000"),
   NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: optionalText,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalText,
 });
 
 export function parsePublicEnv(input: Record<string, string | undefined>) {
   const result = publicSchema.safeParse(input);
   if (!result.success) throw new ConfigurationError(result.error.issues.map((issue) => String(issue.path[0])));
-  const { NEXT_PUBLIC_SUPABASE_URL: url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: key } = result.data;
+  const { NEXT_PUBLIC_SUPABASE_URL: url } = result.data;
+  const key = result.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? result.data.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (Boolean(url) !== Boolean(key)) {
     throw new ConfigurationError(["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]);
   }
   // Reject privileged keys before they can reach a browser bundle/client.
-  if (key && !isPublicKey(key)) throw new ConfigurationError(["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]);
+  for (const name of ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"] as const) {
+    if (result.data[name] && !isPublicKey(result.data[name])) throw new ConfigurationError([name]);
+  }
   return { siteUrl: result.data.NEXT_PUBLIC_SITE_URL, supabase: url && key ? { url, key } : null };
 }
 

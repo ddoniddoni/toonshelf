@@ -14,7 +14,7 @@ const form = (confirm = "on")=>{const f = new FormData();f.set("id",id);f.set("u
 describe("owner-only merge history",()=>{
  beforeEach(()=>{vi.resetAllMocks();mocks.account.mockResolvedValue({client:{rpc:mocks.rpc}});mocks.rpc.mockResolvedValue({data:{items:[],total:0,hasNext:false},error:null});mocks.redirect.mockImplementation(()=>{throw new Error("NEXT_REDIRECT");});});
  it("uses current account gates for original notes and never accepts an owner parameter",async()=>{
-  await getMyMergeHistory(1);expect(mocks.rpc).toHaveBeenCalledWith("get_my_work_merge_history",{p_page:1});
+  await getMyMergeHistory(1);expect(mocks.rpc).toHaveBeenCalledWith("toon_get_my_work_merge_history",{p_page:1});
   mocks.account.mockRejectedValue(new AuthFailure("FORBIDDEN","권한 없음"));
   await expect(getMyMergeHistory(1)).rejects.toMatchObject({code:"FORBIDDEN"});
  });
@@ -23,11 +23,11 @@ describe("owner-only merge history",()=>{
  });
  it("only forwards history ID and confirmation, then refreshes owner history",async()=>{
   await expect(deleteMergeHistory(null,form())).rejects.toThrow("NEXT_REDIRECT");
-  expect(mocks.rpc).toHaveBeenCalledWith("delete_my_work_merge_history",{p_id:id,p_confirm:true});expect(mocks.revalidate).toHaveBeenCalledWith("/me/library/merges");
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_delete_my_work_merge_history",{p_id:id,p_confirm:true});expect(mocks.revalidate).toHaveBeenCalledWith("/me/library/merges");
  });
  it("cannot redirect an unrelated missing library entry",async()=>{
   mocks.rpc.mockResolvedValue({data:null,error:null});expect(await getMyMergedWorkTarget(id)).toBeNull();
-  expect(mocks.rpc).toHaveBeenCalledWith("get_my_work_merge_target",{p_source:id});
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_get_my_work_merge_target",{p_source:id});
  });
  it("does not expose private SQL errors or redirect after a failed delete",async()=>{
   mocks.rpc.mockResolvedValue({error:{code:"XX000",message:"private-note-secret"}});

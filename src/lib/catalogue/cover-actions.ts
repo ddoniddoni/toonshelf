@@ -38,17 +38,17 @@ export async function uploadCover(_state:FormState,form:FormData):Promise<FormSt
     if (!metadata.format || formats[metadata.format] !== file.type || (metadata.pages ?? 1) > 1) throw new AuthFailure("VALIDATION_ERROR","정지 이미지의 실제 형식과 파일 형식이 같아야 해요.");
     const output = await image.rotate().resize(900,1350,{fit:"inside",withoutEnlargement:true}).webp({quality:85}).toBuffer();
     if (output.length > 2097152) throw new AuthFailure("VALIDATION_ERROR","변환한 이미지가 너무 커요. 작은 파일로 다시 선택해 주세요.");
-    const begin = await account.client.rpc("admin_begin_cover",{p_work_id:workId,p_license:input,p_reason:reason});catalogueError(begin.error);
+    const begin = await account.client.rpc("toon_admin_begin_cover",{p_work_id:workId,p_license:input,p_reason:reason});catalogueError(begin.error);
     staged = stagedSchema.parse(begin.data);
-    const upload = await storage.storage.from("licensed-covers").upload(staged.path,output,{contentType:"image/webp",upsert:false,cacheControl:"0"});
+    const upload = await storage.storage.from("toon_licensed_covers").upload(staged.path,output,{contentType:"image/webp",upsert:false,cacheControl:"0"});
     if (upload.error) throw new AuthFailure("INTERNAL_ERROR","이미지를 저장하지 못했어요.");
-    const activate = await account.client.rpc("admin_activate_cover",{p_id:staged.id,p_reason:reason});catalogueError(activate.error);
+    const activate = await account.client.rpc("toon_admin_activate_cover",{p_id:staged.id,p_reason:reason});catalogueError(activate.error);
     staged = undefined;refreshCatalogue();revalidatePath("/admin/works/"+workId+"/edit");
     return {ok:true,data:{message:"표지를 등록했어요. 표시·OG·PNG 허가는 각각 적용돼요."}};
   } catch(error) {
     if (staged && account) {
-      try { await account.client.rpc("admin_revoke_cover",{p_id:staged.id,p_reason:"업로드 또는 활성화 실패 정리"}); } catch { /* Pending asset remains inaccessible. */ }
-      if (storage) await storage.storage.from("licensed-covers").remove([staged.path]).catch(()=>undefined);
+      try { await account.client.rpc("toon_admin_revoke_cover",{p_id:staged.id,p_reason:"업로드 또는 활성화 실패 정리"}); } catch { /* Pending asset remains inaccessible. */ }
+      if (storage) await storage.storage.from("toon_licensed_covers").remove([staged.path]).catch(()=>undefined);
     }
     return actionError(error);
   }
@@ -57,7 +57,7 @@ export async function revokeCover(_state:FormState,form:FormData):Promise<FormSt
   try {
     const {client} = await catalogueAdminAccount();
     const id = uuidSchema.parse(field(form,"assetId"));const reason = reasonSchema.parse(field(form,"reason").trim());
-    const {error} = await client.rpc("admin_revoke_cover",{p_id:id,p_reason:reason});catalogueError(error);
+    const {error} = await client.rpc("toon_admin_revoke_cover",{p_id:id,p_reason:reason});catalogueError(error);
     refreshCatalogue();revalidatePath("/admin/works","layout");
     return {ok:true,data:{message:"허가를 철회했어요. 새 이미지 요청은 차단돼요. 이미 배포된 파일은 회수할 수 없어요."}};
   } catch(error) { return actionError(error); }

@@ -14,7 +14,9 @@ export const getCurrentAccount = cache(async () => {
   const {data: claims, error: claimsError} = await client.auth.getClaims();
   const session = sessionIdSchema.safeParse(claims?.claims.session_id);
   if (claimsError || !session.success || claims?.claims.sub !== user.id) throw new AuthFailure("AUTH_REQUIRED", "다시 로그인해 주세요.");
-  const {data, error: accessError} = await client.rpc("get_my_access");
+  const {data, error: accessError} = await client.rpc("toon_get_my_access");
+  // Auth is shared with other apps; a valid Auth identity alone is not membership.
+  if (accessError?.message === "FORBIDDEN") return null;
   databaseError(accessError);
   const access = accessSchema.parse(data);
   return {client,user,sessionId:session.data,access};

@@ -20,7 +20,7 @@ import { FeaturedTierCard } from "@/components/tiers/featured-tier-card";
 export const dynamic = "force-dynamic";
 const getProfile = cache(async (username:string) => {
   if (!getPublicEnv().supabase || !usernameSchema.safeParse(username).success) return null;
-  const {data,error} = await (await createClient()).from("profiles").select("id,username,display_name,bio,avatar_path,onboarding_completed_at").eq("username",username).not("onboarding_completed_at","is",null).maybeSingle();
+  const {data,error} = await (await createClient()).from("toon_profiles").select("id,username,display_name,bio,avatar_path,onboarding_completed_at").eq("username",username).not("onboarding_completed_at","is",null).maybeSingle();
   databaseError(error); return data;
 });
 export async function generateMetadata({params}: {params:Promise<{username:string}>}) {

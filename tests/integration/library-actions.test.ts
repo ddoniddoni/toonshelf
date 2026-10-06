@@ -19,7 +19,7 @@ describe("library action boundaries",()=>{
  });
  it("never forwards another user's ownership or rating when copying",async()=>{
   await expect(copyWorkToLibrary(null,form({workId:id,userId:"victim",ratingSteps:"10"}))).rejects.toThrow("NEXT_REDIRECT");
-  expect(mocks.rpc).toHaveBeenCalledWith("copy_work_to_library",{p_work:id});
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_copy_work_to_library",{p_work:id});
  });
  it("rejects planned evaluations before a DB call",async()=>{
   const result = await saveReadingRecord(null,form({workId:id,status:"planned",libraryVisibility:"private",evaluationVisibility:"public",ratingSteps:"10"}));

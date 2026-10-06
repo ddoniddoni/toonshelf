@@ -21,6 +21,12 @@ describe("configuration boundaries", () => {
     expect(parsePublicEnv({ ...valid, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: key("anon") }).supabase).not.toBeNull();
     expect(() => parsePublicEnv({ ...valid, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: key("service_role") })).toThrow();
   });
+  it("supports the legacy anon variable without accepting a privileged fallback", () => {
+    const anon = `e30.${btoa(JSON.stringify({role:"anon"}))}.test`;
+    expect(parsePublicEnv({NEXT_PUBLIC_SUPABASE_URL:valid.NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY:anon}).supabase?.key).toBe(anon);
+    const service = `e30.${btoa(JSON.stringify({role:"service_role"}))}.test`;
+    expect(() => parsePublicEnv({...valid,NEXT_PUBLIC_SUPABASE_ANON_KEY:service})).toThrow();
+  });
   it.each(["staging", "production"])("requires remote HTTPS config in %s", (APP_ENV) => {
     expect(() => parseServerEnv({ ...valid, APP_ENV })).toThrow();
     expect(parseServerEnv({ APP_ENV, NEXT_PUBLIC_SITE_URL: "https://toonshelf.example", NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: valid.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }).APP_ENV).toBe(APP_ENV);

@@ -13,7 +13,7 @@ export default async function Page({searchParams}:{searchParams:Promise<SearchPa
   const source = parseId(params.source);
   const target = parseId(params.target);
   let previewError:string|null = params.source && !source || params.target && !target ? "두 작품을 올바르게 선택해 주세요." : null;
-  const result = account ? await account.client.from("works").select("id,title,age_rating").neq("catalogue_status","merged").eq("is_test",false).order("title").limit(200) : null;
+  const result = account ? await account.client.from("toon_works").select("id,title,age_rating").neq("catalogue_status","merged").eq("is_test",false).order("title").limit(200) : null;
   if(result)catalogueError(result.error);
   let preview:Awaited<ReturnType<typeof getMergePreview>>|null = null;
   if (account && source && target) {

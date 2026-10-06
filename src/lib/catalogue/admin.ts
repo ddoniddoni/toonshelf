@@ -11,7 +11,7 @@ import { mergePreviewSchema } from "./merge-model";
 
 export const catalogueAdminAccount = cache(async ()=>{
   const account = await requireAccount();
-  const {data,error} = await account.client.rpc("get_my_catalogue_role");
+  const {data,error} = await account.client.rpc("toon_get_my_catalogue_role");
   catalogueError(error);
   if (data !== true) throw new AuthFailure("FORBIDDEN","카탈로그 관리자만 사용할 수 있어요.");
   return account;
@@ -20,7 +20,7 @@ export async function guardAdminPage(path:string) {
   if (!getPublicEnv().supabase) return null;
   const account = await guardPage(path);
   if (!account) return null;
-  const {data,error} = await account.client.rpc("get_my_catalogue_role");
+  const {data,error} = await account.client.rpc("toon_get_my_catalogue_role");
   catalogueError(error);
   if (data !== true) notFound();
   return account;
@@ -39,12 +39,12 @@ export const snapshotSchema = z.object({work:adminWorkSchema,creators:z.array(cr
 export type AdminSnapshot = z.infer<typeof snapshotSchema>;
 export async function getAdminSnapshot(id:string) {
   const account = await catalogueAdminAccount();
-  const {data,error} = await account.client.rpc("admin_catalogue_snapshot",{p_id:uuidSchema.parse(id)});
+  const {data,error} = await account.client.rpc("toon_admin_catalogue_snapshot",{p_id:uuidSchema.parse(id)});
   catalogueError(error);
   return data === null ? null : snapshotSchema.parse(data);
 }
 export async function getMergePreview(source:string,target:string) {
   const {client} = await catalogueAdminAccount();
-  const {data,error} = await client.rpc("admin_merge_preview",{p_source:uuidSchema.parse(source),p_target:uuidSchema.parse(target)});
+  const {data,error} = await client.rpc("toon_admin_merge_preview",{p_source:uuidSchema.parse(source),p_target:uuidSchema.parse(target)});
   catalogueError(error);return mergePreviewSchema.parse(data);
 }

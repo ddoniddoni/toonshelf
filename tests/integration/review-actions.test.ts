@@ -20,11 +20,11 @@ describe("review action boundaries",()=>{
  });
  it("stores only private draft fields and never caller-selected owner/status",async()=>{
   await expect(saveReviewDraft(null,form({id,draftVersion:"1",body:"비공개 수정 초안",isSpoiler:"on",episode:"7",userId:"victim",moderationStatus:"visible",publicationStatus:"published"}))).rejects.toThrow("NEXT_REDIRECT");
-  expect(mocks.rpc).toHaveBeenCalledWith("save_review_draft",{p_id:id,p_version:1,p_payload:{body:"비공개 수정 초안",isSpoiler:true,episode:7}});
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_save_review_draft",{p_id:id,p_version:1,p_payload:{body:"비공개 수정 초안",isSpoiler:true,episode:7}});
  });
  it("publishes the stored version without accepting a caller body",async()=>{
   await expect(publishReview(null,form({id,draftVersion:"2",reviewVersion:"1",confirm:"on",body:"forged-body"}))).rejects.toThrow("NEXT_REDIRECT");
-  expect(mocks.rpc).toHaveBeenCalledWith("publish_review",{p_id:id,p_draft_version:2,p_review_version:1});
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_publish_review",{p_id:id,p_draft_version:2,p_review_version:1});
  });
  it("requires explicit publication/withdrawal/block/reveal confirmation",async()=>{
   expect(await publishReview(null,form({id,draftVersion:"2",reviewVersion:"1"}))).toMatchObject({ok:false});
@@ -34,7 +34,7 @@ describe("review action boundaries",()=>{
  });
  it("rechecks public availability on an explicit spoiler reveal",async()=>{
   mocks.rpc.mockResolvedValue({data:null,error:null});const result = await revealReviewBody(null,form({id,version:"3",confirm:"on"}));
-  expect(result).toMatchObject({ok:false});expect(mocks.rpc).toHaveBeenCalledWith("get_review",{p_id:id,p_reveal:true,p_expected_version:3});
+  expect(result).toMatchObject({ok:false});expect(mocks.rpc).toHaveBeenCalledWith("toon_get_review",{p_id:id,p_reveal:true,p_expected_version:3});
  });
  it("does not allow forged metadata to acquire moderation rights",async()=>{
   mocks.moderator.mockRejectedValue(new AuthFailure("FORBIDDEN","운영자 아님"));

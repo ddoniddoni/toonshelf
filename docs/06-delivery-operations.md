@@ -9,7 +9,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | 단계 | 현재 상태 | 완료 보고/근거 |
 |---|---|---|
 | P0 | 조건부: 코드 구성, DB 검증 대기 | 아래 16절. 로컬 Docker 엔진 필요 |
-| P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
+| P1 | 진행: 아이디 즉시 가입·로그인·공유 Supabase toon_ 코드/DB 설치, 실행 미검증 | 아래 2026-10-07 기록. MCP 설치 성공·실제 Auth/권한 검수 대기 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·최근 7일 좋아요순/태그 탐색·대표 티어표·공개 댓글 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 댓글 가중 인기·팔로우·비회원 PNG/edge 제한은 후속 |
@@ -670,3 +670,23 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 | [ ] | OPS-06 | 개인정보와 보안 | P7 |
 | [ ] | OPS-07 | SEO | P2 |
 | [ ] | OPS-08 | 관측과 운영 | P7 |
+
+### 2026-10-07 · 아이디 인증·공유 Supabase 객체 분리 (코드·DB 설치, 실행 검수 대기)
+
+**요구사항:** AUTH-01/03/06/07/10. AUTH-02/04의 연락 이메일·비로그인 복구와 OAuth/SMTP 공동 설정은 후속이며 P1 전체 완료로 체크하지 않는다.
+
+**변경:** 최신 develop fetch/fast-forward 후 `feature/username-auth-shared-supabase`에서 이메일 입력/인증 없는 아이디·비밀번호 가입/로그인, 필수 동의, 자동 로그인·실패 시 로그인 화면 복구, 프로필/기본 비공개 설정을 작성했다. Supabase SSR 사용자 세션과 getUser/getClaims/실제 session_id·회원 상태·동의 게이트를 사용한다. 서버 전용 admin createUser(email_confirm:true)와 server-owned app_metadata를 조건부 Auth insert/update trigger가 확인해 앱 회원/설정/동의를 같은 transaction 안에 만든다. 다른 앱 Auth 사용자 전체 backfill/자동 toon 회원 생성은 없다. 아이디 계정은 내부 식별자를 연락 이메일로 표시/메일 발송하지 않고 현재 비밀번호를 동일 사용자로 다시 검증해 변경한다. 메일 없는 비로그인 복구는 준비 상태이며 OAuth는 verified identity의 본인 pending enroll을 사용한다.
+
+SDK/수기 DB 계약/SQL와 관련 fixture의 테이블·RPC·enum·index는 toon_, 내부 schema는 toon_private, bucket은 toon_avatars/toon_licensed_covers, cookie는 toon-sb-…로 분리했다. 공용 public CREATE/default privileges는 변경하지 않는다. 제공된 키는 ignored .env.local(0600)에 보관하고 개발 가입 플래그를 열었다. .env.example은 빈 예시이며 modern publishable/secret과 legacy anon/service_role 이름을 지원한다. 의존성과 lockfile은 변경하지 않았다.
+
+**실제 대상·사전 조회:** 사용자 선택은 `zwzncrdlqnthxgdvsqxq`이며 reload 후 MCP get_project_url이 해당 주소를 반환했다. 기존 여행 앱 public 테이블 6개·migration 12개·trip-covers private bucket과 Storage 정책/ACL/extension 위치, Auth insert 트리거·profiles 컬럼/정책을 읽었다. toon_ 객체/type/function과 toon_private schema는 없어 새 설치가 가능했다. 기존 private.create_profile_for_auth_user()/auth_user_creates_profile은 모든 새 공유 Auth 사용자에 기본 여행 프로필 행을 만든다. 이 기존 동작은 유지하며 ToonShelf 회원/동의/역할은 별도 앱 데이터로 검사한다. 외부 Auth hook/공급자/메일 설정은 조회하지 않았다. 이전 mwepkrdlvdreoojrqegr 고객센터 프로젝트는 read-only 조회만 했고 해당 전용 수정 후보는 제거했으며 적용하지 않았다.
+
+**DB 작업 결과:** 17개 supabase/migrations SQL source의 바깥 begin/commit을 한 트랜잭션으로 묶어 MCP apply_migration(name=toon_shared_project_username_auth)으로 실행했다. 최초 시도는 카탈로그 creators_read의 creators.id 미변환 참조로 42P01 오류가 났다. 재개를 위한 table inventory에는 기존 여행 테이블만 남아 있었다. 해당 참조를 toon_creators.id로 수정한 뒤 재적용은 success:true를 반환했다. ToonShelf 테이블/RLS/RPC·조건부 Auth 트리거, toon_avatars/ toon_licensed_covers bucket과 제한 정책, 카탈로그용 pg_trgm을 설치했다. 기본 장르 12개와 플랫폼 7개는 실제 분류이며 합성 사용자/작품 seed나 실제 Auth 사용자 생성은 하지 않았다. 기존 여행 테이블/데이터/정책/함수와 공용 Auth 설정도 변경하지 않았다.
+
+**Migration 이력 경계:** 원격 MCP 설치 이력은 toon_shared_project_username_auth 한 건으로, 로컬 17개 파일의 timestamp version과 일치하는 CLI 배포 이력이 아니다. 원래 여행 앱 migration 이력은 이 repo에 포함되지 않는다. 이 공유 프로젝트에 linked CLI push/reset/전체 seed를 실행하지 않는다. 적용된 설치 source의 후속 스키마 변경은 새 migration으로 작성하고 MCP로 ToonShelf 변경만 적용한다.
+
+**작성한 검사 파일:** username action의 동의/가입 플래그/제한/중복/자동 로그인 실패/외부 이메일 거절/메일 차단/현재 비밀번호·동일 사용자, env legacy 공개 키 경계, SSR cookie, SQL 16번의 다른 앱/사용자 metadata 미등록·Auth 생성 순서·동의/기본 privacy/일반 역할/정지 보존/제한/본인 enroll을 작성했다. 카탈로그 SQL fixture에 공개 작품 작가 열람과 숨김 작품 작가 제외도 추가했다. 파일 작성만 했으며 실행하지 않았다.
+
+**실행 검증·Git:** 사용자 요청이 없어 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저 수동/자동·DB 권한 검수·실제 타입 생성 전부 미실행이다. 실제 가입→로그인→저장/로그아웃이나 비밀번호 변경 흐름을 확인했다고 보고하지 않는다. MCP 설치 성공은 권한/사용자 흐름 테스트 통과를 뜻하지 않는다. 개발 보고 시점에는 stage/commit/push/통합 merge/PR를 하지 않았다. 2026-10-07 사용자가 기본 Git Flow(작업 브랜치 commit/push→최신 develop merge/push→develop 종료)를 요청했다. 검사 실행 허가는 포함되지 않았으며 실제 반영 결과는 Git 이력으로 확인한다.
+
+**외부 대기·다음 단계:** 사용자 검사 요청 시 실제 가입·로그인·로그아웃·현재 비밀번호 변경과 A/B/anon 권한, cookie 갱신, 기존 여행 앱과의 공유 Auth 영향, 타입 생성과 필요한 자동 검사를 진행한다. 외부 Auth hook/공급자·운영 키/도메인/CAPTCHA·IP 제한 설정은 별도 확인이 남아 있다. P7 탈퇴/export는 공유 Auth 삭제가 다른 앱 데이터/세션에도 영향을 줄 수 있음을 고려해야 하며 앱 회원 삭제와 Auth 사용자 삭제를 구분해 설계한다. 연락 이메일/비로그인 복구·P1 검수와 P3~P7 잔여 기능은 후속이다.

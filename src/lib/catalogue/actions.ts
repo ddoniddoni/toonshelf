@@ -58,7 +58,7 @@ export async function upsertWork(_state:FormState,form:FormData):Promise<FormSta
     const id = field(form,"id") ? uuidSchema.parse(field(form,"id")) : null;
     const version = id ? z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).parse(field(form,"version")) : null;
     const reason = reasonSchema.parse(field(form,"reason").trim());
-    const {data,error} = await client.rpc("admin_upsert_work",{p_id:id,p_expected_version:version,p_payload:payload,p_reason:reason});
+    const {data,error} = await client.rpc("toon_admin_upsert_work",{p_id:id,p_expected_version:version,p_payload:payload,p_reason:reason});
     catalogueError(error);
     return "/admin/works/"+uuidSchema.parse(data)+"/edit?saved=1";
   });
@@ -67,7 +67,7 @@ export async function submitSuggestion(_state:FormState,form:FormData):Promise<F
   return finish(async()=>{
     const {client} = await requireAccount();
     const input = suggestionSchema.parse({kind:field(form,"kind"),workId:field(form,"workId") || null,proposal:field(form,"proposal").trim(),sourceUrl:canonicalSource(field(form,"sourceUrl"))});
-    const {error} = await client.rpc("submit_catalogue_suggestion",{p_kind:input.kind,p_work_id:input.workId,p_proposal:input.proposal,p_source_url:input.sourceUrl});
+    const {error} = await client.rpc("toon_submit_catalogue_suggestion",{p_kind:input.kind,p_work_id:input.workId,p_proposal:input.proposal,p_source_url:input.sourceUrl});
     catalogueError(error);
     return "/submissions?sent=1";
   });
@@ -79,7 +79,7 @@ export async function reviewSuggestion(_state:FormState,form:FormData):Promise<F
     const status = z.enum(["accepted","rejected"]).parse(field(form,"status"));
     const note = reasonSchema.parse(field(form,"note").trim());
     const workId = field(form,"resultWorkId") ? uuidSchema.parse(field(form,"resultWorkId")) : null;
-    const {error} = await client.rpc("admin_review_submission",{p_id:id,p_status:status,p_note:note,p_work_id:workId});
+    const {error} = await client.rpc("toon_admin_review_submission",{p_id:id,p_status:status,p_note:note,p_work_id:workId});
     catalogueError(error);
     revalidatePath("/submissions");
     return "/admin/submissions?reviewed=1";
@@ -93,7 +93,7 @@ export async function mergeWorks(_state:FormState,form:FormData):Promise<FormSta
     const version = (name:string)=>z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).parse(field(form,name));
     const reason = reasonSchema.parse(field(form,"reason").trim());
     if (!checked(form,"confirm") || !checked(form,"confirmPolicy")) throw new AuthFailure("VALIDATION_ERROR","같은 웹툰인지와 개인 기록 보존 정책을 확인해 주세요.");
-    const {error} = await client.rpc("admin_merge_works",{p_source:source,p_target:target,p_source_version:version("sourceVersion"),
+    const {error} = await client.rpc("toon_admin_merge_works",{p_source:source,p_target:target,p_source_version:version("sourceVersion"),
       p_target_version:version("targetVersion"),p_reason:reason,p_confirm:true,
       p_preview_token:uuidSchema.parse(field(form,"previewToken")),p_conflict_policy:mergePolicySchema.parse(field(form,"conflictPolicy"))});
     catalogueError(error);

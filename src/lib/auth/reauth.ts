@@ -13,7 +13,7 @@ export const privateCookieOptions = () => ({httpOnly:true,secure:new URL(getPubl
 export async function issueTicket(purpose: ReauthPurpose) {
   const account = await requireAccount(purpose !== "password_reset");
   const token = randomBytes(32).toString("base64url");
-  const {error} = await createAdminClient().rpc("issue_reauth_ticket",{p_user_id:account.user.id,p_session_id:account.sessionId,p_token_hash:hashToken(token),p_purpose:purpose});
+  const {error} = await createAdminClient().rpc("toon_issue_reauth_ticket",{p_user_id:account.user.id,p_session_id:account.sessionId,p_token_hash:hashToken(token),p_purpose:purpose});
   databaseError(error);
   (await cookies()).set(ticketCookie(purpose),token,privateCookieOptions());
 }
@@ -22,7 +22,7 @@ export async function consumeTicket(purpose: ReauthPurpose) {
   const store = await cookies();
   const token = store.get(ticketCookie(purpose))?.value;
   if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) throw new AuthFailure("FORBIDDEN", "새 확인 링크 또는 재인증으로 다시 진행해 주세요.");
-  const {error} = await account.client.rpc("consume_reauth_ticket",{p_token_hash:hashToken(token),p_purpose:purpose});
+  const {error} = await account.client.rpc("toon_consume_reauth_ticket",{p_token_hash:hashToken(token),p_purpose:purpose});
   databaseError(error);
   store.delete(ticketCookie(purpose));
   return account;

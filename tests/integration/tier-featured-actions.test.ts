@@ -21,7 +21,7 @@ describe("featured owner and public boundaries",()=>{
  });
  it("sends separate expected revisions and invalidates owner/visitor pages after acknowledgement",async()=>{
   expect(await setFeaturedTier(input)).toEqual({ok:true,state:{id,version:2}});
-  expect(mocks.rpc).toHaveBeenCalledWith("set_featured_tier",{p_id:id,p_tier_version:2,p_featured_version:1});
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_set_featured_tier",{p_id:id,p_tier_version:2,p_featured_version:1});
   expect(mocks.revalidate.mock.calls).toEqual([["/u/[username]","page"],["/me/tiers"],["/tiers/[id]/publish","page"]]);
   mocks.rpc.mockResolvedValue({data:{id:null,version:3},error:null});expect(await setFeaturedTier({id:null,tierVersion:null,featuredVersion:2})).toEqual({ok:true,state:{id:null,version:3}});
  });
@@ -33,11 +33,11 @@ describe("featured owner and public boundaries",()=>{
   expect(mocks.revalidate).not.toHaveBeenCalled();
  });
  it("reads owner revisions only through the authenticated RPC",async()=>{
-  expect(await getMyFeaturedTierState()).toEqual({id,version:2});expect(mocks.account).toHaveBeenCalled();expect(mocks.rpc).toHaveBeenCalledWith("get_my_featured_tier_state");
+  expect(await getMyFeaturedTierState()).toEqual({id,version:2});expect(mocks.account).toHaveBeenCalled();expect(mocks.rpc).toHaveBeenCalledWith("toon_get_my_featured_tier_state");
  });
  it("reads a visitor-safe current card without requiring login or exposing owner state",async()=>{
   mocks.rpc.mockResolvedValue({data:{...card,featuredVersion:10,body:{title:"private"},token:"secret"},error:null});
-  expect(await getPublicFeaturedTier("author")).toEqual(card);expect(mocks.account).not.toHaveBeenCalled();expect(mocks.rpc).toHaveBeenCalledWith("get_public_featured_tier",{p_username:"author"});
+  expect(await getPublicFeaturedTier("author")).toEqual(card);expect(mocks.account).not.toHaveBeenCalled();expect(mocks.rpc).toHaveBeenCalledWith("toon_get_public_featured_tier",{p_username:"author"});
   mocks.rpc.mockResolvedValue({data:null,error:null});expect(await getPublicFeaturedTier("author")).toBeNull();
   mocks.env.mockReturnValue({supabase:null});mocks.rpc.mockClear();expect(await getPublicFeaturedTier("author")).toBeNull();expect(mocks.rpc).not.toHaveBeenCalled();
  });

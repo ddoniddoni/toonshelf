@@ -43,13 +43,15 @@ describe("server account boundaries",()=>{
     expect(result).toMatchObject({ok:false,error:{code:"INTERNAL_ERROR"}});
     expect(JSON.stringify(result)).not.toContain("do-not-expose");
   });
-  it("does not distinguish existing and missing recovery accounts",async()=>{
+  it("keeps mail recovery disabled without sending to shared-project identities",async()=>{
     const request=form({email:"reader@example.test"});
     mocks.recover.mockResolvedValueOnce({error:null});
     const existing=await requestRecovery(null,request);
     mocks.recover.mockResolvedValueOnce({error:{code:"user_not_found"}});
     const missing=await requestRecovery(null,request);
     expect(existing).toEqual(missing);
+    expect(existing).toMatchObject({ok:false,error:{code:"CONFIG_REQUIRED"}});
+    expect(mocks.recover).not.toHaveBeenCalled();
   });
   it("rejects normal-session reset even if recovery=true is supplied",async()=>{
     mocks.consume.mockRejectedValue(new AuthFailure("FORBIDDEN","복구 확인 필요"));

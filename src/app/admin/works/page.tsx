@@ -15,18 +15,18 @@ export default async function Page({searchParams}:{searchParams:Promise<SearchPa
   let works:{id:string;title:string;catalogue_status:string;age_rating:string;is_test:boolean;version:number}[] = [];
   let duplicates:z.infer<typeof duplicateSchema> = [];
   if (account) {
-    let query = account.client.from("works").select("id,title,catalogue_status,age_rating,is_test,version").order("updated_at",{ascending:false}).order("id").limit(50);
+    let query = account.client.from("toon_works").select("id,title,catalogue_status,age_rating,is_test,version").order("updated_at",{ascending:false}).order("id").limit(50);
     if(q)query = query.ilike("title",literalLike(q));if(status)query = query.eq("catalogue_status",status);
     const result = await query;catalogueError(result.error);works = result.data ?? [];
     if (typeof params.duplicateTitle === "string" || typeof params.duplicateUrl === "string") {
       const title = z.string().max(200).parse(typeof params.duplicateTitle === "string" ? params.duplicateTitle.trim() : "");
       const urls:string[] = [];
       if (typeof params.duplicateUrl === "string" && params.duplicateUrl.trim()) {
-        const raw = z.string().max(2048).parse(params.duplicateUrl);const platforms = await account.client.from("platforms").select("*").eq("active",true);catalogueError(platforms.error);
+        const raw = z.string().max(2048).parse(params.duplicateUrl);const platforms = await account.client.from("toon_platforms").select("*").eq("active",true);catalogueError(platforms.error);
         const host = new URL(raw).hostname;const platform = z.array(platformSchema).parse(platforms.data).find(p=>p.approved_hosts.includes(host));
         if (!platform) throw new Error("INVALID_OFFICIAL_URL");urls.push(canonicalOfficialUrl(raw,platform));
       }
-      const result = await account.client.rpc("admin_find_duplicates",{p_title:title,p_urls:urls});catalogueError(result.error);duplicates = duplicateSchema.parse(result.data);
+      const result = await account.client.rpc("toon_admin_find_duplicates",{p_title:title,p_urls:urls});catalogueError(result.error);duplicates = duplicateSchema.parse(result.data);
     }
   }
   return <AdminShell title="작품 관리" description="최근 수정한 50개 작품을 표시해요. 제목이나 상태로 좁혀 찾아보세요." connected={Boolean(account)}>
