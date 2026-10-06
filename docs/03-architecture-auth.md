@@ -353,3 +353,11 @@ OG는 공개 게시본을 바탕으로 생성하고 원본 표지를 직접 긁�
 ## P4 기본 평가 연결 메모 · 2026-10-04 (작성·실행 미검증)
 
 `evaluation-data/actions`는 각 요청에서 requireAccount와 사용자 세션 RPC를 사용하며 서비스 키를 사용하지 않는다. owner 전용 dynamic/noindex/no-store 페이지와 최소 DTO만 client에 전달한다. 액션 입력은 id/방향/기대 version/작품 ID와 필요한 읽기 상태만 허용하며 사용자 ID·별점·대상 canonical 코드는 서버가 현재 자료에서 구한다. DB 미리보기 fingerprint는 권한 토큰이 아니며 매 요청의 실제 세션/활성/동의와 소유권을 대체하지 않는다. React 선택 폼은 후보 변경 시 초기화하고 실패/모호한 응답 뒤 확인 상태를 지운다. 성공 시 방향에 맞는 초안 또는 서재·작품·공개 프로필 경로를 갱신한다. SDK generic은 수기 계약이며 실제 생성 타입·DB/브라우저 확인은 공동 연동과 별도 검사 요청 대기다.
+
+## P4/P5 공개 티어 댓글 메모 · 2026-10-05 (작성·실행 미검증)
+
+서버 DAL·strict Zod 입력·사용자 세션 Supabase RPC로 댓글을 조회/변경한다. 클라이언트의 작성자/버전/수나 token을 권한으로 사용하지 않고 DB에서 실제 세션·계정·이메일/동의·공개 부모·작성자/차단·소유권·한 단계 관계를 재확인한다. RLS를 켠 raw 댓글·private 신고/감사는 직접 권한 없이 제한 RPC만 허용한다. 서비스 키·가짜 데이터·새 의존성은 없다. 설치 metadata와 로컬 Next Server Actions 안내, 공식 Supabase functions/Postgres FK·locking 문서를 읽었다.
+
+최초 댓글/운영 DTO는 스포일러 원문을 제외하며 일반 펼치기는 tier lifecycle과 comment version/명시 동의를, 운영 펼치기는 private 역할과 comment version/현재 public 부모를 검사한다. 일반 평문은 기존 ReviewText로 이스케이프/안전 HTTP(S) 링크를 렌더한다. 댓글 생성에는 클라이언트 UUID를 유지해 응답 유실 재시도를 동일한 작성 내용으로 제한한다. 수정/삭제는 기대 댓글 버전을 사용하고 삭제는 원문을 지워 tombstone을 남긴다. 본인 삭제만 부모 공개 철회 후에도 허용하며 본문/부모 metadata를 반환하지 않는다.
+
+신규 `/tiers/*` 댓글과 `/me/*`, `/admin/*` 신고/운영 화면은 dynamic·기존 private/no-store 및 일반 noindex metadata를 사용한다. 댓글 변경은 tiers layout/운영 검토/신고 큐를 무효화하며 기존 차단/공개 철회 action의 tiers layout 무효화를 유지한다. 스포일러 펼침 상태는 댓글/티어 버전이 바뀌면 새 컴포넌트로 초기화한다. 실제 DB 적용·생성 타입·HTTP 캐시/브라우저/경합/성능 및 모든 자동 검사와 사용자 흐름은 미실행이다. 댓글 가중 인기·리뷰/글 댓글·팔로우/피드/알림은 후속이다.

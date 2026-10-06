@@ -165,9 +165,19 @@ content_edit_drafts는 리뷰 또는 글 중 정확히 하나를 가리키며, �
 
 reviews는 deleted_at IS NULL인 `(user_id,work_id)`에 partial unique를 둔다. 한 사람의 현재 리뷰는 한 작품에 한 건이다. 리뷰의 별점은 공개 가능한 user_evaluations에서 읽으며 별도 rating 컬럼을 만들지 않는다.
 
-comments는 `num_nonnulls(review_id,post_id,tier_list_id)=1`을 강제한다. 부모 댓글의 대상과 자신 대상이 같아야 하고, 부모의 parent_id는 NULL이어야 한다. 댓글 깊이는 한 단계다. parent_id 변경으로 다른 스레드에 옮기는 요청은 거절한다.
+최종 다중 대상 comments는 `num_nonnulls(review_id,post_id,tier_list_id)=1`을 강제한다. 부모 댓글의 대상과 자신 대상이 같아야 하고, 부모의 parent_id는 NULL이어야 한다. 댓글 깊이는 한 단계다. parent_id 변경으로 다른 스레드에 옮기는 요청은 거절한다.
 
 삭제한 댓글의 본문은 제거하고 tombstone으로 남겨 다른 사람의 답글 문맥을 유지할 수 있다. 자신의 리뷰/글/티어가 삭제되면 그 토론 전체는 일반 사용자에게 접근 불가다. 회원탈퇴 시 타인 글에 남긴 본인 댓글은 익명 tombstone으로 처리한다.
+
+**공개 티어 댓글 첫 대상 · 2026-10-05 (파일 작성·미적용):** `20261005052840_tier_comments.sql`은 comments의 tier_list_id not-null FK만 먼저 생성한다. review/post FK와 정확히 한 대상 제약은 각 대상 도메인 migration에서 확장한다. id/tier/parent/다른 소유자로 변경은 금지하며 `(parent_id,tier_list_id)` composite FK와 부모 parent_id=NULL trigger로 동일 대상/한 단계를 강제한다. 본문 1~1000 Unicode code point/최대 4000 UTF-8 byte·safe bigint version을 제한하며 삭제 상태는 body=NULL이다. author FK SET NULL은 trigger로 본문도 지우고 version을 올려 타인 답글의 익명 문맥을 유지한다. root/reply 시간·작성자 index를 작성했다.
+
+comments와 private.comment_reports/private.comment_moderation_events는 RLS 활성/원시 SELECT·DML 제거, 빈 search_path·제한 public RPC/정밀 grant로 접근한다. 최초 본문은 표/원 댓글/댓글 spoiler OR 조건으로 제외한다. 일반 접근은 현재 public/visible/미삭제 표·작성자 활성/동의·조회자↔작성자 및 티어 작성자↔댓글 작성자 차단을 재확인하고 원 댓글 접근도 확인한다. 숨김 root는 답글까지 제외한다. 차단은 댓글을 보존한다. 탈퇴 등 작성자 FK 제거 시 익명 tombstone으로 남기며 기존 답글은 다른 현재 조건을 통과해야 표시된다.
+
+변경/owner editor/신고는 현재 user access→정렬된 actor/상대 pair advisory transaction lock→tier SHARE→root SHARE→comment UPDATE 순서다. 차단은 기존 같은 pair mutex를 사용한다. tier 잠금 후 접근을 다시 확인하며 공개 철회/삭제/운영 변경과 버전을 검사한다. 생성은 caller UUID unique와 동일 소유자/대상/부모/내용의 재시도만 허용한다. own 삭제는 같은 tier/root/comment 순서와 본인/version만 검사해 부모가 비공개여도 본문 제거를 허용하고 metadata/원문을 반환하지 않는다. 실제 동시성은 미검증이다.
+
+신고는 reporter/comment pending partial unique, 현재 public/접근 가능·미삭제·비본인·버전과 5회/10분을 검사한다. 접수/결과는 본인, 큐/사유/감사는 private moderator/admin만 RPC로 읽는다. 운영 최초 원문도 null이며 명시 펼치기는 tier SHARE→comment SHARE와 기대 version/현재 public 부모를 검사한다. hide/restore/선택 신고 처리·기각/결과/감사는 한 transaction이고 body를 감사로 복사하지 않는다. 운영 원문은 비공개/unlisted/삭제한 부모 및 삭제 댓글에서 제공하지 않는다. 보고 큐 20개/검토 최근 50개와 5초 statement 제한을 작성했다. 생성/수정/삭제 각각 30회/5분, 운영 30회/분이다.
+
+표 soft delete/공개 철회 후 일반 토론 접근은 차단된다. hard delete의 comments cascade는 남은 private 신고 FK가 있으면 보존을 위해 제한되므로 P7 worker에서 신고 최소 보존·참조 정리 후 삭제할 순서를 완성해야 한다. 회원 탈퇴/export와 신고 보존 기한·다른 댓글 대상/알림은 후속이다. migration/SQL·권한·다중 세션·성능 검수는 전부 미실행이다.
 
 ## 7. 티어 초안과 게시본
 

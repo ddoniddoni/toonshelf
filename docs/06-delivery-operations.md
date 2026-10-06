@@ -12,8 +12,8 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P1 | 진행: 인증·계정 코드 작성, 실제 DB/Auth 검증 대기 | 아래 16절. Docker/Supabase 및 공급자·메일 설정 필요 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
-| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·최근 7일 좋아요순/태그 탐색·대표 티어표 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 댓글 가중 인기·댓글/팔로우·비회원 PNG/edge 제한은 후속 |
-| P5 | 전체 단계 미착수: 공개 티어 반응의 SOC-04 공통 기반만 P4에서 작성, 실행 미검증 | 아래 16절. 리뷰/글/댓글 반응·팔로우·피드·알림은 후속 |
+| P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·최근 7일 좋아요순/태그 탐색·대표 티어표·공개 댓글 코드 작성, 실행 미검증 | 아래 16절. DB/Auth/공유 키·migration·실행 검수 대기. 댓글 가중 인기·팔로우·비회원 PNG/edge 제한은 후속 |
+| P5 | 진행: 첫 공개 티어 댓글·한 단계 답글/신고/차단/운영 조치와 SOC-04 티어 반응 기반 코드 작성, 실행 미검증 | 아래 16절. 리뷰/글 댓글·다른 반응 대상·팔로우·피드·커뮤니티·알림은 후속 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
 
@@ -575,6 +575,26 @@ Codex는 루트 AGENTS.md의 기본 규칙을 먼저 읽고 필요한 상세 문
 **Git/다음 단계:** 탐색 feature `b1b20dc`와 develop merge `170e1e0` push 후 최신 develop fetch/fast-forward에서 새 `feature/featured-tier`를 생성했다. 개발 보고 시점에는 stage·commit·push·통합 merge·PR를 수행하지 않았다. 다음은 공개 티어표 댓글·답글과 신고/차단 연동이다. 댓글 가중 인기·팔로우/피드/알림·다른 도메인 반응, P4 비회원 PNG/edge 제한·허가 표지 목적별 선택 및 P5~P7·기존 실행 검수도 남아 있다.
 
 **Git 반영 요청 · 2026-10-05:** 사용자가 대표 티어표 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 모든 실행 검증의 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
+
+### 2026-10-05 · P4/P5 공개 티어 댓글·한 단계 답글/신고·운영 (작성·실행 미검증)
+
+**상태/요구사항:** 진행/외부설정대기. TIER-10 댓글, SOC-06 접촉 제한, OPS-01/04 신고·조치/회원 제한의 첫 tier 댓글 도메인 코드를 작성했다. P5를 첫 댓글 도메인 진행으로 갱신하며 P4/P5 및 관련 전체 요구사항은 완료로 체크하지 않는다. 최근 7일 좋아요순은 유지하고 댓글 가중 전체 인기 점수는 다음 증분이다.
+
+**변경 파일/동작:** `src/lib/comments/{model,data,actions,errors}.ts`, 수기 DB 계약과 `src/components/comments/*`에 strict 입력/제한 DTO·세션 RPC·평문·최초 spoiler 제외·명시 펼치기·본인 editor/수정/삭제·신고/차단 UI를 작성했다. 공개 상세 `publication-detail.tsx`에 first 20 roots/작성/전체 페이지 링크, `/tiers/[id]/comments`에 parent/page 검증·한 단계 답글/현재 실제 replyCount·20개 페이지를 연결했다. 댓글 최신순/답글 작성순·ID 동률이며 pagination은 parent를 유지한다. `/me/comment-reports`, `/admin/comment-reports`, `/admin/comments/[id]`와 기존 티어 신고 화면의 진입 링크·댓글 fieldset 스타일을 작성했다. private/unlisted 표에는 토론을 제공하지 않으며 로그인/이메일·활성/현재 동의가 필요한 작성 안내를 연결했다. 응답 유실 시 입력과 UUID를 유지해 동일 내용만 재시도하며 ACK 후 입력/목록을 갱신한다. 새 의존성·가짜 운영 수/서비스 키·공유 캐시는 없다.
+
+**Migration/권한:** CLI 생성 `20261005052840_tier_comments.sql`에 첫 tier FK comments·same-target parent composite FK/한 단계·immutable id/tier/parent/ownership trigger·본문/삭제 CHECK·독립 safe version·root/reply/author index·RLS/원시 ACL 제거를 작성했다. private pending 신고 unique/큐·owner/target index와 body 없는 운영 감사, public read와 회원/역할별 제한 RPC grant를 작성했다. current access→정렬 actor/상대 pair mutex→tier SHARE→root SHARE→comment UPDATE로 차단/공개/편집을 직렬화하고 tier 잠금 뒤 접근을 재확인한다. 생성 request UUID/동일 내용 재시도·별도 tier lifecycle/comment version·작성/수정/삭제 각각 30회/5분·신고 5회/10분·운영 30회/분·5초 statement 제한을 작성했다. 실시간 DB 잠금/성능 동작은 미검증이다.
+
+**공개/삭제/운영 경계:** 효과적인 spoiler는 현재 tier OR root OR comment이며 initial public/운영 DTO에 spoiler 원문이 없다. 일반 reveal/owner editor/쓰기/신고는 현재 공개·계정/차단·소유권·버전을 검사한다. 원 댓글 hide/접근 불가는 스레드를 함께 제외한다. 삭제는 body와 공개 author를 제거하되 기존 답글 문맥을 유지하고 새 replies는 거절한다. 차단은 댓글을 보존한다. 본인 삭제만 부모가 private/hidden으로 바뀌어도 가능하며 body/부모 metadata를 반환하지 않는다. profile FK SET NULL도 본문을 지우고 version을 올린다. 운영 최초 body=null, explicit reveal은 tier/comment SHARE·역할·기대 version과 현재 public 부모를 확인한다. private/unlisted/deleted 원문을 운영자에게도 반환하지 않는다. hide/restore/선택 pending 신고 처리·기각/사유/결과·감사는 한 transaction이며 복구는 삭제 본문을 되살리지 않는다. 리뷰/글 대상 FK/num_nonnulls 확장은 각 도메인 후속이다. hard tier delete는 남은 신고 FK 보존으로 제한되므로 P7 탈퇴/정리 worker의 최소 신고 보관·참조 정리 순서를 완성해야 한다.
+
+**테스트 파일:** `tests/unit/tier-comments.test.ts`에 Unicode/strict actor/token/동의/버전·spoiler/tombstone·depth/page/동일 target·운영 마스킹/결과 계약을 작성했다. `tests/integration/tier-comment-actions.test.ts`에 account/role gate·request ID/별도 버전 RPC·safe errors/실패 시 미무효화·owner editor/anon reveal·masked DAL·own vs role queue를 mock으로 작성했다. `tests/unit/tier-comment-ui.test.tsx`는 입력/스포일러 선택 보존·동일 nonce 재시도·중복 pending/ACK·수정 충돌 뒤 입력 보존·spoiler gate/버전 변경 재마스킹·이스케이프·tombstone reply 링크를 작성했다. `supabase/tests/15_tier_comments.test.sql`은 rollback fixture로 ACL/공개 유형·UUID retry/depth/same target/reparent·spoiler 상속/버전·self report/중복/역할·hide/restore/감사·owner edit/delete/tombstone·차단/withdraw/본인 삭제·FK 익명화/본문 제거·실제 세션 철회를 작성했다. **파일만 작성했고 모든 테스트는 실행하지 않았다.** 단일 세션 fixture는 차단 vs 댓글/공개 철회 vs reveal/edit/root 삭제 vs reply/역할·계정 전환의 실제 다중 세션 잠금이나 브라우저 상태를 증명하지 않는다.
+
+**실행/외부 상태:** Git status/diff와 소스/문서·설치 버전 metadata, 로컬 Next Server Actions 안내, [Supabase 함수](https://supabase.com/docs/guides/database/functions)·공식 changelog, [PG explicit locks](https://www.postgresql.org/docs/17/explicit-locking.html)·[FK constraints](https://www.postgresql.org/docs/17/ddl-constraints.html)를 읽었다. changelog 가져오기와 CLI 도움말/빈 migration 파일 생성만 수행했으며 DB 실행 검증이 아니다. 사용자 지시로 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 수동/자동 검수를 **모두 미실행**으로 남긴다. 실제 확인한 사용자 흐름은 **없음**이다. DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성·역할/키 등록도 수행하지 않았다. 실제 Supabase/Auth·메일·OAuth 공동 연결·순차 migration·생성 타입·권한/경합/캐시/성능/화면 검수는 공동 작업·별도 요청 대기다.
+
+**입력 보존 보완:** [React 공식 form 안내](https://react.dev/reference/react-dom/components/form)와 설치 React DOM 소스에서 함수 action의 uncontrolled form reset 경로를 읽었다. 실패 결과도 함수가 정상 반환하므로 작성의 spoiler/confirm과 수정/신고/운영 사유·선택값을 controlled state로 유지하도록 작성했다. 오류/응답 유실 후 본문·선택값 유지 사례를 테스트 파일에 추가했지만 실제 재현/실행 검증은 하지 않았다.
+
+**Git/다음 단계:** 대표 티어표 feature `ef68275`와 develop merge `86d8eed`가 push된 최신 develop을 fetch/fast-forward 후 새 `feature/tier-comments`에서 개발했다. 개발 보고 시점에는 이번 증분 stage·commit·push·통합 merge·PR를 하지 않았다. 다음은 공개 티어 탐색의 최근 서로 다른 댓글 작성자 수와 댓글 가중 인기 공식이다. 팔로우/피드/알림·커뮤니티·리뷰/글 댓글·댓글 좋아요/다른 반응, P4 비회원 PNG/edge 제한·허가 표지 목적별 선택, P6/P7과 기존 실행 검수는 후속이다.
+
+**Git 반영 요청 · 2026-10-06:** 사용자가 공개 티어 댓글·답글 증분까지 기본 Git Flow(작업 브랜치 Conventional Commit→작업 브랜치 push→최신 develop merge→develop push→develop에서 종료)를 요청했다. 검사 실행 요청은 없으므로 테스트/자동 검사/브라우저/DB 실행 검증의 미실행 상태를 유지한다. 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다.
 
 ## 17. 요구사항 추적표
 
