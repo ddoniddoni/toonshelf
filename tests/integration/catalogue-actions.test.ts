@@ -35,7 +35,7 @@ describe("catalogue action authorization",()=>{
   });
   it("binds the merge to its preview and invalidates affected personal/public pages",async()=>{
     await expect(mergeWorks(null,form({...merge,userId:"victim",role:"admin"}))).rejects.toThrow("NEXT_REDIRECT");
-    expect(mocks.rpc).toHaveBeenCalledWith("admin_merge_works",{p_source:merge.sourceId,p_target:merge.targetId,p_source_version:2,p_target_version:4,p_reason:merge.reason,p_confirm:true,p_preview_token:merge.previewToken,p_conflict_policy:"latest_private"});
+    expect(mocks.rpc).toHaveBeenCalledWith("toon_admin_merge_works",{p_source:merge.sourceId,p_target:merge.targetId,p_source_version:2,p_target_version:4,p_reason:merge.reason,p_confirm:true,p_preview_token:merge.previewToken,p_conflict_policy:"latest_private"});
     expect(mocks.revalidate).toHaveBeenCalledWith("/me","layout");expect(mocks.revalidate).toHaveBeenCalledWith("/u/[username]","layout");expect(mocks.revalidate).toHaveBeenCalledWith("/reviews","layout");
   });
   it("returns a safe conflict and no success invalidation when the preview is stale or records conflict",async()=>{
@@ -50,7 +50,7 @@ describe("catalogue action authorization",()=>{
     await expect(submitSuggestion(null,form({kind:"new_work",proposal:"추가할 작품과 출처를 충분히 설명해요.",sourceUrl:"https://example.test/source",userId:"another-user",status:"accepted"}))).rejects.toThrow("NEXT_REDIRECT");
     const args = mocks.rpc.mock.calls[0][1];
     expect(args).not.toHaveProperty("userId");expect(args).not.toHaveProperty("status");
-    expect(mocks.rpc).toHaveBeenCalledWith("submit_catalogue_suggestion",expect.objectContaining({p_kind:"new_work",p_work_id:null}));
+    expect(mocks.rpc).toHaveBeenCalledWith("toon_submit_catalogue_suggestion",expect.objectContaining({p_kind:"new_work",p_work_id:null}));
   });
   it("requires real account access before any suggestion write",async()=>{
     mocks.account.mockRejectedValue(new AuthFailure("ONBOARDING_REQUIRED","필수 동의 필요"));

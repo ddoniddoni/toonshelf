@@ -1,5 +1,12 @@
 # 05. 도메인 규칙과 API 계약
 
+## 현재 인증 API·물리 접두사 · 2026-10-07
+
+`signUp` 입력은 `{username,password,confirmPassword,terms,privacy,age14,returnTo}`이고 `signIn`은 `{username,password,returnTo}`다. 아이디를 서버 전용 Auth 식별자로 변환하며 비밀번호·서비스 키·Auth 응답 원문을 action state/URL에 넣지 않는다. 내부 주소는 연락/복구 이메일이 아니다. 가입 후 기본 private 설정과 필수 동의를 저장하고 자동 로그인하며 mail confirmation/추가 onboarding을 요구하지 않는다. 계정 복구는 준비 상태다. username 계정 비밀번호 변경은 currentPassword를 요구하고 실제 동일 Auth 사용자 재로그인 후 수행한다.
+
+아래 논리 DB 함수/테이블 이름에는 실제로 `toon_`를 붙인다. private 객체는 `toon_private.toon_*`이며 DTO 필드명과 enum 값은 그대로다. 가입 reservation RPC는 service-role만 허용하고 global 60회/분·아이디별 3회/10분을 검사한다. 직접 사용자 데이터는 계속 사용자 세션/RLS/제한 RPC로 접근한다. IP 기반 배포 제한/CAPTCHA는 기존 후속 계약이며 이번에 구현했다고 주장하지 않는다. `zwzncrdlqnthxgdvsqxq`에 이 API의 DB source 17개를 MCP migration `toon_shared_project_username_auth`로 설치했다. 도구 success:true를 확인했고 실제 Auth/RLS/API 검수는 별도 사용자 요청 대기다.
+
+
 아래 함수명은 구현 계약이다. 기존 코드에 더 적합한 이름이 있다면 일관되게 변경하고 문서를 갱신한다. Server Action과 REST API를 같은 기능마다 중복 구현하지 않는다.
 
 ## 1. 공통 응답

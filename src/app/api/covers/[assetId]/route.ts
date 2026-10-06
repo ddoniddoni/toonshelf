@@ -10,7 +10,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{assetId:str
   try {
     const access = await getCoverAccess(assetId,"display");
     if (!access) return new Response(null,{status:404,headers});
-    const {data,error} = await createAdminClient().storage.from("licensed-covers").download(access.path);
+    const {data,error} = await createAdminClient().storage.from("toon_licensed_covers").download(access.path);
     if (error || !data || data.size > 2097152) return new Response(null,{status:404,headers});
     // A revocation or visibility change during Storage I/O cancels this response.
     const current = await getCoverAccess(assetId,"display");

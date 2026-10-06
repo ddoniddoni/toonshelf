@@ -1,14 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
+import { authCookieOptions } from "./cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { getPublicEnv } from "@/lib/env/public";
 
 export async function updateSession(request: NextRequest) {
-  const { supabase: env } = getPublicEnv();
+  const { siteUrl, supabase: env } = getPublicEnv();
   let response = NextResponse.next({ request });
   // P0's public preview works without credentials; client creation fails closed.
   if (!env) return response;
   response.headers.set("Cache-Control", "private, no-store");
   const supabase = createServerClient(env.url, env.key, {
+    cookieOptions: authCookieOptions(env.url,siteUrl),
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(cookiesToSet, cacheHeaders) {

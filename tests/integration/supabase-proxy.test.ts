@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   claims: vi.fn(),
   create: vi.fn(),
 }));
-vi.mock("@/lib/env/public", () => ({ getPublicEnv: () => ({ supabase: mocks.env }) }));
+vi.mock("@/lib/env/public", () => ({ getPublicEnv: () => ({ siteUrl:"http://localhost:3000",supabase: mocks.env }) }));
 vi.mock("@supabase/ssr", () => ({ createServerClient: mocks.create }));
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -30,6 +30,7 @@ describe("SSR response cookie adapter (not a live Auth test)", () => {
     });
     const request = new NextRequest("http://localhost:3000/");
     const response = await updateSession(request);
+    expect(mocks.create.mock.calls[0][2].cookieOptions.name).toBe("toon-sb-127-auth-token");
     expect(mocks.claims).toHaveBeenCalledOnce();
     expect(request.cookies.get("sb-test")?.value).toBe("refreshed");
     expect(response.cookies.get("sb-test")?.value).toBe("refreshed");

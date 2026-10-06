@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { authCookieName } from "@/lib/supabase/cookies";
 import { getPublicEnv, requireSupabaseEnv } from "@/lib/env/public";
 import { getServerEnv } from "@/lib/env/server";
 import { registrationOpen } from "./config";
@@ -15,7 +16,8 @@ import { type FormState } from "@/types/auth";
 import { AuthFailure, actionError, databaseError } from "./errors";
 import { getCurrentAccount, memberDestination, requireAccount } from "./session";
 import { consumeTicket, issueTicket, privateCookieOptions } from "./reauth";
-import { checked, confirmationSchema, emailSchema, field, genreFields, newPasswordSchema, onboardingSchema, profileSchema, purposeSchema, safeReturnTo, settingsSchema, signInSchema, signUpSchema } from "./validation";
+import { isUsernameAccount, usernameAuthEmail, USERNAME_AUTH_DOMAIN } from "./username";
+import { POLICY_VERSION, checked, confirmationSchema, emailSchema, field, genreFields, newPasswordSchema, onboardingSchema, profileSchema, purposeSchema, safeReturnTo, settingsSchema, signInSchema, signUpSchema } from "./validation";
 
 type Outcome = {message?: string; redirectTo?: string};
 async function run(operation: () => Promise<Outcome>): Promise<FormState> {
@@ -27,7 +29,7 @@ async function run(operation: () => Promise<Outcome>): Promise<FormState> {
 function authError(error: {code?: string} | null, message: string) {
   if (!error) return;
   const limited = error.code?.includes("rate_limit") || error.code === "over_request_rate_limit";
-  throw new AuthFailure(limited ? "RATE_LIMITED" : "VALIDATION_ERROR",limited ? "잠시 후 다시 시도해 주세요. 메일은 최소 60초 간격으로 요청할 수 있어요." : message);
+  throw new AuthFailure(limited ? "RATE_LIMITED" : "VALIDATION_ERROR",limited ? "요청이 많아요. 잠시 후 다시 시도해 주세요." : message);
 }
 function isolatedAuth() {
   const {url,key} = requireSupabaseEnv();
@@ -40,21 +42,35 @@ function assertRegistrationOpen() {
 export async function signUp(_previous: FormState, form: FormData) {
   return run(async () => {
     assertRegistrationOpen();
-    const input = signUpSchema.parse({email:field(form,"email").trim(),password:field(form,"password"),confirmPassword:field(form,"confirmPassword"),...consents(form)});
+    const input = signUpSchema.parse({username:field(form,"username").trim(),password:field(form,"password"),confirmPassword:field(form,"confirmPassword"),...consents(form)});
+    const admin = createAdminClient();
+    const {data:allowed,error:rateError} = await admin.rpc("toon_reserve_username_signup",{p_username:input.username});
+    databaseError(rateError);
+    if (allowed !== true) throw new AuthFailure("RATE_LIMITED","가입 요청이 많아요. 잠시 후 다시 시도해 주세요.");
+    const email = usernameAuthEmail(input.username);
+    const {data:created,error:createError} = await admin.auth.admin.createUser({
+      email,password:input.password,email_confirm:true,
+      app_metadata:{toonshelf:{auth_mode:"username",username:input.username,policy_version:POLICY_VERSION,consents:{terms:input.terms,privacy:input.privacy,age_14:input.age14}}},
+    });
+    if (createError?.code === "email_exists" || createError?.code === "user_already_exists") {
+      throw new AuthFailure("CONFLICT","이미 사용 중인 아이디예요. 다른 아이디를 입력하거나 로그인해 주세요.");
+    }
+    authError(createError,"가입하지 못했어요. 아이디와 비밀번호를 확인해 주세요.");
+    if (!created.user) throw new AuthFailure("INTERNAL_ERROR","가입 결과를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
+    // The conditional Auth trigger creates membership + defaults + consent atomically.
     const client = await createClient();
-    const {error} = await client.auth.signUp({email:input.email,password:input.password,options:{emailRedirectTo:`${getPublicEnv().siteUrl}/auth/confirm`}});
-    authError(error,"가입 요청을 처리하지 못했어요. 입력 내용과 이메일을 확인해 주세요.");
-    // No email/user/password is put in a redirect URL or in action state.
-    return {redirectTo:"/auth/check-email"};
+    const {error} = await client.auth.signInWithPassword({email,password:input.password});
+    if (error) return {redirectTo:"/auth/sign-in?registered=1"};
+    return {redirectTo:await memberDestination(field(form,"returnTo"))};
   });
 }
 export async function signIn(_previous: FormState, form: FormData) {
   if (form.has("provider")) return signInWithOAuth(_previous,form);
   return run(async () => {
-    const input = signInSchema.parse({email:field(form,"email").trim(),password:field(form,"password")});
+    const input = signInSchema.parse({username:field(form,"username").trim(),password:field(form,"password")});
     const client = await createClient();
-    const {error} = await client.auth.signInWithPassword(input);
-    authError(error,"이메일 또는 비밀번호를 확인해 주세요.");
+    const {error} = await client.auth.signInWithPassword({email:usernameAuthEmail(input.username),password:input.password});
+    authError(error,"아이디 또는 비밀번호를 확인해 주세요.");
     return {redirectTo:await memberDestination(field(form,"returnTo"))};
   });
 }
@@ -66,8 +82,8 @@ export async function signOut() {
     const store = await cookies();
     for (const cookie of store.getAll()) if (cookie.name.startsWith("ts-reauth-") || cookie.name === "ts-oauth") store.delete(cookie.name);
     if (!user) {
-      // Only clear this request's default Supabase auth cookie/chunks.
-      const name = `sb-${new URL(requireSupabaseEnv().url).hostname.split(".")[0]}-auth-token`;
+      // Clear ToonShelf cookies only; another app may use the same Supabase project.
+      const name = authCookieName(requireSupabaseEnv().url);
       for (const cookie of store.getAll()) if (cookie.name === name || cookie.name.startsWith(`${name}.`)) store.delete(cookie.name);
       return {redirectTo:"/auth/sign-in"};
     }
@@ -78,18 +94,14 @@ export async function signOut() {
 }
 export async function resendEmail(_previous: FormState, form: FormData) {
   return run(async () => {
-    const email = emailSchema.parse(field(form,"email").trim());
-    const {error} = await (await createClient()).auth.resend({type:"signup",email,options:{emailRedirectTo:`${getPublicEnv().siteUrl}/auth/confirm`}});
-    // Account enumeration is avoided for success, missing accounts and provider errors.
-    if (error?.code?.includes("rate_limit")) authError(error,"");
-    return {message:"인증이 필요한 계정이면 확인 메일을 보냈어요. 받은편지함과 스팸함을 확인해 주세요."};
+    void _previous; void form;
+    throw new AuthFailure("CONFIG_REQUIRED","아이디 회원가입은 이메일 인증 없이 이용할 수 있어요.");
   });
 }
 export async function requestRecovery(_previous: FormState, form: FormData) {
   return run(async () => {
-    const email = emailSchema.parse(field(form,"email").trim());
-    await (await createClient()).auth.resetPasswordForEmail(email,{redirectTo:`${getPublicEnv().siteUrl}/auth/confirm`});
-    return {message:"해당 이메일로 복구할 수 있는 계정이 있으면 안내 메일을 보냈어요. 잠시 후 받은편지함과 스팸함을 확인해 주세요."};
+    void _previous; void form;
+    throw new AuthFailure("CONFIG_REQUIRED","아이디 계정의 비밀번호 찾기는 준비 중이에요. 로그인할 수 있다면 로그인과 보안에서 변경해 주세요.");
   });
 }
 export async function confirmEmail(_previous: FormState, form: FormData) {
@@ -135,7 +147,7 @@ export async function completeOnboarding(_previous: FormState, form: FormData) {
   return run(async () => {
     const input = onboardingSchema.parse({username:field(form,"username"),displayName:field(form,"displayName"),bio:field(form,"bio"),library:field(form,"library"),evaluation:field(form,"evaluation"),genres:genreFields(form),policyVersion:field(form,"policyVersion"),...consents(form)});
     const account = await requireAccount(false);
-    const {error} = await account.client.rpc("complete_onboarding",{p_username:input.username,p_display_name:input.displayName,p_bio:input.bio,p_library:input.library,p_evaluation:input.evaluation,p_genres:input.genres,p_policy_version:input.policyVersion,p_terms:input.terms,p_privacy:input.privacy,p_age_14:input.age14});
+    const {error} = await account.client.rpc("toon_complete_onboarding",{p_username:input.username,p_display_name:input.displayName,p_bio:input.bio,p_library:input.library,p_evaluation:input.evaluation,p_genres:input.genres,p_policy_version:input.policyVersion,p_terms:input.terms,p_privacy:input.privacy,p_age_14:input.age14});
     databaseError(error);
     return {redirectTo:safeReturnTo(field(form,"returnTo"))};
   });
@@ -144,7 +156,7 @@ export async function saveProfile(_previous: FormState, form: FormData) {
   return run(async () => {
     const input = profileSchema.parse({displayName:field(form,"displayName"),bio:field(form,"bio"),discoveryOptIn:checked(form,"discoveryOptIn")});
     const {client} = await requireAccount();
-    const {error} = await client.rpc("save_profile",{p_display_name:input.displayName,p_bio:input.bio,p_discovery_opt_in:input.discoveryOptIn});
+    const {error} = await client.rpc("toon_save_profile",{p_display_name:input.displayName,p_bio:input.bio,p_discovery_opt_in:input.discoveryOptIn});
     databaseError(error); revalidatePath("/", "layout");
     return {message:"프로필을 저장했어요."};
   });
@@ -153,7 +165,7 @@ export async function saveSettings(_previous: FormState, form: FormData) {
   return run(async () => {
     const input = settingsSchema.parse({library:field(form,"library"),evaluation:field(form,"evaluation"),theme:field(form,"theme"),timezone:field(form,"timezone"),genres:genreFields(form),notifications:{followers:checked(form,"followers"),replies:checked(form,"replies"),reactions:checked(form,"reactions"),announcements:checked(form,"announcements")}});
     const {client} = await requireAccount();
-    const {error} = await client.rpc("save_settings",{p_library:input.library,p_evaluation:input.evaluation,p_theme:input.theme,p_timezone:input.timezone,p_genres:input.genres,p_notifications:input.notifications});
+    const {error} = await client.rpc("toon_save_settings",{p_library:input.library,p_evaluation:input.evaluation,p_theme:input.theme,p_timezone:input.timezone,p_genres:input.genres,p_notifications:input.notifications});
     databaseError(error); revalidatePath("/", "layout");
     return {message:"설정을 저장했어요. 기본 공개 범위는 앞으로 추가하는 기록에 적용돼요."};
   });
@@ -162,7 +174,8 @@ export async function sendReauthOtp() {
   return run(async () => {
     createAdminClient();
     const account = await requireAccount();
-    const {error:rateError} = await account.client.rpc("reserve_account_request",{p_action:"reauth_email"}); databaseError(rateError);
+    if (isUsernameAccount(account.user)) throw new AuthFailure("VALIDATION_ERROR","아이디 계정은 현재 비밀번호로 확인해 주세요.");
+    const {error:rateError} = await account.client.rpc("toon_reserve_account_request",{p_action:"reauth_email"}); databaseError(rateError);
     const {error} = await isolatedAuth().auth.signInWithOtp({email:account.user.email!,options:{shouldCreateUser:false}});
     authError(error,"확인 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.");
     return {message:"현재 계정 이메일로 확인 코드를 보냈어요. 아래에 코드를 입력해 주세요."};
@@ -174,7 +187,8 @@ export async function reauthenticate(_previous: FormState, form: FormData) {
     const purpose = purposeSchema.exclude(["password_reset"]).parse(field(form,"purpose"));
     const method = z.enum(["password","otp"]).parse(field(form,"method"));
     const account = await requireAccount();
-    const {error:rateError} = await account.client.rpc("reserve_account_request",{p_action:"reauth_verify"}); databaseError(rateError);
+    if (isUsernameAccount(account.user) && (method !== "password" || purpose === "email_change")) throw new AuthFailure("VALIDATION_ERROR","아이디 계정은 현재 비밀번호로 확인해 주세요.");
+    const {error:rateError} = await account.client.rpc("toon_reserve_account_request",{p_action:"reauth_verify"}); databaseError(rateError);
     const auth = isolatedAuth();
     let verifiedUserId: string | undefined;
     if (method === "password") {
@@ -196,7 +210,8 @@ export async function reauthenticate(_previous: FormState, form: FormData) {
 export async function requestPasswordNonce() {
   return run(async () => {
     const account = await requireAccount(false);
-    const {error:rateError} = await account.client.rpc("reserve_account_request",{p_action:"password_nonce"}); databaseError(rateError);
+    if (isUsernameAccount(account.user)) throw new AuthFailure("VALIDATION_ERROR","아이디 계정은 현재 비밀번호를 입력해 변경해 주세요.");
+    const {error:rateError} = await account.client.rpc("toon_reserve_account_request",{p_action:"password_nonce"}); databaseError(rateError);
     const {error} = await account.client.auth.reauthenticate();
     authError(error,"비밀번호 변경 확인 코드를 보내지 못했어요.");
     return {message:"메일로 추가 확인 코드를 보냈어요. 비밀번호 입력란 아래에 코드를 입력해 주세요."};
@@ -205,6 +220,19 @@ export async function requestPasswordNonce() {
 export async function changePassword(_previous: FormState, form: FormData) {
   return run(async () => {
     const input = newPasswordSchema.parse({password:field(form,"password"),confirmPassword:field(form,"confirmPassword"),nonce:field(form,"nonce") || undefined});
+    const current = await requireAccount();
+    if (isUsernameAccount(current.user)) {
+      const currentPassword = z.string().min(1).max(512).parse(field(form,"currentPassword"));
+      const {error:rateError} = await current.client.rpc("toon_reserve_account_request",{p_action:"password_change"}); databaseError(rateError);
+      // Verify the password even if the shared Auth project's current-password
+      // option is disabled. A fresh session also avoids sending a nonce to .invalid.
+      const {data:verified,error:verifyError} = await current.client.auth.signInWithPassword({email:current.user.email!,password:currentPassword});
+      authError(verifyError,"현재 비밀번호를 확인해 주세요.");
+      if (verified.user?.id !== current.user.id) throw new AuthFailure("FORBIDDEN","같은 계정으로 다시 확인해 주세요.");
+      const {error} = await current.client.auth.updateUser({password:input.password,current_password:currentPassword});
+      authError(error,"현재 비밀번호를 확인하고 다시 시도해 주세요.");
+      return {message:"비밀번호를 변경했어요."};
+    }
     const account = await consumeTicket("password_change");
     const {error} = await account.client.auth.updateUser({password:input.password,nonce:input.nonce});
     authError(error,"변경하지 못했어요. 추가 확인 코드가 필요한 경우 코드를 요청한 뒤 재인증하고 다시 시도해 주세요.");
@@ -215,6 +243,7 @@ export async function changeEmail(_previous: FormState, form: FormData) {
   return run(async () => {
     const email = emailSchema.parse(field(form,"email").trim());
     const account = await consumeTicket("email_change");
+    if (isUsernameAccount(account.user) || email.endsWith(`@${USERNAME_AUTH_DOMAIN}`)) throw new AuthFailure("FORBIDDEN","아이디 계정의 연락 이메일 등록은 준비 중이에요.");
     const {error} = await account.client.auth.updateUser({email},{emailRedirectTo:`${getPublicEnv().siteUrl}/auth/confirm`});
     authError(error,"이메일 변경을 요청하지 못했어요. 재인증한 뒤 다시 시도해 주세요.");
     return {message:"현재 주소와 새 주소의 확인 메일을 확인해 주세요. 모든 확인을 마치기 전까지 기존 주소를 사용해요."};

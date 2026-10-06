@@ -9,7 +9,7 @@ import { imageRequestSchema,imageSourceSchema } from "./image-model";
 export async function readTierImageSource(id:string,input:unknown,reserve=false) {
   const request=imageRequestSchema.parse(input), p_id=uuidSchema.parse(id);
   const {client}=await requireAccount();
-  const {data,error}=await client.rpc(reserve ? "begin_tier_image_export" : "get_tier_image_source",{
+  const {data,error}=await client.rpc(reserve ? "toon_begin_tier_image_export" : "toon_get_tier_image_source",{
     p_id,p_source:request.source,p_version:request.version,
     p_hash:request.token === null ? null : hashShareToken(request.token),p_confirm_spoiler:request.confirmSpoiler,
   });

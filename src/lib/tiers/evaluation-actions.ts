@@ -8,14 +8,14 @@ import { evaluationError } from "./errors";
 export async function previewTierEvaluations(input:unknown) {
  try {
   const {client}=await requireAccount();const value=evaluationInputSchema.parse(input);
-  const {data,error}=await client.rpc("preview_tier_evaluations",{p_id:value.id,p_mode:value.mode,p_version:value.version,p_choices:value.choices});
+  const {data,error}=await client.rpc("toon_preview_tier_evaluations",{p_id:value.id,p_mode:value.mode,p_version:value.version,p_choices:value.choices});
   evaluationError(error);return {ok:true as const,preview:evaluationPreviewSchema.parse(data)};
  } catch(error) {return actionError(error);}
 }
 export async function commitTierEvaluations(input:unknown) {
  try {
   const {client}=await requireAccount();const value=evaluationCommitSchema.parse(input);
-  const {data,error}=await client.rpc("commit_tier_evaluations",{p_id:value.id,p_mode:value.mode,p_version:value.version,p_choices:value.choices,p_fingerprint:value.fingerprint,p_confirm:true});
+  const {data,error}=await client.rpc("toon_commit_tier_evaluations",{p_id:value.id,p_mode:value.mode,p_version:value.version,p_choices:value.choices,p_fingerprint:value.fingerprint,p_confirm:true});
   evaluationError(error);const result=evaluationReplySchema.parse(data);
   revalidatePath(`/tiers/${value.id}/evaluations`);
   if (value.mode === "import") {

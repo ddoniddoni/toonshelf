@@ -14,7 +14,7 @@ export default async function Page({searchParams}:{searchParams:Promise<SearchPa
   const account = await guardPage("/submissions/new"+(workId ? "?work="+workId : ""));
   let workTitle:string|undefined;
   if(account && workId) {
-    const {data,error} = await account.client.from("works").select("slug").eq("id",workId).maybeSingle();catalogueError(error);
+    const {data,error} = await account.client.from("toon_works").select("slug").eq("id",workId).maybeSingle();catalogueError(error);
     const detail = data ? await getWorkDetail(data.slug) : null;if(!detail)notFound();workTitle = detail.title;
   }
   return <div className="page-container submission-page"><header className="catalogue-heading"><div><p className="eyebrow">함께 정확한 카탈로그 만들기</p><h1>작품 정보를 알려 주세요.</h1><p>새 작품, 잘못된 정보, 사라진 공식 링크를 제보할 수 있어요.</p></div><Link className="text-link" href="/submissions">내 제보와 처리 결과</Link></header>

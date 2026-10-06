@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function Page({params}:{params:Promise<{id:string}>}) {
   const {id} = await params;if(!uuidSchema.safeParse(id).success)notFound();
   const account = await guardAdminPage("/admin/works/"+id+"/edit");
-  const [snapshot,options,creators] = account ? await Promise.all([getAdminSnapshot(id),catalogueOptions(),account.client.from("creators").select("*").order("name").limit(200)]) : [null,null,null];
+  const [snapshot,options,creators] = account ? await Promise.all([getAdminSnapshot(id),catalogueOptions(),account.client.from("toon_creators").select("*").order("name").limit(200)]) : [null,null,null];
   if(account && !snapshot)notFound();if(creators)catalogueError(creators.error);
   const known = [...(creators?.data ?? [])];
   for(const creator of snapshot?.creators ?? [])if(creator.id && !known.some(c=>c.id === creator.id))known.push({id:creator.id,name:creator.name,aliases:creator.aliases});

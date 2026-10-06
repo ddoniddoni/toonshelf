@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { confirmationSchema, notificationsSchema, onboardingSchema, passwordSchema, POLICY_VERSION, profileSchema, safeReturnTo, signUpSchema, usernameSchema } from "@/lib/auth/validation";
+import { confirmationSchema, notificationsSchema, onboardingSchema, passwordSchema, POLICY_VERSION, profileSchema, safeReturnTo, signInSchema, signUpSchema, usernameSchema } from "@/lib/auth/validation";
 
 describe("authentication input boundaries", () => {
   it.each(["https://evil.example/path","//evil.example","/\\evil.example","/%2fevil.example","/%252fevil.example","/foo/../auth/callback","/auth/sign-in","/AUTH/sign-in","/onboarding","/me/library?token_hash=hidden","/me/library?code=hidden","/me/library\n","javascript:alert(1)",undefined,["/me/library"]])("rejects redirect escape or auth loops: %s", (path) => {
@@ -18,10 +18,15 @@ describe("authentication input boundaries", () => {
     expect(passwordSchema.safeParse("🔐".repeat(129)).success).toBe(false);
   });
   it("requires all signup consents and matching passwords", () => {
-    const input = {email:"reader@example.test",password:"valid-password",confirmPassword:"valid-password",terms:true,privacy:true,age14:true};
+    const input = {username:"reader_1",password:"valid-password",confirmPassword:"valid-password",terms:true,privacy:true,age14:true};
     expect(signUpSchema.safeParse(input).success).toBe(true);
     expect(signUpSchema.safeParse({...input,terms:false}).success).toBe(false);
     expect(signUpSchema.safeParse({...input,confirmPassword:"different"}).success).toBe(false);
+  });
+  it("uses an app username rather than accepting another app's email identity", () => {
+    expect(signInSchema.safeParse({username:"reader_1",password:"current-password"}).success).toBe(true);
+    expect(signInSchema.safeParse({username:"reader@example.test",password:"current-password"}).success).toBe(false);
+    expect(signInSchema.safeParse({email:"reader@example.test",password:"current-password"}).success).toBe(false);
   });
   it.each(["admin","auth","api","support","UpperCase","ab","spaces here","../user"])('rejects unsafe username "%s"',(username) => {
     expect(usernameSchema.safeParse(username).success).toBe(false);

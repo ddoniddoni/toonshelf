@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   const account = await guardAdminPage("/admin/submissions");
   const [submissions,works] = account ? await Promise.all([
-    account.client.from("catalogue_submissions").select("id,kind,work_id,proposal,source_url,created_at").eq("status","pending").order("created_at").order("id").limit(30),
-    account.client.from("works").select("id,title").eq("catalogue_status","published").in("age_rating",["all","12","15"]).eq("is_test",false).order("title").limit(200)
+    account.client.from("toon_catalogue_submissions").select("id,kind,work_id,proposal,source_url,created_at").eq("status","pending").order("created_at").order("id").limit(30),
+    account.client.from("toon_works").select("id,title").eq("catalogue_status","published").in("age_rating",["all","12","15"]).eq("is_test",false).order("title").limit(200)
   ]) : [null,null];
   if(submissions)catalogueError(submissions.error);if(works)catalogueError(works.error);
   return <AdminShell title="작품 제보 검수" description="접수 순서대로 30개를 표시해요. 출처를 확인하고 반영 여부와 결과를 제보자에게 남겨 주세요." connected={Boolean(account)}>

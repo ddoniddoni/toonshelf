@@ -8,7 +8,7 @@ import { likeError } from "./errors";
 export async function setTierLike(input:unknown) {
  try {
   const {client}=await requireAccount();const value=likeInputSchema.parse(input);
-  const {data,error}=await client.rpc("set_tier_like",{p_id:value.id,p_version:value.version,p_liked:value.liked});
+  const {data,error}=await client.rpc("toon_set_tier_like",{p_id:value.id,p_version:value.version,p_liked:value.liked});
   likeError(error);
   if (data === null) throw new AuthFailure("NOT_FOUND","현재 좋아요를 표시할 수 있는 공개 티어표가 없어요.");
   const state=likeStateSchema.parse(data);revalidatePath("/tiers");revalidatePath(`/tiers/${value.id}`);

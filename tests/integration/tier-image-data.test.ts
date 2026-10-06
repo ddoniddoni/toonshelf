@@ -17,12 +17,12 @@ describe("tier image data contract",()=>{
   });
   it("sends only a token hash and expected version, never a user ID or raw token",async()=>{
     await expect(readTierImageSource(id,input,true)).rejects.toMatchObject({code:"NOT_FOUND"});
-    expect(mocks.rpc).toHaveBeenCalledWith("begin_tier_image_export",{p_id:id,p_source:"publication",p_version:2,p_hash:hash,p_confirm_spoiler:true});
+    expect(mocks.rpc).toHaveBeenCalledWith("toon_begin_tier_image_export",{p_id:id,p_source:"publication",p_version:2,p_hash:hash,p_confirm_spoiler:true});
     expect(JSON.stringify(mocks.rpc.mock.calls)).not.toContain(token);
   });
   it("rechecks with the read-only RPC and rejects stale versions safely",async()=>{
     mocks.rpc.mockResolvedValue({data:null,error:{message:"CONFLICT",details:"raw draft"}});
     await expect(readTierImageSource(id,input)).rejects.toMatchObject({code:"CONFLICT"});
-    expect(mocks.rpc.mock.calls[0]![0]).toBe("get_tier_image_source");
+    expect(mocks.rpc.mock.calls[0]![0]).toBe("toon_get_tier_image_source");
   });
 });

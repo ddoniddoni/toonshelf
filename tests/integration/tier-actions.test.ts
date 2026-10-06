@@ -23,11 +23,11 @@ describe("tier owner action boundaries",()=>{
  it("passes expected version and full validated draft without resetting a live editor through revalidation",async()=>{
   mocks.rpc.mockResolvedValue({error:null,data:{ok:true,version:2,savedAt:"saved",draft,works:[]}});
   expect(await saveTierDraft({tierListId:id,expectedVersion:1,draft})).toMatchObject({ok:true,version:2});
-  expect(mocks.rpc).toHaveBeenCalledWith("save_tier_draft",{p_id:id,p_version:1,p_draft:draft});expect(mocks.revalidate.mock.calls).toEqual([["/me/tiers"]]);
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_save_tier_draft",{p_id:id,p_version:1,p_draft:draft});expect(mocks.revalidate.mock.calls).toEqual([["/me/tiers"]]);
  });
  it("binds conflict copies to an owned origin and strips database error details",async()=>{
   mocks.rpc.mockResolvedValue({error:null,data:id});expect(await saveTierAsNew({origin:id,draft})).toEqual({ok:true,id});
-  expect(mocks.rpc).toHaveBeenCalledWith("create_tier_draft",{p_origin:id,p_draft:draft});
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_create_tier_draft",{p_origin:id,p_draft:draft});
   mocks.rpc.mockResolvedValue({error:{message:"private SQL evidence",details:"secret"}});const reply=await searchTierWorks({origin:"library",q:"",page:1});
   expect(reply).toMatchObject({ok:false,error:{code:"INTERNAL_ERROR"}});expect(JSON.stringify(reply)).not.toMatch(/evidence|secret/);
  });

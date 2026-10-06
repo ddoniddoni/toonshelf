@@ -24,7 +24,7 @@ describe("publication and share action boundaries",()=>{
   expect(await publishTier({...input,payload:{title:"unreviewed"}})).toMatchObject({ok:false});expect(mocks.rpc).not.toHaveBeenCalled();
  });
  it("passes saved versions/fingerprint and encrypted envelope, without raw tokens or actor IDs",async()=>{
-  expect(await publishTier(input)).toMatchObject({ok:true,state});expect(mocks.rpc).toHaveBeenCalledWith("publish_tier_list",{
+  expect(await publishTier(input)).toMatchObject({ok:true,state});expect(mocks.rpc).toHaveBeenCalledWith("toon_publish_tier_list",{
    p_id:id,p_draft_version:1,p_list_version:1,p_fingerprint:hash,p_visibility:"unlisted",p_spoiler:true,p_token:mocks.issue.mock.results[0]!.value,p_confirm:true
   });expect(JSON.stringify(mocks.rpc.mock.calls)).not.toContain(token);expect(mocks.revalidate).toHaveBeenCalledWith("/share/t/[token]","page");
  });
@@ -45,11 +45,11 @@ describe("publication and share action boundaries",()=>{
  it("recovers a URL only through the current owner's expected-version RPC",async()=>{
   const envelope={hash,ciphertext:"b".repeat(118),nonce:"c".repeat(24)};mocks.rpc.mockResolvedValue({data:envelope,error:null});mocks.recover.mockReturnValue(token);
   expect(await getTierShareUrl({id,version:2})).toEqual({ok:true,url:`https://example.test/share/t/${token}`});
-  expect(mocks.rpc).toHaveBeenCalledWith("get_my_tier_share_token",{p_id:id,p_version:2});expect(mocks.recover).toHaveBeenCalledWith(id,envelope);
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_get_my_tier_share_token",{p_id:id,p_version:2});expect(mocks.recover).toHaveBeenCalledWith(id,envelope);
  });
  it("requires explicit reveal confirmation and sends only a hash to the current-reader RPC",async()=>{
   expect(await revealTier({id,version:2,token,confirm:false})).toMatchObject({ok:false});expect(mocks.rpc).not.toHaveBeenCalled();
   mocks.rpc.mockResolvedValue({data:null,error:null});expect(await revealTier({id,version:2,token,confirm:true})).toMatchObject({ok:false,error:{code:"NOT_FOUND"}});
-  expect(mocks.rpc).toHaveBeenCalledWith("get_tier_publication",{p_id:id,p_hash:hash,p_reveal:true,p_version:2});expect(mocks.account).not.toHaveBeenCalled();
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_get_tier_publication",{p_id:id,p_hash:hash,p_reveal:true,p_version:2});expect(mocks.account).not.toHaveBeenCalled();
  });
 });

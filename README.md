@@ -1,6 +1,6 @@
 # ToonShelf 개발 문서
 
-**문서 버전:** 1.16 / **갱신일:** 2026-10-05 / **상태:** P1~P4 코드·Stitch 화면·P5 첫 공개 티어 댓글/답글 증분 작성, 실제 연동·실행 검증 대기
+**문서 버전:** 1.18 / **갱신일:** 2026-10-07 / **상태:** 아이디 인증·공유 Supabase toon_ 코드 및 DB 설치 완료, 실제 Auth·권한·화면 검수 대기
 
 ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 이름이 아니다.
 
@@ -11,6 +11,14 @@ ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 
 **기술:** Next.js App Router + React + TypeScript + npm + Supabase Auth/Postgres/Storage. 기본 배포 대상은 Vercel이다. 이는 설계 선택이며 특정 유료 요금제나 무상 운영을 보장하지 않는다.
 
 원본 다운로드 자료는 문서만 포함했다. 이 프로젝트에는 **P0 기반, P1 인증·계정, P2 카탈로그, P3 개인 서재·평가·리뷰와 기본 신고·차단·운영 조치, P4 티어 초안 편집·저장과 게시·공유, P5 첫 공개 티어 댓글·답글 증분 코드**를 추가했다. API 키나 외부 서비스 계정은 포함하지 않는다. 실제 DB·인증·권한 동작은 미검증이며 P3/P4/P5 잔여 범위와 P6~P7은 후속 작업이다. 실제 서비스 연결은 사용자와 후속 공동 작업으로 진행한다.
+
+## 이번 인증 연결 상태 · 2026-10-07
+
+아이디/비밀번호 가입·로그인으로 변경했다. 가입 입력은 아이디(영문 소문자·숫자·밑줄 3~20자), 비밀번호(12~128자), 비밀번호 확인과 필수 동의다. 이메일을 입력하거나 인증 메일을 받지 않는다. 서버가 Supabase Auth의 전용 내부 식별자 계정을 생성하고 프로필·기본 비공개 설정·동의를 함께 보관하도록 작성했다. 가입 후 추가 온보딩 없이 서재로 이동하며 닉네임·관심 장르는 설정에서 바꾼다. 로그인 중 비밀번호 변경은 현재 비밀번호를 다시 검증한다. 연락 이메일 등록과 로그아웃 상태의 비밀번호 찾기는 후속이다.
+
+기존 Supabase 프로젝트를 함께 사용하므로 앱 테이블·RPC·enum·index는 `toon_`, 내부 스키마는 `toon_private`, Storage는 `toon_avatars`/`toon_licensed_covers`, 세션 쿠키는 `toon-sb-…`로 분리했다. 기존 SQL 파일은 문서상 아직 미적용인 설치 기준을 수정한 것이며, 기존 DB 테이블의 rename/data migration을 실행한 것이 아니다. 제공된 키는 무시되는 `.env.local`에 보관하고 `.env.example`에는 빈 예시만 둔다. publishable/secret 및 legacy anon/service_role 변수 이름을 모두 지원한다.
+
+**연결·DB 적용:** 사용자 선택 대상 `zwzncrdlqnthxgdvsqxq`로 MCP 연결과 제공된 env URL이 일치함을 확인했다. 기존 여행 앱의 테이블 6개·migration 12개·Auth 트리거·Storage·ACL·extension을 읽었고 ToonShelf 기존 설치/이름 충돌은 없었다. 17개 SQL source를 한 트랜잭션으로 묶어 MCP migration `toon_shared_project_username_auth`로 적용했으며 도구가 success:true를 반환했다. ToonShelf 테이블/RLS/RPC/조건부 Auth 트리거와 `toon_avatars`/`toon_licensed_covers` bucket이 설치됐다. 기존 여행 앱의 기본 프로필 생성 트리거는 유지한다. 공유 Auth에서 새 계정을 만들면 이 트리거도 여행 앱 기본 프로필 행을 생성하는 구조이며, ToonShelf 회원/역할/동의는 별도 toon_ 데이터로 판단한다. 기존 여행 테이블/정책/함수/공용 Auth 설정을 수정하지 않았고 사용자/작품 seed는 실행하지 않았다. 설치 결과는 실제 가입·로그인·권한 흐름 검수를 대신하지 않는다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저/DB 권한 검수·타입 생성은 미실행이다.
 
 ## 지금 실행하기
 
@@ -175,7 +183,7 @@ DB 명령은 `APP_ENV=local`만 허용한다. 원격 URL, linked 프로젝트, �
 ## P2 카탈로그 작성 상태
 
 - `/explore`에 제목·별칭·작가명 검색, 자동완성, 플랫폼·장르·연재 상태·요일·비성인 연령 필터, 최근 등록/제목 정렬, 조건에 묶인 cursor 페이지네이션을 작성했다. 평점순과 공개 평균/평가 수는 위 P3 기록으로 추가했다. `/works/[slug]`는 공개 정보·직접 작성한 소개·역할별 작가·공식 링크·canonical을 제공하며 P3의 평가·리뷰 코드를 사용한다.
-- `/admin`, `/admin/works`, `/admin/works/new`, `/admin/works/[id]/edit`, `/admin/works/merge`, `/admin/submissions`, `/admin/assets`, `/admin/audit`를 작성했다. 관리자 여부는 확인된 세션과 private.user_access의 active/admin 상태로 판단한다. 최초 관리자 지정은 실제 계정을 온보딩한 뒤 별도 운영자 DB 작업으로 진행해야 하며 이번에는 지정하지 않았다.
+- `/admin`, `/admin/works`, `/admin/works/new`, `/admin/works/[id]/edit`, `/admin/works/merge`, `/admin/submissions`, `/admin/assets`, `/admin/audit`를 작성했다. 관리자 여부는 확인된 세션과 toon_private.toon_user_access의 active/admin 상태로 판단한다. 최초 관리자 지정은 실제 계정을 온보딩한 뒤 별도 운영자 DB 작업으로 진행해야 하며 이번에는 지정하지 않았다.
 - `/submissions/new`, `/submissions`에서 회원이 작품 추가/수정/사라진 링크를 제보하고 본인 검수 결과를 확인한다. 제보 반영은 자동 작품 등록이 아니다. 실제 알림 채널 통합은 P5에서 이어간다.
 - 작품 저장은 관계·출처·감사 로그를 transaction으로 처리하고 version 충돌을 감지한다. 공식 URL과 플랫폼 식별자의 중복을 차단하며 주소 이름은 등록 후 고정한다. 병합에는 미리보기·확인·현재 버전·사유가 필요하다. P3 이후 개인 기록 테이블이 생기면 해당 도메인의 보존 처리를 추가하기 전까지 병합을 거절한다.
 - 표지는 텍스트 커버가 기본이다. 관리자가 권리 근거와 파일을 올리면 정지 이미지 검증/재인코딩 뒤 private Storage에 저장한다. `/api/covers/[assetId]`는 현재 작품 공개·허가·기간을 확인해 표시하며 no-store를 사용한다. OG와 export는 별도 목적 검사 helper를 사용해야 한다. 상업적 사용 여부는 기록되며 수익화 시 운영 정책과 추가 사용 범위 판단이 필요하다. 원격 이미지를 다운로드하거나 플랫폼을 크롤링하지 않는다.

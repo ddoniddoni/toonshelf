@@ -7,8 +7,8 @@ export const emailSchema = z.email("이메일 주소를 확인해 주세요.").m
 export const passwordSchema = z.string().refine((s) => [...s].length >= 12 && [...s].length <= 128, "비밀번호는 공백을 포함해 12~128자로 입력해 주세요.");
 export const usernameSchema = z.string().regex(/^[a-z0-9_]{3,20}$/, "영문 소문자·숫자·밑줄 3~20자를 사용해 주세요.").refine((s) => !RESERVED_USERNAMES.includes(s), "사용할 수 없는 사용자 이름이에요.");
 export const consentSchema = z.object({ terms: z.literal(true, "이용약관에 동의해 주세요."), privacy: z.literal(true, "개인정보 처리 안내에 동의해 주세요."), age14: z.literal(true, "14세 이상만 가입할 수 있어요.") });
-export const signUpSchema = consentSchema.extend({ email: emailSchema, password: passwordSchema, confirmPassword: z.string() }).refine((s) => s.password === s.confirmPassword, { path: ["confirmPassword"], message: "비밀번호가 일치하지 않아요." });
-export const signInSchema = z.object({ email: emailSchema, password: z.string().min(1).max(512) });
+export const signUpSchema = consentSchema.extend({ username: usernameSchema, password: passwordSchema, confirmPassword: z.string() }).refine((s) => s.password === s.confirmPassword, { path: ["confirmPassword"], message: "비밀번호가 일치하지 않아요." });
+export const signInSchema = z.object({ username: usernameSchema, password: z.string().min(1).max(512) });
 export const newPasswordSchema = z.object({ password: passwordSchema, confirmPassword: z.string(), nonce: z.string().regex(/^\d{6,10}$/).optional() }).refine((s) => s.password === s.confirmPassword, { path: ["confirmPassword"], message: "비밀번호가 일치하지 않아요." });
 export const profileSchema = z.object({ displayName: text(2,30), bio: text(0,160), discoveryOptIn: z.boolean() });
 export const notificationsSchema = z.strictObject({ followers: z.boolean(), replies: z.boolean(), reactions: z.boolean(), announcements: z.boolean() });

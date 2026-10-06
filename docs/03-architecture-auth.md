@@ -1,5 +1,17 @@
 # 03. 기술 구조와 인증
 
+## 현재 공유 Supabase 인증 계약 · 2026-10-07 (DB 설치·Auth 실행 미검증)
+
+사용자 결정으로 기존 Supabase 프로젝트를 공유하고 아이디 가입의 이메일 인증을 생략한다. 모든 앱 DB 식별자는 `toon_`, 내부 스키마는 `toon_private`, Storage bucket은 `toon_avatars`/`toon_licensed_covers`, cookie storage key는 `toon-sb-<project>-auth-token`이다. 공개 DTO 필드와 enum 값은 그대로다. 아래 과거 구현 기록/논리 테이블 이름은 이 물리 접두사를 기준으로 읽는다.
+
+Auth는 이메일/전화 식별자를 받으므로 서버가 아이디를 `<username>@username.toonshelf.invalid`로 변환한다. `.invalid`는 연락 주소가 아니며 메일/공개 프로필에 사용하지 않는다. `server-only` admin `createUser(email_confirm:true)`가 검증된 동의와 서버 소유 `app_metadata.toonshelf`를 전달한다. 프로젝트 전체 Confirm email 설정은 바꾸지 않는다. Auth의 insert → app_metadata → confirmation 순서를 고려한 조건부 insert/update trigger가 앱 계정·설정·동의를 같은 Auth transaction 안에 생성한다. 다른 앱 사용자 자동 등록/backfill은 제거했고 editable user_metadata로 역할이나 가입을 승인하지 않는다. Auth app_metadata의 admin 주장도 ToonShelf 역할을 바꾸지 않는다.
+
+가입 예약은 service-role 전용 RPC가 60회/분 전체·동일 아이디 3회/10분을 기록하고 boolean 거절로 제한 카운터를 보존한다. 실제 로그인·일반 데이터 접근은 공개 키와 사용자 세션 client를 쓰며 `getUser`/`getClaims`/현재 세션·toon 회원 상태를 검증한다. cookie 이름은 browser/server/proxy/signOut에서 일치한다. 가입 완료 후 자동 로그인 실패는 로그인 화면으로 복구하고 Auth 계정을 삭제하지 않는다. OAuth 명시 로그인은 verified identity의 본인 pending 회원만 enroll하고 필수 동의/온보딩으로 활성화한다.
+
+아이디 계정은 메일 OTP/nonce/이메일 변경을 제공하지 않는다. 비밀번호 변경은 현재 비밀번호로 동일 사용자 재로그인을 확인하고 fresh session의 Auth updateUser로 변경한다. 메일 없는 복구는 준비 상태이며 기존 공유 프로젝트 사용자의 임의 주소로 앱에서 인증/복구 메일을 보내지 않는다. 사용자에 대한 service-role 일반 DB 읽기/쓰기로 RLS를 우회하지 않는다.
+
+사용자 선택 대상 `zwzncrdlqnthxgdvsqxq`로 MCP/env가 일치함을 확인하고 기존 여행 앱 테이블·Auth trigger·Storage·이력·ACL·extension을 조회했다. ToonShelf 객체가 없어 17개 SQL source를 한 트랜잭션으로 묶어 `toon_shared_project_username_auth`로 적용했고 MCP가 success:true를 반환했다. 기존 `private.create_profile_for_auth_user()`/auth_user_creates_profile은 유지하므로 새 공유 Auth 계정에는 여행 앱 public.profiles의 기본 행도 생성되는 구조다. 여행 멤버십/권한을 이 프로필 행으로 승인하지 않으며 ToonShelf도 toon_private 회원/역할/동의를 별도로 검사한다. 다른 앱 함수/정책 및 공용 Auth 설정은 수정하지 않았다. 외부 Auth hook/공급자 설정, 실제 타입 생성, 가입/로그인/권한 흐름은 미검증이다. 설치된 Next/SSR/SDK 소스와 [Supabase admin createUser](https://supabase.com/docs/reference/javascript/auth-admin-createuser), [Auth 구현 순서](https://github.com/supabase/auth/blob/master/internal/api/admin.go), [password Auth](https://supabase.com/docs/guides/auth/passwords), 공식 changelog를 참고했으며 의존성은 바꾸지 않았다.
+
 ## 1. 버전과 라이브러리 정책
 
 ### Stitch 원본 재대조·화면 수정 · 2026-10-02
@@ -78,7 +90,7 @@ Supabase 공식 functions/RLS 문서와 설치된 Next Server Actions 안내를 
 | 상태 | 서버 데이터는 Server Components/DAL, 티어 초안은 클라이언트 상태와 순수 배치/이력 연산 |
 | 테스트 | Vitest, Testing Library, Playwright, Supabase 로컬 통합/RLS 테스트 |
 | 이미지 생성 | OG는 Next.js ImageResponse, 전체 PNG는 제한된 서버 렌더 파이프라인 |
-| 배포 | Vercel 앱 + 별도 Supabase 프로젝트, 개발/스테이징/운영 분리 |
+| 배포 | Vercel 앱 + 기존 Supabase 프로젝트 공유, ToonShelf DB 객체·Storage·cookie 분리; 검수 환경은 별도 분리 |
 
 dnd-kit의 과거 패키지와 현재 API를 섞지 않는다. 설치하는 UI/검증/테스트 패키지의 React 호환성을 P0에서 확인한다. 프로젝트가 작을 때 전역 상태 라이브러리, 별도 검색 서버, 벡터 DB, Redis를 자동 도입하지 않는다. 필요한 근거가 생기면 문서에 결정과 비용을 남긴다.
 
@@ -97,7 +109,7 @@ Browser
        └─ 제한된 privileged client → 계정 삭제, 검증된 파일 처리, 관리 작업
 
 Supabase
-  ├─ Auth: 이메일/비밀번호, Google, Kakao
+  ├─ Auth: 아이디 전용 내부 식별자/비밀번호, Google, Kakao
   ├─ Postgres: 공개 데이터와 개인 데이터, transaction/RLS
   ├─ Storage: 아바타, 승인된 표지, 비공개 export
   └─ Cron: 재시도 가능한 운영 작업 실행
@@ -303,7 +315,7 @@ OG는 공개 게시본을 바탕으로 생성하고 원본 표지를 직접 긁�
 
 ## 10. 운영 작업
 
-`private.operation_jobs`를 작업 원장으로 사용하고 Supabase Cron이 보호된 `/api/internal/jobs` POST 경로를 호출하는 방식을 기준으로 구현한다. 내부 secret은 Vault 또는 배포 비밀로 저장하고 일반 사용자 요청과 분리한다. Supabase Cron은 SQL 및 HTTP 작업을 실행할 수 있다. [S14]
+`toon_private.toon_operation_jobs`를 작업 원장으로 사용하고 Supabase Cron이 보호된 `/api/internal/jobs` POST 경로를 호출하는 방식을 기준으로 구현한다. 내부 secret은 Vault 또는 배포 비밀로 저장하고 일반 사용자 요청과 분리한다. Supabase Cron은 SQL 및 HTTP 작업을 실행할 수 있다. [S14]
 
 작업은 계정 삭제, 대량 데이터 export, 만료 자산 정리, 고아 파일 청소를 처리한다. 작업 claim은 잠금과 lease를 사용하고 idempotency key, 재시도 횟수, next_run_at, 실패 상태를 둔다. 서버리스 요청을 끝낸 뒤 실행될지 모르는 fire-and-forget 작업으로 만들지 않는다.
 

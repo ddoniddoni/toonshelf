@@ -19,7 +19,7 @@ describe("owner canonical action boundaries",()=>{
  it("sends IDs/status choices, never client-supplied ratings or ownership",async()=>{
   expect(await commitTierEvaluations({...commit,owner:id})).toMatchObject({ok:false,error:{code:"VALIDATION_ERROR"}});
   mocks.rpc.mockResolvedValue({data:{version:1,changed:1},error:null});expect(await commitTierEvaluations(commit)).toEqual({ok:true,version:1,changed:1});
-  expect(mocks.rpc).toHaveBeenCalledWith("commit_tier_evaluations",{p_id:id,p_mode:"apply",p_version:1,p_choices:input.choices,p_fingerprint:commit.fingerprint,p_confirm:true});
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_commit_tier_evaluations",{p_id:id,p_mode:"apply",p_version:1,p_choices:input.choices,p_fingerprint:commit.fingerprint,p_confirm:true});
   expect(mocks.revalidate).toHaveBeenCalledWith("/me/library","layout");expect(mocks.revalidate).toHaveBeenCalledWith("/works/[slug]","page");
   expect(mocks.revalidate).not.toHaveBeenCalledWith(`/tiers/${id}/publish`);
  });

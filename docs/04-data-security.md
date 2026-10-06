@@ -1,12 +1,19 @@
 # 04. 데이터 모델과 보안
 
+## 공유 프로젝트 물리 이름·가입 경계 · 2026-10-07 (DB 설치·권한 실행 미검증)
+
+이 문서의 논리 테이블 이름 앞에는 모두 `toon_`를 붙인다. 공개 예시는 `public.toon_profiles`, `public.toon_user_settings`, `public.toon_genres`이고 내부 예시는 `toon_private.toon_user_access`, `toon_private.toon_consent_records`, `toon_private.toon_rate_limit_buckets`다. RPC·enum·index도 `toon_`이며 Auth/Storage의 Supabase 관리 테이블은 그대로 둔다. 새 스키마는 독립적으로 생성하고 public 스키마 CREATE 권한/공용 default privileges를 변경하지 않는다. 기본 PUBLIC 함수 실행권 정리는 toon_private 및 public.toon_*에만 한정한다. 기존 앱 데이터의 rename·backfill·삭제는 없다.
+
+`20261006145643_username_registration.sql`은 서버 소유 app_metadata/정확한 내부 식별자/확정된 Auth 상태/필수 동의를 확인하는 조건부 trigger와 서비스 전용 가입 예약, 명시적 본인 OAuth enroll을 작성한다. 아이디 가입은 실제 연락 이메일 인증 없이 활성화하지만 임의 외부 Auth 사용자·editable metadata에는 ToonShelf 행을 만들지 않는다. profile/settings/access/동의는 원자적으로 생성하며 반복 Auth update가 정지 상태를 되돌리지 않는다. 실제 대상 `zwzncrdlqnthxgdvsqxq`의 기존 여행 앱 구조·Auth trigger·권한·Storage·이력을 읽고 ToonShelf 설치가 없는 상태에서 17개 SQL source를 `toon_shared_project_username_auth` 한 트랜잭션으로 적용했다. MCP success:true가 설치 작업의 근거이며 RLS/RPC 동작 테스트 근거는 아니다. 기존 여행 앱의 Auth 프로필 생성 트리거는 유지하며 새 공유 Auth 사용자에 기본 여행 프로필 행도 생성되는 구조다. ToonShelf 전용 회원/동의/운영 역할은 toon_private에 분리하고 기존 사용자 backfill이나 여행 앱 권한 변경을 하지 않는다. 기존 17개 baseline source는 이제 원격 적용된 설치 근거이므로 후속 스키마 수정은 새 migration으로 작성한다. 원격은 MCP 설치 이력 한 건이며 로컬 17개 filename version과 다르므로 공유 프로젝트에 이 repo의 linked CLI push/reset/전체 seed를 실행하지 않는다. 외부 Auth hook 설정·실제 Auth/RLS/Storage 검수·타입 생성은 미실행이다.
+
+
 이 문서는 **구현해야 할 스키마 계약**이다. 실행 가능한 migration이 이미 제공되었다는 뜻이 아니다. Codex는 이 계약을 SQL migration, 권한, trigger, 테스트로 구체화해야 한다.
 
 ## P1 작성 상태 · 2026-10-02
 
-`20261001162407_accounts_auth.sql`에 profiles/user_settings/genres, private.user_access/consent_records/reauth_tickets/rate_limit_buckets, Auth 생성 trigger와 기존 Auth 사용자에 대한 pending 기반 행 생성을 작성했다. 모든 앱 테이블에 RLS와 명시적 grant를 적용하며 일반 사용자 DML은 제거하고 허용 RPC만 사용한다. featured_tier_list_id/대표 revision과 차단 관계는 후속 P4/리뷰 migration에 작성했으며 모두 적용·실행 미검증이다.
+`20261001162407_accounts_auth.sql`에 profiles/user_settings/genres, toon_private.toon_user_access/consent_records/reauth_tickets/rate_limit_buckets, Auth 생성 trigger와 기존 Auth 사용자에 대한 pending 기반 행 생성을 작성했다. 모든 앱 테이블에 RLS와 명시적 grant를 적용하며 일반 사용자 DML은 제거하고 허용 RPC만 사용한다. featured_tier_list_id/대표 revision과 차단 관계는 후속 P4/리뷰 migration에 작성했으며 모두 적용·실행 미검증이다.
 
-현재 역할과 정지/삭제 상태는 private.user_access에서 판단한다. 앱 쓰기는 auth.sessions의 실제 session_id, 확인된 Auth 이메일, active 상태, 최신 동의를 확인한다. 온보딩 RPC만 pending→active와 버전별 필수 동의를 원자적으로 저장한다. 사용자 이름은 온보딩 후 바꿀 수 없다. 프로필 공개 조회는 활성·동의·온보딩 상태를 재확인한다.
+현재 역할과 정지/삭제 상태는 toon_private.toon_user_access에서 판단한다. 앱 쓰기는 auth.sessions의 실제 session_id, 확인된 Auth 이메일, active 상태, 최신 동의를 확인한다. 온보딩 RPC만 pending→active와 버전별 필수 동의를 원자적으로 저장한다. 사용자 이름은 온보딩 후 바꿀 수 없다. 프로필 공개 조회는 활성·동의·온보딩 상태를 재확인한다.
 
 재인증 발급과 아바타 경로 지정 RPC는 service_role만 실행할 수 있으며 브라우저 세션은 증명을 발급하지 못한다. 사용자용 ticket 소비는 본인/세션/목적/만료/미소비 조건으로 한 번만 성공하도록 작성했다. 아바타 bucket은 공개 WebP 전용이며 일반 사용자 Storage mutation은 restrictive policy로 차단한다. 경로는 bucket `avatars` 안의 `{uid}/{uuid}.webp`이고 profile에는 이 상대 경로만 저장한다.
 
@@ -14,7 +21,7 @@
 
 ## P3 개인 기록 보존 병합 작성 상태 · 2026-10-03
 
-`20261003091940_personal_record_safe_merge.sql`은 기존 library/private details/evaluation/reviews/content drafts의 보존 handler를 작성한다. private.work_merge_previews는 관리자/작품 쌍·무작위 token·내부 SHA-256 fingerprint·만료만, private.work_merge_history는 소유자·작품 쌍·원래 두 개인 기록·옮겨진 리뷰 참조를 저장한다. 두 private 테이블 모두 RLS를 켜고 anon/authenticated 직접 접근을 제거하며 타인 기록을 읽는 관리자 policy는 없다. 보관본은 owner RPC의 auth.uid/현재 세션·활성/동의 검증을 거쳐 조회/삭제하며 계정 삭제 시 profile FK로 cascade한다. 이력 원문은 운영 감사 로그에 복사하지 않는다. P7 export는 아직 없으므로 그때 이 보관본을 함께 처리해야 한다.
+`20261003091940_personal_record_safe_merge.sql`은 기존 library/private details/evaluation/reviews/content drafts의 보존 handler를 작성한다. toon_private.toon_work_merge_previews는 관리자/작품 쌍·무작위 token·내부 SHA-256 fingerprint·만료만, toon_private.toon_work_merge_history는 소유자·작품 쌍·원래 두 개인 기록·옮겨진 리뷰 참조를 저장한다. 두 private 테이블 모두 RLS를 켜고 anon/authenticated 직접 접근을 제거하며 타인 기록을 읽는 관리자 policy는 없다. 보관본은 owner RPC의 auth.uid/현재 세션·활성/동의 검증을 거쳐 조회/삭제하며 계정 삭제 시 profile FK로 cascade한다. 이력 원문은 운영 감사 로그에 복사하지 않는다. P7 export는 아직 없으므로 그때 이 보관본을 함께 처리해야 한다.
 
 상태/평가/진행은 각 최신 행 기준, 동률은 target이며 이전 값/수정 시각도 owner 보관본에 남긴다. 메모는 양쪽 비어 있지 않을 때 제목/UUID 출처를 붙여 합치며 최종 5000자, 태그 union 20개를 넘으면 거절한다. 날짜와 planned 평가, 현재 리뷰 중복, metadata 상한 충돌은 transaction 전체를 중단한다. 원본 작품이 공개 불가능하고 개인 기록/현재 리뷰가 있으면 거절해 병합에 따른 노출 확대를 막는다. 서재와 평가 공개 범위는 독립적으로 더 제한적인 쪽을 유지한다.
 
@@ -24,7 +31,7 @@ P4 tier_lists/drafts와 현재 tier_list_publications는 7절의 두 증분에�
 
 ## P3 카탈로그 평점순 작성 상태 · 2026-10-03
 
-`20261003053412_catalogue_rating_sort.sql`은 기존 `search_catalogue`의 signature를 보존해 public 별점 요약/정렬을 추가한다. 공개 가능한 작품에 속한 visibility=public, rating_steps가 있는 평가만 작품별로 먼저 집계하며 `private.profile_visible`로 현재 활성/동의/양방향 차단 조건을 검사한다. 본인 방문도 자기 private 평가를 집계하지 않는다. 비공개 library status는 읽지 않으므로 서재 공개와 평가 공개의 독립 경계를 유지한다. tier만 있는 평가는 별점 분모가 아니며 여러 링크/장르/작가가 평가 행을 곱하지 않는다.
+`20261003053412_catalogue_rating_sort.sql`은 기존 `search_catalogue`의 signature를 보존해 public 별점 요약/정렬을 추가한다. 공개 가능한 작품에 속한 visibility=public, rating_steps가 있는 평가만 작품별로 먼저 집계하며 `toon_private.toon_profile_visible`로 현재 활성/동의/양방향 차단 조건을 검사한다. 본인 방문도 자기 private 평가를 집계하지 않는다. 비공개 library status는 읽지 않으므로 서재 공개와 평가 공개의 독립 경계를 유지한다. tier만 있는 평가는 별점 분모가 아니며 여러 링크/장르/작가가 평가 행을 곱하지 않는다.
 
 기존 SECURITY DEFINER는 private 표지 helper/활성 계정 확인과 명시적인 공개 투영을 위한 경계다. 빈 search_path, 고정 schema-qualified SQL, 입력/페이지/cursor 상한과 제한된 anon/authenticated EXECUTE를 유지하고 table/RLS/DML grant는 넓히지 않는다. private details/개인 시각/사용자별 평가/별점 작성자 ID는 DTO에 넣지 않는다. rating next에는 현재 조회자 자신의 ID 또는 익명 null만 들어가며 token이나 타인 ID가 아니다. DB는 그 값이 실제 auth.uid와 같은지 검사한다. 공개 평가가 철회되거나 기준 작품이 숨겨지면 저장된 cursor 값으로 진행하지 않는다.
 
@@ -34,7 +41,7 @@ P4 tier_lists/drafts와 현재 tier_list_publications는 7절의 두 증분에�
 
 ### P2 작성 상태 · 2026-10-02
 
-`20261001174303_catalogue.sql`에 platforms/creators/works/work_creators/work_genres/work_platforms/catalogue_submissions, private.catalogue_sources/asset_licenses/admin_audit_logs를 추가했다. genres는 P1 테이블을 재사용한다. 작품에 optimistic version, 정규화 검색 문자열, 로컬 test 표시를 둔다. 공개 helper는 published·비성인·미병합·실제 작품과 유효한 확인된 비성인 공식 링크를 요구하며 작품/관계/검색/상세/표지에 적용한다. private 출처·허가 근거·이력은 일반 회원에게 노출하지 않는다.
+`20261001174303_catalogue.sql`에 platforms/creators/works/work_creators/work_genres/work_platforms/catalogue_submissions, toon_private.toon_catalogue_sources/asset_licenses/admin_audit_logs를 추가했다. genres는 P1 테이블을 재사용한다. 작품에 optimistic version, 정규화 검색 문자열, 로컬 test 표시를 둔다. 공개 helper는 published·비성인·미병합·실제 작품과 유효한 확인된 비성인 공식 링크를 요구하며 작품/관계/검색/상세/표지에 적용한다. private 출처·허가 근거·이력은 일반 회원에게 노출하지 않는다.
 
 일반 DML은 관리자 세션에도 허용하지 않고 검증된 RPC로만 변경한다. 작가 이름만으로 동일 인물로 합치지 않는다. URL/플랫폼 식별자에 unique를 두고 주소 이름은 고정한다. 링크 제외는 inactive로 처리해 ID를 보존한다. 공식 URL은 HTTPS/허용 host/안전한 query key를 검사한다. fragment와 utm_source/medium/campaign/term/content, gclid/fbclid만 제거하고 다른 query 값은 임의로 삭제하지 않는다.
 
@@ -52,13 +59,13 @@ ID는 UUID, 시간은 timestamptz/UTC를 사용한다. 생성/수정 시각은 D
 
 ### P3 리뷰·차단·신고 작성 상태 · 2026-10-02
 
-`20261002032637_reviews_moderation.sql`에 reviews, review 전용 content_edit_drafts, blocks, review 전용 reports와 private.review_moderation_events를 작성했다. 현재 리뷰는 사용자/작품별 미삭제 한 건이며 삭제한 리뷰는 원문과 편집 초안을 제거하고 최소 참조·상태만 남긴다. 서재·평가를 삭제하지 않는다. 게시본과 JSON 편집 초안은 별도 행/version이고 저장은 초안만 변경한다. 게시 RPC는 서버에 저장된 초안을 검증해 원자적으로 복사한다. 일반 사용자·운영자 모두 직접 DML 권한이 없다.
+`20261002032637_reviews_moderation.sql`에 reviews, review 전용 content_edit_drafts, blocks, review 전용 reports와 toon_private.toon_review_moderation_events를 작성했다. 현재 리뷰는 사용자/작품별 미삭제 한 건이며 삭제한 리뷰는 원문과 편집 초안을 제거하고 최소 참조·상태만 남긴다. 서재·평가를 삭제하지 않는다. 게시본과 JSON 편집 초안은 별도 행/version이고 저장은 초안만 변경한다. 게시 RPC는 서버에 저장된 초안을 검증해 원자적으로 복사한다. 일반 사용자·운영자 모두 직접 DML 권한이 없다.
 
 reviews/content_edit_drafts의 직접 SELECT는 active 소유자만 허용한다. 공개 SELECT를 부여하면 스포일러 본문을 우회할 수 있으므로 공개 조회는 제한된 RPC DTO만 사용한다. 공개 가능 조건은 published·visible·미삭제·공개 비성인 작품·활성 작성자·조회자와 양방향 차단 없음이다. 최초 spoiler body/excerpt는 null이며 펼치기 요청은 이 조건과 게시 version을 다시 검사한다. 공개 기준 회차는 명시적으로 입력한 값이며 개인 진행/메모/태그를 조회하거나 복사하지 않는다. 리뷰에 붙는 별점/티어는 공개 evaluation만 투영한다.
 
-blocks는 본인만 읽고 현재 계정의 목표 상태 RPC로 생성/해제한다. `private.author_active`는 기존 활성 작성자 조건을 유지하고 `private.profile_visible`에 `private.users_can_interact`를 합쳐 프로필·공개 서재/평가·공개 집계에도 차단을 적용한다. 차단은 로그인 계정 사이의 노출·접촉 제한이며 비회원 조회를 막는 비공개 설정이 아니다. 본인 조회는 자기 차단이 불가능하므로 기존 계정 조건을 유지한다. follows가 없는 현재는 양방향 관계 정리를 수행하지 않으며 P5에서 같은 transaction에 추가해야 한다.
+blocks는 본인만 읽고 현재 계정의 목표 상태 RPC로 생성/해제한다. `toon_private.toon_author_active`는 기존 활성 작성자 조건을 유지하고 `toon_private.toon_profile_visible`에 `toon_private.toon_users_can_interact`를 합쳐 프로필·공개 서재/평가·공개 집계에도 차단을 적용한다. 차단은 로그인 계정 사이의 노출·접촉 제한이며 비회원 조회를 막는 비공개 설정이 아니다. 본인 조회는 자기 차단이 불가능하므로 기존 계정 조건을 유지한다. follows가 없는 현재는 양방향 관계 정리를 수행하지 않으며 P5에서 같은 transaction에 추가해야 한다.
 
-reports는 현재 공개된 타인 리뷰만 대상으로 하며 신고자/review별 pending 중복을 차단한다. 신고자는 본인 사유·상세·처리 상태/결과만 읽고 운영 검토 DTO는 신고자의 ID를 제공하지 않는다. 역할은 private.user_access의 active moderator/admin으로 확인한다. 숨김/복구/기각·결과·사유·감사 이벤트는 한 transaction이며 운영자에게 편집 초안·개인 메모를 제공하지 않는다. 감사 이벤트에 원문을 복제하지 않는다. reports의 review FK를 포함한 신고 보존/비식별화·참조 정리와 탈퇴 hard-delete는 P7 작업자에서 처리해야 하며 현재는 soft-delete만 구현했다. 글/댓글/티어/프로필/작품 신고는 후속 범위다.
+reports는 현재 공개된 타인 리뷰만 대상으로 하며 신고자/review별 pending 중복을 차단한다. 신고자는 본인 사유·상세·처리 상태/결과만 읽고 운영 검토 DTO는 신고자의 ID를 제공하지 않는다. 역할은 toon_private.toon_user_access의 active moderator/admin으로 확인한다. 숨김/복구/기각·결과·사유·감사 이벤트는 한 transaction이며 운영자에게 편집 초안·개인 메모를 제공하지 않는다. 감사 이벤트에 원문을 복제하지 않는다. reports의 review FK를 포함한 신고 보존/비식별화·참조 정리와 탈퇴 hard-delete는 P7 작업자에서 처리해야 하며 현재는 soft-delete만 구현했다. 글/댓글/티어/프로필/작품 신고는 후속 범위다.
 
 파일만 작성했으며 실제 migration/SQL/RLS/함수 권한/차단 집계/동시성/생성 타입/advisor/테스트는 미실행이다. 운영 역할을 지정하거나 실제 DB에 연결하지 않았다.
 
@@ -115,7 +122,7 @@ work_platforms의 `(platform_id, external_id)`는 external_id가 있을 때 고�
 
 현재 범위에는 실제 성인 인증 모듈이 없다. DB 정책은 성인 데이터를 거절해야 하며 서버 환경변수 하나를 true로 바꾸는 것만으로 성인 공개가 열리지 않도록 한다. 실제 지원 시 별도 migration, 검증 adapter, 운영 검토가 필요하다.
 
-표지 권리의 실제 컬럼은 private.asset_licenses에 둔다. public DTO에 허가 계약 문서나 내부 담당자 정보를 내보내지 않는다. 작품의 사실 정보 출처는 private.catalogue_sources에 별도로 기록한다.
+표지 권리의 실제 컬럼은 toon_private.toon_asset_licenses에 둔다. public DTO에 허가 계약 문서나 내부 담당자 정보를 내보내지 않는다. 작품의 사실 정보 출처는 toon_private.toon_catalogue_sources에 별도로 기록한다.
 
 ## 5. 서재와 평가: 세 테이블 분리
 
@@ -171,7 +178,7 @@ reviews는 deleted_at IS NULL인 `(user_id,work_id)`에 partial unique를 둔다
 
 **공개 티어 댓글 첫 대상 · 2026-10-05 (파일 작성·미적용):** `20261005052840_tier_comments.sql`은 comments의 tier_list_id not-null FK만 먼저 생성한다. review/post FK와 정확히 한 대상 제약은 각 대상 도메인 migration에서 확장한다. id/tier/parent/다른 소유자로 변경은 금지하며 `(parent_id,tier_list_id)` composite FK와 부모 parent_id=NULL trigger로 동일 대상/한 단계를 강제한다. 본문 1~1000 Unicode code point/최대 4000 UTF-8 byte·safe bigint version을 제한하며 삭제 상태는 body=NULL이다. author FK SET NULL은 trigger로 본문도 지우고 version을 올려 타인 답글의 익명 문맥을 유지한다. root/reply 시간·작성자 index를 작성했다.
 
-comments와 private.comment_reports/private.comment_moderation_events는 RLS 활성/원시 SELECT·DML 제거, 빈 search_path·제한 public RPC/정밀 grant로 접근한다. 최초 본문은 표/원 댓글/댓글 spoiler OR 조건으로 제외한다. 일반 접근은 현재 public/visible/미삭제 표·작성자 활성/동의·조회자↔작성자 및 티어 작성자↔댓글 작성자 차단을 재확인하고 원 댓글 접근도 확인한다. 숨김 root는 답글까지 제외한다. 차단은 댓글을 보존한다. 탈퇴 등 작성자 FK 제거 시 익명 tombstone으로 남기며 기존 답글은 다른 현재 조건을 통과해야 표시된다.
+comments와 toon_private.toon_comment_reports/toon_private.toon_comment_moderation_events는 RLS 활성/원시 SELECT·DML 제거, 빈 search_path·제한 public RPC/정밀 grant로 접근한다. 최초 본문은 표/원 댓글/댓글 spoiler OR 조건으로 제외한다. 일반 접근은 현재 public/visible/미삭제 표·작성자 활성/동의·조회자↔작성자 및 티어 작성자↔댓글 작성자 차단을 재확인하고 원 댓글 접근도 확인한다. 숨김 root는 답글까지 제외한다. 차단은 댓글을 보존한다. 탈퇴 등 작성자 FK 제거 시 익명 tombstone으로 남기며 기존 답글은 다른 현재 조건을 통과해야 표시된다.
 
 변경/owner editor/신고는 현재 user access→정렬된 actor/상대 pair advisory transaction lock→tier SHARE→root SHARE→comment UPDATE 순서다. 차단은 기존 같은 pair mutex를 사용한다. tier 잠금 후 접근을 다시 확인하며 공개 철회/삭제/운영 변경과 버전을 검사한다. 생성은 caller UUID unique와 동일 소유자/대상/부모/내용의 재시도만 허용한다. own 삭제는 같은 tier/root/comment 순서와 본인/version만 검사해 부모가 비공개여도 본문 제거를 허용하고 metadata/원문을 반환하지 않는다. 실제 동시성은 미검증이다.
 
@@ -193,7 +200,7 @@ comments와 private.comment_reports/private.comment_moderation_events는 RLS 활
 
 본인만 조회한다. 데이터 형식은 05 문서에 정의한다. 버전은 저장 성공 transaction에서 1 증가한다. 2-10개 행, 최대 300작품, 중복 work ID 금지, 모든 row ID 참조 유효성을 DB에서 검사한다.
 
-**P4 첫 증분 · 2026-10-03 (파일 작성, 미적용):** `20261003130130_tier_draft_editor.sql`은 위 두 테이블과 `private.tier_merge_history`를 생성한다. 모두 RLS를 켜고 anon/authenticated 직접 권한·정책을 부여하지 않는다. 빈 search_path의 owner RPC만 현재 실제 세션·활성/동의·auth.uid와 소유권을 확인해 읽고 변경한다. 관리자도 타인의 제목/설명/태그/행/배치/원본을 직접 조회할 수 없다. published_version=null/visibility=private CHECK가 있으며 게시본 테이블/토큰은 아직 생성하지 않았다. 신규 숨김 work ID는 거절하고 본인 기존 숨김 배치는 placeholder/제거·본인 복사로만 보존한다. 명시적 UUID·행·canonical·태그·참조·중복·연속 위치·크기 제한을 DB CHECK/RPC에서 검사하고 사용자별 잠금 아래 50표 상한을 검사한다.
+**P4 첫 증분 · 2026-10-03 (파일 작성, 미적용):** `20261003130130_tier_draft_editor.sql`은 위 두 테이블과 `toon_private.toon_tier_merge_history`를 생성한다. 모두 RLS를 켜고 anon/authenticated 직접 권한·정책을 부여하지 않는다. 빈 search_path의 owner RPC만 현재 실제 세션·활성/동의·auth.uid와 소유권을 확인해 읽고 변경한다. 관리자도 타인의 제목/설명/태그/행/배치/원본을 직접 조회할 수 없다. published_version=null/visibility=private CHECK가 있으며 게시본 테이블/토큰은 아직 생성하지 않았다. 신규 숨김 work ID는 거절하고 본인 기존 숨김 배치는 placeholder/제거·본인 복사로만 보존한다. 명시적 UUID·행·canonical·태그·참조·중복·연속 위치·크기 제한을 DB CHECK/RPC에서 검사하고 사용자별 잠금 아래 50표 상한을 검사한다.
 
 티어 병합 원본은 user_id/tier_list_id/source/target/원래 제목/draft_before/전후 버전/중복 정리 건수/시각을 private에 보관한다. 본인 활성 초안의 RPC로만 최근/20건 페이지 조회가 가능하고, 초안 삭제 시 draft와 원본을 제거한다. 계정 FK cascade는 있으나 P7 실제 탈퇴/export worker는 미완성이다. 병합 fingerprint와 NOWAIT 잠금은 양쪽 작품이 포함된 초안·현재 게시본·owner·metadata를 포함한다. 원 게시 snapshot은 수정하지 않고 매 조회/복제에서 merged ID를 해석하며 현재 target 배치를 보존해 중복을 제거한다. lifecycle version도 올려 옛 미리보기/펼치기/복제를 무효화한다. 공개 불가능한 source가 현재 게시본에 있으면 노출 확대를 막기 위해 병합을 거절한다. 기존 P3 처리·초안 archive·version 변경은 같은 transaction이고 관리자 응답/감사에는 건수만 들어간다. 미구현 `tier_list_items/posts`는 handler 작성 전 계속 차단한다.
 
@@ -209,11 +216,11 @@ unlisted 게시본은 public table SELECT 정책으로 읽게 하지 않는다. 
 
 **P4 대표 티어표 · 2026-10-05 (미적용/미검증):** `20261004171418_featured_tier_profile.sql`에 `featured_tier_list_id` nullable FK(ON DELETE SET NULL)와 `featured_tier_version` bigint 기본 1·JS safe integer 상한, non-null FK index를 작성했다. profiles의 기존 RLS/열 SELECT는 유지하고 새 포인터/revision은 raw SELECT에서 제외한다. 사용자 DML은 기존처럼 금지하며 owner RPC만 현재 세션/활성·동의/이메일·본인 소유권·public/visible/미삭제·현재 게시본·기대 lifecycle 및 대표 revision을 검사한다. 대표 변경 시에만 revision을 올리고 A→B→A도 오래된 요청을 거절한다. 대상 tier UPDATE 잠금→profile UPDATE 잠금 순서이며 미지정 해제는 profile만 잠근다. 가시성/운영/삭제 trigger는 같은 transaction에서 포인터를 비우고 FK hard delete도 revision을 올린다. 복구/재공개로 대표를 복원하지 않는다. 공개 RPC는 현재 profile/표 접근과 소유 관계를 재확인하며 현재 publication 카드만 반환한다. 스포일러 제목/태그·초안/옛 게시본/body/token/대표 revision은 방문자 DTO에 없다. 다중 세션 잠금/권한/성능과 migration 적용은 미검증이며 P7 탈퇴/export 정리는 후속이다.
 
-**P4 게시 증분 · 2026-10-04 (미적용/미검증):** `20261003145059_tier_publication_sharing.sql`에 위 publication PK와 검증·미배치 금지·RLS/직접 SELECT/DML 제거를 작성했다. tier_lists의 private-only 임시 제약을 current publication FK/visibility 제약과 독립 lifecycle version·단조 publication_counter로 교체했다. 게시/회전/철회는 owner 현재 계정과 기대 버전을 검사한다. token은 `private.tier_share_tokens`의 hash unique와 암호문/nonce만 저장하며 키와 원문은 DB/public DTO에 없다. owner RPC만 현재 암호문을 반환하고 서버가 AAD/hash/tag를 검증해 복구한다. 오래된 번호를 재사용하지 않는다.
+**P4 게시 증분 · 2026-10-04 (미적용/미검증):** `20261003145059_tier_publication_sharing.sql`에 위 publication PK와 검증·미배치 금지·RLS/직접 SELECT/DML 제거를 작성했다. tier_lists의 private-only 임시 제약을 current publication FK/visibility 제약과 독립 lifecycle version·단조 publication_counter로 교체했다. 게시/회전/철회는 owner 현재 계정과 기대 버전을 검사한다. token은 `toon_private.toon_tier_share_tokens`의 hash unique와 암호문/nonce만 저장하며 키와 원문은 DB/public DTO에 없다. owner RPC만 현재 암호문을 반환하고 서버가 AAD/hash/tag를 검증해 복구한다. 오래된 번호를 재사용하지 않는다.
 
 게시 미리보기 hash에는 저장된 배치와 현재 공개 작품 DTO를 함께 넣는다. 게시 transaction은 owner→작품 SHARE→metadata/draft UPDATE 순서로 초안·lifecycle version과 hash를 재검사한다. public/current reader는 현재 작성자 활성·동의·온보딩·양방향 차단·visibility·운영 상태·토큰 철회/만료를 검사한다. 숨겨진 작품은 공개 DTO에서 UUID/원문 없이 null 대체 카드가 된다. spoiler body/목록 제목은 최초 응답에 없으며 펼치기에는 현재 lifecycle version이 필요하다. 목록 DTO는 본문·배치·token이 없고 12개 페이지다. 원 게시본은 현재 포인터 외 일반 경로에서 읽지 못한다.
 
-신고·감사는 `private.tier_reports/tier_moderation_events`에 RLS/직접 권한 제거와 owner/운영자 RPC를 둔다. reporter+list pending unique, 사유·길이·현재 접근/자기 신고 금지·DB rate를 검사한다. 운영 조치는 역할·버전·현재 게시 상태·사유/신고 소속을 확인하고 숨김/복구/신고 결과/감사를 원자적으로 저장한다. 숨김은 token도 철회하고 복구만으로 이전 token을 살리지 않는다. 삭제는 공개 포인터를 지우고 publication·token·초안·병합 원본을 제거하되 private 신고/감사는 유지한다. 대표 티어 필드/설정과 철회 연동은 아래 2026-10-05 증분으로 작성했다. 과거 게시본 owner UI·P7 보관본 export/계정 삭제 정리는 후속이다. DB 적용/권한/경합/성능/모든 검사는 실행하지 않았다.
+신고·감사는 `toon_private.toon_tier_reports/tier_moderation_events`에 RLS/직접 권한 제거와 owner/운영자 RPC를 둔다. reporter+list pending unique, 사유·길이·현재 접근/자기 신고 금지·DB rate를 검사한다. 운영 조치는 역할·버전·현재 게시 상태·사유/신고 소속을 확인하고 숨김/복구/신고 결과/감사를 원자적으로 저장한다. 숨김은 token도 철회하고 복구만으로 이전 token을 살리지 않는다. 삭제는 공개 포인터를 지우고 publication·token·초안·병합 원본을 제거하되 private 신고/감사는 유지한다. 대표 티어 필드/설정과 철회 연동은 아래 2026-10-05 증분으로 작성했다. 과거 게시본 owner UI·P7 보관본 export/계정 삭제 정리는 후속이다. DB 적용/권한/경합/성능/모든 검사는 실행하지 않았다.
 
 **P4 PNG 증분 · 2026-10-04 (파일만 작성·미적용):** `20261003171347_tier_image_export.sql`의 `get_tier_image_source`/`begin_tier_image_export`는 authenticated execute만 허용하고 현재 실제 세션/활성/이메일 확인/동의를 다시 검사한다. 초안은 소유자만, 게시본은 현재 public 또는 유효 hash와 차단/author/운영/버전 조건을 통과해야 한다. 관리자 역할도 타인 초안 export 권한이 아니다. 스포일러 게시본은 별도 확인하며 text-only DTO에서 work/asset ID·URL·메모·회차·token을 제거한다. private helper의 직접 execute도 제거하고 빈 search_path/statement timeout을 작성했다. 예약 RPC는 기존 private 회원별 rate bucket을 5회/고정 600초로 사용한다. 원시 IP 수집·임의 header 신뢰·service key 사용자 접근은 구현하지 않았다. 비회원 PNG/token·IP/HMAC 제한은 후속이고 이번에는 로그인 안내/DB execute 거절로 처리한다. 렌더 직후 현재 DTO/권한을 재확인하고 모든 이미지 응답은 no-store다. 이미 수신한 파일과 외부 OG cache는 회수할 수 없다. 이미지에는 원격/허가된 표지까지 사용하지 않고 텍스트 카드만 포함해 표시 권한을 재배포 권한으로 추정하지 않는다. 실제 DB/RLS/권한/동시 철회·이미지/배포 검수는 미실행이다.
 
@@ -237,7 +244,7 @@ reactions는 대상 유형별 `(user_id,target_id)` partial unique를 둔다. �
 
 현재 사용자 access lock→정렬된 사용자 쌍의 advisory transaction lock→tier SHARE 순서로 변경한다. set_user_block도 같은 pair lock을 사용하고 양쪽이 상대 표에 남긴 반응을 같은 transaction에서 삭제한다. 타인의 다른 작성자 콘텐츠 반응은 삭제하지 않고 조회자 차단에 따라 집계에서만 제외한다. 유효 수는 활성/확인/온보딩/현재 동의 반응자만 포함하며 작성자↔반응자 및 조회자↔반응자 차단을 검사한다. 숫자는 사용자별로 달라질 수 있다. private/unlisted/숨김/삭제/비활성 작성자는 상태/수를 노출하지 않는다. private/unlisted 전환의 기존 반응은 보관하고 이후 public 재게시 때 현재 조건으로만 다시 집계한다. soft delete trigger와 profile FK cascade는 반응을 정리한다. 현재 표 ID에 붙는 반응은 공개 게시본 갱신/작품 병합으로 복제되지 않는다. 실제 DB/RLS/성능/다중 세션 동시성은 모두 미검증이며 알림 dedupe/생성·다른 소셜 도메인은 후속이다.
 
-**P4 탐색 증분 · 2026-10-05 (작성·미적용):** `20261004162937_tier_discovery.sql`의 `search_public_tiers`는 현재 public/미삭제/visible·활성 작성자/조회자 차단 검사를 통과한 후보만 집계·정렬·페이지 수에 넣는다. `private.tier_like_metrics`가 총수와 최근 168시간 수의 동일한 반응자/작성자/조회자 가시성 규칙을 적용하며 기존 상세 수 helper도 이를 사용한다. 미래 시각은 최근 수에서 제외하고 repeated desired true는 기존 created_at을 유지한다. 태그는 현재 published_version의 payload에 literal JSON containment로 비교한다. 스포일러 payload는 태그 필터에서 제외하고 카드 제목/태그도 null이다. 초안/옛 게시본/개인 태그를 보지 않으며 숨겨진 반응자 ID·개인 기록·공유 token은 DTO에 없다. 익명/회원은 제한 RPC만 실행하고 private helper·원문/반응 table 직접 권한은 계속 제거한다. 새 공개 table/정책/서비스 키는 없다. 태그 GIN partial index와 반응 시간 index는 migration 파일에만 작성했으며 적용·query plan/성능·권한/동시성은 미검증이다. 전체 댓글 가중 인기 점수와 익명 edge 제한은 후속이다.
+**P4 탐색 증분 · 2026-10-05 (작성·미적용):** `20261004162937_tier_discovery.sql`의 `search_public_tiers`는 현재 public/미삭제/visible·활성 작성자/조회자 차단 검사를 통과한 후보만 집계·정렬·페이지 수에 넣는다. `toon_private.toon_tier_like_metrics`가 총수와 최근 168시간 수의 동일한 반응자/작성자/조회자 가시성 규칙을 적용하며 기존 상세 수 helper도 이를 사용한다. 미래 시각은 최근 수에서 제외하고 repeated desired true는 기존 created_at을 유지한다. 태그는 현재 published_version의 payload에 literal JSON containment로 비교한다. 스포일러 payload는 태그 필터에서 제외하고 카드 제목/태그도 null이다. 초안/옛 게시본/개인 태그를 보지 않으며 숨겨진 반응자 ID·개인 기록·공유 token은 DTO에 없다. 익명/회원은 제한 RPC만 실행하고 private helper·원문/반응 table 직접 권한은 계속 제거한다. 새 공개 table/정책/서비스 키는 없다. 태그 GIN partial index와 반응 시간 index는 migration 파일에만 작성했으며 적용·query plan/성능·권한/동시성은 미검증이다. 전체 댓글 가중 인기 점수와 익명 edge 제한은 후속이다.
 
 activity_events는 첫 공개 게시 이벤트를 중복 없이 만든다. 공개 필드의 원문을 복제하지 않고 대상 ID를 참조한다. 조회 시 원본이 현재도 공개/활성 상태인지 검증한다. 공개 취소와 차단 이후 과거 피드 항목이 남지 않는다.
 

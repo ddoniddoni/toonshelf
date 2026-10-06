@@ -14,11 +14,11 @@ const historySchema = z.object({items:z.array(z.object({
 })),total:z.number().int().nonnegative(),hasNext:z.boolean()});
 export async function getMyMergeHistory(page:number) {
  const {client} = await requireAccount();
- const {data,error} = await client.rpc("get_my_work_merge_history",{p_page:z.number().int().min(1).max(1000).parse(page)});
+ const {data,error} = await client.rpc("toon_get_my_work_merge_history",{p_page:z.number().int().min(1).max(1000).parse(page)});
  libraryError(error);return historySchema.parse(data);
 }
 export async function getMyMergedWorkTarget(source:string) {
  const {client} = await requireAccount();
- const {data,error} = await client.rpc("get_my_work_merge_target",{p_source:uuidSchema.parse(source)});
+ const {data,error} = await client.rpc("toon_get_my_work_merge_target",{p_source:uuidSchema.parse(source)});
  libraryError(error);return data === null ? null : uuidSchema.parse(data);
 }

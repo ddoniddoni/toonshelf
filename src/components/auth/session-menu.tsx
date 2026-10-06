@@ -9,7 +9,7 @@ async function loadMenu(): Promise<{href:string;label:string;avatar?:string|null
     const account = await getCurrentAccount();
     if (!account) return {href:"/auth/sign-in",label:"로그인"};
     if (account.access.status !== "active" || !account.access.consents_current || !account.user.email_confirmed_at) return {href:"/settings/profile",label:"내 계정"};
-    const [profile,settings,role] = await Promise.all([getMyProfile(),getMySettings(),account.client.rpc("get_my_catalogue_role")]);
+    const [profile,settings,role] = await Promise.all([getMyProfile(),getMySettings(),account.client.rpc("toon_get_my_catalogue_role")]);
     return {href:"/settings/profile",label:profile?.display_name || "내 프로필",avatar:profile?.avatar_path ?? null,theme:settings?.theme,admin:role.data === true};
   } catch { return {href:"/auth/sign-in",label:"계정 연결 확인"}; }
 }

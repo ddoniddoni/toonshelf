@@ -18,7 +18,7 @@ describe("tier like action boundaries",()=>{
   expect(mocks.rpc).not.toHaveBeenCalled();expect(mocks.revalidate).not.toHaveBeenCalled();
  });
  it("sends desired state/expected lifecycle version without an actor and revalidates current counts",async()=>{
-  expect(await setTierLike(input)).toEqual({ok:true,state});expect(mocks.rpc).toHaveBeenCalledWith("set_tier_like",{p_id:id,p_version:2,p_liked:true});
+  expect(await setTierLike(input)).toEqual({ok:true,state});expect(mocks.rpc).toHaveBeenCalledWith("toon_set_tier_like",{p_id:id,p_version:2,p_liked:true});
   expect(mocks.revalidate.mock.calls).toEqual([["/tiers"],[`/tiers/${id}`]]);
   mocks.rpc.mockResolvedValue({data:{...state,liked:false,likeCount:0},error:null});expect(await setTierLike({...input,liked:false})).toMatchObject({ok:true,state:{liked:false,likeCount:0}});
  });
@@ -32,7 +32,7 @@ describe("tier like action boundaries",()=>{
  it("allows anonymous state reads through the public projection and returns no identities",async()=>{
   mocks.rpc.mockResolvedValue({data:{...state,liked:false,canLike:false,likers:["private-member"]},error:null});
   const reply=await reloadTierLike({id});expect(reply).toMatchObject({ok:true,state:{likeCount:1,liked:false,canLike:false}});
-  expect(mocks.account).not.toHaveBeenCalled();expect(mocks.rpc).toHaveBeenCalledWith("get_tier_like_state",{p_id:id});expect(JSON.stringify(reply)).not.toContain("private-member");
+  expect(mocks.account).not.toHaveBeenCalled();expect(mocks.rpc).toHaveBeenCalledWith("toon_get_tier_like_state",{p_id:id});expect(JSON.stringify(reply)).not.toContain("private-member");
   mocks.rpc.mockResolvedValue({data:null,error:null});expect(await reloadTierLike({id})).toMatchObject({ok:false,error:{code:"NOT_FOUND"}});
  });
 });

@@ -14,8 +14,8 @@ describe("tier discovery data",()=>{
  beforeEach(()=>{vi.resetAllMocks();mocks.env.mockReturnValue({supabase:{url:"https://example.test",key:"public-test-key"}});mocks.client.mockResolvedValue({rpc:mocks.rpc});mocks.rpc.mockResolvedValue({data:{items:[card],hasNext:false},error:null});});
  it("passes only validated literal filters and a bounded page to the session client RPC",async()=>{
   expect(await listPublicTiers(2,{sort:"popular",tag:"100%_&?"})).toEqual({items:[card],hasNext:false});
-  expect(mocks.rpc).toHaveBeenCalledWith("search_public_tiers",{p_sort:"popular",p_tag:"100%_&?",p_page:2});
-  await listPublicTiers(1);expect(mocks.rpc).toHaveBeenLastCalledWith("search_public_tiers",{p_sort:"latest",p_tag:null,p_page:1});
+  expect(mocks.rpc).toHaveBeenCalledWith("toon_search_public_tiers",{p_sort:"popular",p_tag:"100%_&?",p_page:2});
+  await listPublicTiers(1);expect(mocks.rpc).toHaveBeenLastCalledWith("toon_search_public_tiers",{p_sort:"latest",p_tag:null,p_page:1});
  });
  it("rejects invalid pages and injected filters before creating a client",async()=>{
   const injected={sort:"latest" as const,tag:null,userId:id};
