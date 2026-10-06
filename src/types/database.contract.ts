@@ -40,6 +40,16 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      list_tier_comments:{Args:{p_tier:string;p_tier_version:number;p_parent:string|null;p_page:number};Returns:Json};
+      get_tier_comment:{Args:{p_id:string;p_tier_version:number;p_version:number|null;p_reveal:boolean};Returns:Json};
+      create_tier_comment:{Args:{p_id:string;p_tier:string;p_tier_version:number;p_parent:string|null;p_body:string;p_spoiler:boolean;p_confirm:boolean};Returns:string};
+      get_my_tier_comment:{Args:{p_id:string;p_tier_version:number;p_version:number};Returns:Json};
+      update_tier_comment:{Args:{p_id:string;p_tier_version:number;p_version:number;p_body:string;p_spoiler:boolean;p_confirm:boolean};Returns:undefined};
+      delete_tier_comment:{Args:{p_id:string;p_version:number;p_confirm:boolean};Returns:undefined};
+      report_tier_comment:{Args:{p_id:string;p_tier_version:number;p_version:number;p_reason:string;p_detail:string};Returns:undefined};
+      list_tier_comment_reports:{Args:{p_page:number;p_own:boolean};Returns:Json};
+      moderation_tier_comment_snapshot:{Args:{p_id:string;p_version:number|null;p_reveal:boolean};Returns:Json};
+      moderate_tier_comment:{Args:{p_id:string;p_version:number;p_action:string;p_reason:string;p_report:string|null;p_result:string};Returns:undefined};
       get_my_featured_tier_state:{Args:Record<string,never>;Returns:Json};
       set_featured_tier:{Args:{p_id:string|null;p_tier_version:number|null;p_featured_version:number};Returns:Json};
       get_public_featured_tier:{Args:{p_username:string};Returns:Json};

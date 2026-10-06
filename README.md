@@ -1,6 +1,6 @@
 # ToonShelf 개발 문서
 
-**문서 버전:** 1.15 / **갱신일:** 2026-10-05 / **상태:** P1~P4 코드·Stitch 화면·대표 티어표 증분 작성, 실제 연동·실행 검증 대기
+**문서 버전:** 1.16 / **갱신일:** 2026-10-05 / **상태:** P1~P4 코드·Stitch 화면·P5 첫 공개 티어 댓글/답글 증분 작성, 실제 연동·실행 검증 대기
 
 ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 이름이 아니다.
 
@@ -10,7 +10,7 @@ ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 
 
 **기술:** Next.js App Router + React + TypeScript + npm + Supabase Auth/Postgres/Storage. 기본 배포 대상은 Vercel이다. 이는 설계 선택이며 특정 유료 요금제나 무상 운영을 보장하지 않는다.
 
-원본 다운로드 자료는 문서만 포함했다. 이 프로젝트에는 **P0 기반, P1 인증·계정, P2 카탈로그, P3 개인 서재·평가·리뷰와 기본 신고·차단·운영 조치, P4 티어 초안 편집·저장과 게시·공유 증분 코드**를 추가했다. API 키나 외부 서비스 계정은 포함하지 않는다. 실제 DB·인증·권한 동작은 미검증이며 P3/P4 잔여 범위와 P5~P7은 후속 작업이다. 실제 서비스 연결은 사용자와 후속 공동 작업으로 진행한다.
+원본 다운로드 자료는 문서만 포함했다. 이 프로젝트에는 **P0 기반, P1 인증·계정, P2 카탈로그, P3 개인 서재·평가·리뷰와 기본 신고·차단·운영 조치, P4 티어 초안 편집·저장과 게시·공유, P5 첫 공개 티어 댓글·답글 증분 코드**를 추가했다. API 키나 외부 서비스 계정은 포함하지 않는다. 실제 DB·인증·권한 동작은 미검증이며 P3/P4/P5 잔여 범위와 P6~P7은 후속 작업이다. 실제 서비스 연결은 사용자와 후속 공동 작업으로 진행한다.
 
 ## 지금 실행하기
 
@@ -127,6 +127,18 @@ SOC-01의 대표 티어표와 TIER-07/12의 공개 철회 연동을 작성했다
 CLI가 생성한 `20261004171418_featured_tier_profile.sql`에 profiles의 nullable FK/독립 대표 revision·FK index, 현재 계정/본인 소유권/공개 상태/기대 lifecycle·대표 revision/20회·분 제한 RPC를 작성했다. private/unlisted/운영 숨김/soft delete는 같은 transaction에서 대표 지정을 지우며 hard delete는 FK SET NULL과 revision trigger로 정리한다. 재공개/운영 복구는 대표 지정을 복원하지 않는다. 두 화면의 지정·해제/ABA 충돌은 revision으로 거절하고 공개 게시본 업데이트는 현재 대표 포인터를 유지한다. 원시 profiles SELECT는 기존 열만 허용하며 새 포인터/revision은 제한된 RPC로 조회한다. `/u/*` private/no-store와 게시/철회/운영/삭제 action의 프로필 캐시 무효화를 작성했다.
 
 단위·액션/DAL/UI mock·rollback SQL 테스트 **파일만 작성했고 실행하지 않았다**. 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수와 DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성은 전부 미실행이며 실제 확인한 사용자 흐름은 없다. 실제 Supabase/Auth 공동 연결·migration/생성 타입 적용·권한/다중 세션/화면 검수는 대기다. 새 `feature/featured-tier`에서 작성했으며 개발 보고 시점에는 stage·commit·push·통합 merge·PR를 하지 않았다. 2026-10-05 사용자 요청으로 기본 커밋·push·develop merge·push 순서를 진행하고 develop에서 종료한다. 검사 미실행 상태는 유지하며 실제 Git 반영 결과는 명령 출력과 최종 보고에서 확인한다. 다음은 공개 티어표 댓글·답글과 신고/차단 연동이다. P4 잔여 이미지/제한 범위와 P5~P7 전체도 후속이다.
+
+## P4/P5 공개 티어 댓글·답글 · 2026-10-05 (작성·실행 미검증)
+
+TIER-10의 댓글과 SOC-06/OPS-01/04의 접촉 제한·신고/조치 경계를 작성했다. `/tiers/[id]`에서 첫 20개 댓글과 작성 폼을 제공하고 `/tiers/[id]/comments?parent=...&page=...`에서 댓글 최신순·한 단계 답글 작성순을 20개씩 조회한다. 로그인·이메일 확인·활성/현재 동의 회원만 작성한다. 링크 공개 표에는 댓글을 조회하거나 작성하지 않는다. 사용자당 작성/수정/삭제 각각 5분 30회, 신고 10분 5회다.
+
+본문은 1~1000 Unicode code point의 평문이며 서버에서 검증한다. 티어표·원 댓글·개별 댓글 중 하나라도 스포일러면 최초 DTO에 원문을 넣지 않고 명시적 펼치기에서 현재 접근과 티어 lifecycle/댓글 version을 재확인한다. 수정 원문은 본인 요청으로만 읽는다. 작성자는 본문을 지워 기존 답글의 문맥을 위한 익명 tombstone을 남긴다. 삭제한 원 댓글에는 새 답글을 쓰지 못한다. 차단·비활성 작성자·운영 숨김은 조회 시 확인하며 원 댓글이 가려지면 스레드도 가려진다. 차단은 저장된 댓글을 삭제하지 않는다. 공개 철회 후에도 본인 댓글 삭제는 제한된 RPC로 가능하며 토론 원문을 읽는 권한은 주지 않는다.
+
+`/me/comment-reports`, `/admin/comment-reports`, `/admin/comments/[id]`를 작성했다. 신고자 본인의 접수/결과와 역할 기반 운영 큐를 분리하며 원문은 운영 검토에서도 별도로 펼친다. hide/restore·신고 처리/기각·사유·감사는 같은 transaction이다. 비공개/링크 공개/삭제한 티어표와 삭제한 댓글 원문은 운영자에게도 제공하지 않는다. 작성 결과가 불확실하면 입력을 유지하고 같은 UUID로 재시도하며 서버 응답 이후에만 완료로 표시한다.
+
+CLI 생성 `20261005052840_tier_comments.sql`에 첫 tier 대상 FK·동일 대상 parent FK/한 단계 trigger·RLS/원시 권한 제거·독립 version·정밀 RPC 권한·private 신고/감사·잠금과 rate limit을 작성했다. 리뷰/글 댓글과 댓글 좋아요·팔로우/피드/알림은 후속이다. 기존 최근 7일 좋아요순은 유지하며 댓글 가중 인기 공식은 다음 증분이다. P7에는 댓글 익명화/본문 제거·신고 보존과 hard-delete FK 정리 계약을 완성해야 한다.
+
+단위·액션/DAL/UI mock·DB rollback 테스트 **파일만 작성했고 실행하지 않았다**. 테스트·lint·typecheck·build·React Doctor·advisor·env·브라우저 검수, DB 시작/reset/연결/SQL 실행/migration 적용/타입 생성은 모두 미실행이며 실제 확인한 사용자 흐름은 없다. 실제 Supabase/Auth 공동 연결·적용·권한/다중 세션/캐시/성능/화면 검수는 대기다. 대표 티어표 증분은 feature `ef68275`와 develop merge `86d8eed`로 push했으며, 이번 작업은 최신 develop에서 새 `feature/tier-comments`를 만들었다. 개발 보고 시점에는 이번 증분 stage·commit·push·통합 merge·PR를 수행하지 않았다. 2026-10-06 사용자 요청으로 기본 커밋·push·develop merge·push 순서를 진행하며 develop에서 종료한다. 실행 검증의 미실행 상태는 유지하고 실제 Git 결과는 명령 출력과 최종 보고에서 확인한다.
 
 ## 로컬 Supabase 준비
 
