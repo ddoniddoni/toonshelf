@@ -6,7 +6,6 @@ import { House, Search, Library, Layers3, UserRound } from "lucide-react";
 
 const desktopLinks = [
   { href: "/", label: "홈" },
-  { href: "/#weekdays", label: "요일별 웹툰" },
   { href: "/explore", label: "작품 탐색" },
   { href: "/rankings", label: "실시간 순위" },
   { href: "/tiers", label: "독자 티어리스트" },
