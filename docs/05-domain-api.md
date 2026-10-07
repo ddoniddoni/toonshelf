@@ -176,6 +176,15 @@ sort는 title/rating/tier만 허용한다. rating은 공개 별점 내림차순,
 | setBlock | targetUserId, blocked boolean, 양방향 follows 정리 |
 | getFollowingFeed | 라이브 공개 권한 join, cursor |
 | markNotificationRead / markAllNotificationsRead | recipient만 |
+
+**P5 팔로우 계약 · 2026-10-07 (코드·DB 반영, 실행 미검증):**
+
+- `toon_get_public_follow_state(username)` → 공개 `{id,username,name,avatarPath,followerCount,followingCount,following,canFollow,isSelf}` 또는 null. 별도 전역 캐시 없이 요청 단위 조회자 조건을 적용한다.
+- `toon_list_public_follows(username,kind,page)` → `{profile,kind,page,total,hasNext,items}` 또는 접근 불가 null. kind는 followers/following, page는 1~1000이며 20명씩 관계 생성 시각 내림차순·상대 UUID 오름차순이다. 활성/현재 동의/확인·양쪽/조회자 차단을 페이지와 수에 먼저 적용한다. item은 id/username/name/avatarPath뿐이다.
+- `toon_set_user_follow(targetUserId,following:boolean)` → 현재 target state. actor/카운터를 입력받지 않고 `require_current`와 pair 잠금으로 검사한다. 자기 팔로우는 SELF_FOLLOW, 불가 대상의 새 팔로우는 NOT_FOUND다. `following=false`는 불가 대상의 본인 관계도 지우고 state=null을 정상 반환한다. 새 팔로우의 null/잘못된 응답은 성공 안내 없이 INTERNAL_ERROR/재조회로 처리한다.
+- `toon_set_user_block`의 API/기존 함수는 그대로다. 새 blocks BEFORE INSERT trigger로 양방향 follows만 추가 정리하며 기존 좋아요 정리도 유지된다. 차단 해제는 이전 팔로우를 복원하지 않는다. 팔로우/차단 action은 프로필·양쪽 목록 경로를 무효화한다.
+
+DTO는 실제 정수 수와 공개 프로필 필드를 요구하고 추가 비공개 필드는 제거한다. 서버 입력은 strict schema로 actor/관계 수·문자열 boolean 주입을 거절한다. 버튼은 서버 확인 후 갱신하고 불확실한 변경 응답에서 재조회 전 새 변경을 막는다. 이 SQL만 MCP로 추가 적용했으며 실제 Auth/RLS/DB·UI·페이지/부하 검수는 미실행이다. 피드/알림과 다른 소셜 대상은 후속이다.
 | compareWithUser / getRecommendations | 8-11절의 데이터와 수식 사용 |
 
 ## 4. 제한된 HTTP 경로
@@ -456,7 +465,8 @@ n>=5이고 s>=3인 후보만 노출하는 것을 초기 기준으로 한다. 기
 | 댓글 작성 | 사용자당 5분 30회 |
 | 리뷰/글 게시 | 사용자당 10분 10회 |
 | 좋아요 | 사용자당 1분 120회 |
-| 팔로우/차단 변경 | 사용자당 10분 30회 |
+| 팔로우 변경 | 사용자당 10분 30회 (user_follow RPC) |
+| 차단 변경 | 현재 설치된 RPC는 사용자당 1분 30회, 기존 정책의 10분 30회 통일은 후속 |
 | 티어 초안 저장 | 사용자당 1분 120회, 동시에 한 저장 |
 | 일반 검색 | IP/사용자당 1분 120회 |
 | PNG export | 사용자 또는 공유 token/IP 조합당 10분 5회 |

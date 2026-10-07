@@ -1,4 +1,4 @@
-// Hand-authored P1/P2/P3/P4 migration contract. This is NOT a generated/live DB type.
+// Hand-authored P1/P2/P3/P4/P5 migration contract. This is NOT a generated/live DB type.
 // Replace the SDK generic with database.generated.ts after local db:types.
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 export type Visibility = "public" | "private";
@@ -40,6 +40,9 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      toon_get_public_follow_state:{Args:{p_username:string};Returns:Json};
+      toon_list_public_follows:{Args:{p_username:string;p_kind:string;p_page:number};Returns:Json};
+      toon_set_user_follow:{Args:{p_user:string;p_following:boolean};Returns:Json};
       toon_reserve_username_signup:{Args:{p_username:string};Returns:boolean};
       toon_enroll_current_account:{Args:Record<string,never>;Returns:undefined};
       toon_list_tier_comments:{Args:{p_tier:string;p_tier_version:number;p_parent:string|null;p_page:number};Returns:Json};
