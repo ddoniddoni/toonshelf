@@ -12,6 +12,14 @@ Auth는 이메일/전화 식별자를 받으므로 서버가 아이디를 `<user
 
 사용자 선택 대상 `zwzncrdlqnthxgdvsqxq`로 MCP/env가 일치함을 확인하고 기존 여행 앱 테이블·Auth trigger·Storage·이력·ACL·extension을 조회했다. ToonShelf 객체가 없어 17개 SQL source를 한 트랜잭션으로 묶어 `toon_shared_project_username_auth`로 적용했고 MCP가 success:true를 반환했다. 기존 `private.create_profile_for_auth_user()`/auth_user_creates_profile은 유지하므로 새 공유 Auth 계정에는 여행 앱 public.profiles의 기본 행도 생성되는 구조다. 여행 멤버십/권한을 이 프로필 행으로 승인하지 않으며 ToonShelf도 toon_private 회원/역할/동의를 별도로 검사한다. 다른 앱 함수/정책 및 공용 Auth 설정은 수정하지 않았다. 외부 Auth hook/공급자 설정, 실제 타입 생성, 가입/로그인/권한 흐름은 미검증이다. 설치된 Next/SSR/SDK 소스와 [Supabase admin createUser](https://supabase.com/docs/reference/javascript/auth-admin-createuser), [Auth 구현 순서](https://github.com/supabase/auth/blob/master/internal/api/admin.go), [password Auth](https://supabase.com/docs/guides/auth/passwords), 공식 changelog를 참고했으며 의존성은 바꾸지 않았다.
 
+## 팔로잉 피드 구조 · 2026-10-07 (코드·DB 반영, 실행 미검증)
+
+`/me/feed`는 Promise searchParams를 받는 dynamic Server Component로, `guardPage`와 DAL의 `requireAccount` 뒤 일반 사용자 세션 SDK로 `toon_get_following_feed` 한 번을 호출한다. 원문 테이블/다른 사용자 private 서재·평가를 직접 읽거나 service key를 사용하지 않는다. 기존 `/me/*`의 private/no-store·no-referrer, noindex metadata와 SDK fetch no-store를 유지한다. 카드별 SDK 조회, 클라이언트 캐시, 새 의존성을 추가하지 않았다.
+
+`social/feed-model`은 strict cursor-only 입력과 제한 DTO/스포일러 null·페이지 상한·순서·중복·다음 위치를 검사한다. `feed-cursor`의 v1 base64url envelope는 현재 viewer ID와 원래 UTC 6자리 소수 초를 보관한다. 커서는 권한 토큰이 아니며 DB는 전달한 사용자 ID 없이 auth.uid()와 현재 세션/계정·팔로우·차단·원본 공개 상태를 매 조회 적용한다. 기준 글이 철회돼도 정렬 위치로 이전 글을 조회할 수 있다. 반환 DTO 오류는 INTERNAL_ERROR로 처리하고 0/빈 목록을 지어내지 않는다.
+
+팔로우/차단·리뷰 게시/철회/운영·티어 게시/철회/삭제/운영·작품 관리 action은 피드 경로를 무효화한다. 다른 브라우저에 이미 전송된 내용은 회수하지 않으며 이후 요청에서 현재 상태를 읽는다. 실시간 구독은 후속이다. 수기 RPC 타입만 추가했으며 생성 타입·빌드·브라우저/권한/캐시·동시성 검수는 미실행이다.
+
 ## 1. 버전과 라이브러리 정책
 
 ### Stitch 원본 재대조·화면 수정 · 2026-10-02

@@ -9,6 +9,7 @@ const desktopLinks = [
   { href: "/explore", label: "작품 탐색" },
   { href: "/rankings", label: "실시간 순위" },
   { href: "/tiers", label: "독자 티어리스트" },
+  { href: "/me/feed", label: "팔로잉 피드" },
   { href: "/me/library", label: "내 서재" },
 ];
 
@@ -30,7 +31,7 @@ const mobileLinks = [
 export function DesktopNavigation() {
   const pathname = usePathname();
   return <nav className="desktop-navigation" aria-label="주 메뉴">
-    {desktopLinks.map(({ href, label }) => <Link key={href} href={href} aria-current={activePath(pathname,href) ? "page" : undefined}>{label}</Link>)}
+    {desktopLinks.map(({ href, label }) => <Link key={href} href={href} prefetch={href === "/me/feed" ? false : undefined} aria-current={activePath(pathname,href) ? "page" : undefined}>{label}</Link>)}
   </nav>;
 }
 

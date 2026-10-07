@@ -20,6 +20,7 @@ export async function setUserFollow(input:unknown) {
   revalidatePath("/u/[username]","page");
   revalidatePath("/u/[username]/followers","page");
   revalidatePath("/u/[username]/following","page");
+  revalidatePath("/me/feed");
   return {ok:true as const,state};
  } catch(error) {return actionError(error);}
 }

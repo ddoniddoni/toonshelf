@@ -40,6 +40,7 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      toon_get_following_feed:{Args:{p_cursor:Json|null};Returns:Json};
       toon_get_public_follow_state:{Args:{p_username:string};Returns:Json};
       toon_list_public_follows:{Args:{p_username:string;p_kind:string;p_page:number};Returns:Json};
       toon_set_user_follow:{Args:{p_user:string;p_following:boolean};Returns:Json};
