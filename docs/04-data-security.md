@@ -7,6 +7,10 @@
 `20261006145643_username_registration.sql`은 서버 소유 app_metadata/정확한 내부 식별자/확정된 Auth 상태/필수 동의를 확인하는 조건부 trigger와 서비스 전용 가입 예약, 명시적 본인 OAuth enroll을 작성한다. 아이디 가입은 실제 연락 이메일 인증 없이 활성화하지만 임의 외부 Auth 사용자·editable metadata에는 ToonShelf 행을 만들지 않는다. profile/settings/access/동의는 원자적으로 생성하며 반복 Auth update가 정지 상태를 되돌리지 않는다. 실제 대상 `zwzncrdlqnthxgdvsqxq`의 기존 여행 앱 구조·Auth trigger·권한·Storage·이력을 읽고 ToonShelf 설치가 없는 상태에서 17개 SQL source를 `toon_shared_project_username_auth` 한 트랜잭션으로 적용했다. MCP success:true가 설치 작업의 근거이며 RLS/RPC 동작 테스트 근거는 아니다. 기존 여행 앱의 Auth 프로필 생성 트리거는 유지하며 새 공유 Auth 사용자에 기본 여행 프로필 행도 생성되는 구조다. ToonShelf 전용 회원/동의/운영 역할은 toon_private에 분리하고 기존 사용자 backfill이나 여행 앱 권한 변경을 하지 않는다. 기존 17개 baseline source는 이제 원격 적용된 설치 근거이므로 후속 스키마 수정은 새 migration으로 작성한다. 원격은 MCP 설치 이력 한 건이며 로컬 17개 filename version과 다르므로 공유 프로젝트에 이 repo의 linked CLI push/reset/전체 seed를 실행하지 않는다. 외부 Auth hook 설정·실제 Auth/RLS/Storage 검수·타입 생성은 미실행이다.
 
 
+## 공개 티어 인기 집계 경계 · 2026-10-07 (DB 반영, 권한 실행 검수 대기)
+
+새 `20261007070457_tier_comment_popularity.sql`은 `toon_comments`에 현재 삭제/숨김이 아닌 행의 기간 조회용 부분 index를 추가하고 `toon_private.toon_tier_popularity_metrics`/`toon_tier_popularity_card`를 작성한다. 일반 사용자와 service_role에 새 private helper의 직접 EXECUTE를 주지 않으며 기존 공개 탐색 RPC만 같은 입력/권한으로 교체한다. helper는 invoker로 기존 공개 RPC의 접근 검증 경로에서 사용하고 search_path는 빈 값이다. 공용 권한/default privileges·다른 앱 객체·원문/반응자 식별자·기존 댓글/대표 티어 API는 변경하지 않는다. 현재 댓글 접근 helper를 공유해 숨김/차단된 부모 아래 답글도 제외하고 삭제된 부모의 살아 있는 공개 답글은 토론 규칙대로 센다. 과거 17개 설치 source는 재실행하지 않았으며 선택한 공유 프로젝트에 이 새 migration만 MCP로 추가 적용해 success:true를 받았다. 권한/실제 사용자 흐름 검수는 미실행이다.
+
 이 문서는 **구현해야 할 스키마 계약**이다. 실행 가능한 migration이 이미 제공되었다는 뜻이 아니다. Codex는 이 계약을 SQL migration, 권한, trigger, 테스트로 구체화해야 한다.
 
 ## P1 작성 상태 · 2026-10-02

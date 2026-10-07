@@ -1,6 +1,6 @@
 # ToonShelf 개발 문서
 
-**문서 버전:** 1.18 / **갱신일:** 2026-10-07 / **상태:** 아이디 인증·공유 Supabase toon_ 코드 및 DB 설치 완료, 실제 Auth·권한·화면 검수 대기
+**문서 버전:** 1.19 / **갱신일:** 2026-10-07 / **상태:** 아이디 인증·공유 Supabase DB 설치, 공개 티어 댓글 가중 인기 코드·추가 DB 반영, 실행 검수 대기
 
 ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 이름이 아니다.
 
@@ -19,6 +19,12 @@ ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 
 기존 Supabase 프로젝트를 함께 사용하므로 앱 테이블·RPC·enum·index는 `toon_`, 내부 스키마는 `toon_private`, Storage는 `toon_avatars`/`toon_licensed_covers`, 세션 쿠키는 `toon-sb-…`로 분리했다. 기존 SQL 파일은 문서상 아직 미적용인 설치 기준을 수정한 것이며, 기존 DB 테이블의 rename/data migration을 실행한 것이 아니다. 제공된 키는 무시되는 `.env.local`에 보관하고 `.env.example`에는 빈 예시만 둔다. publishable/secret 및 legacy anon/service_role 변수 이름을 모두 지원한다.
 
 **연결·DB 적용:** 사용자 선택 대상 `zwzncrdlqnthxgdvsqxq`로 MCP 연결과 제공된 env URL이 일치함을 확인했다. 기존 여행 앱의 테이블 6개·migration 12개·Auth 트리거·Storage·ACL·extension을 읽었고 ToonShelf 기존 설치/이름 충돌은 없었다. 17개 SQL source를 한 트랜잭션으로 묶어 MCP migration `toon_shared_project_username_auth`로 적용했으며 도구가 success:true를 반환했다. ToonShelf 테이블/RLS/RPC/조건부 Auth 트리거와 `toon_avatars`/`toon_licensed_covers` bucket이 설치됐다. 기존 여행 앱의 기본 프로필 생성 트리거는 유지한다. 공유 Auth에서 새 계정을 만들면 이 트리거도 여행 앱 기본 프로필 행을 생성하는 구조이며, ToonShelf 회원/역할/동의는 별도 toon_ 데이터로 판단한다. 기존 여행 테이블/정책/함수/공용 Auth 설정을 수정하지 않았고 사용자/작품 seed는 실행하지 않았다. 설치 결과는 실제 가입·로그인·권한 흐름 검수를 대신하지 않는다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·브라우저/DB 권한 검수·타입 생성은 미실행이다.
+
+## 공개 티어 최근 7일 인기순 · 2026-10-07
+
+`/tiers?sort=popular`에 최근 유효 좋아요 수와 서로 다른 댓글 참여자 수를 함께 반영하도록 작성했다. 인기 점수는 `최근 좋아요 수 + 2 × 최근 댓글 참여자 수`이며 같은 사람의 댓글·답글은 한 명으로 센다. 생성 시각 기준 최근 168시간을 사용하고 수정 시각은 기간을 갱신하지 않는다. 본인·삭제·숨김·비활성 계정과 차단된 댓글/스레드는 제외한다. 삭제된 원 댓글의 현재 볼 수 있는 답글은 유지된 토론 규칙에 따라 참여자로 센다. 인기순 카드에 최근 좋아요·댓글 참여자·점수를 표시하고 기존 최신순·태그·페이지·스포일러 경계와 대표 티어 계약을 보존했다.
+
+추가 SQL은 `20261007070457_tier_comment_popularity.sql` 하나이며 이미 적용된 17개 baseline은 수정하거나 재실행하지 않는다. 선택한 공유 프로젝트에 MCP migration `toon_tier_comment_popularity`로 이번 SQL만 추가 적용했고 success:true를 받았다. 검사 파일은 작성만 했고 테스트·자동 검사·브라우저/DB 권한 검수는 미실행이다. 관련 요구사항은 TIER-10이며 팔로우·피드·알림과 리뷰/커뮤니티 인기 목록은 후속이다.
 
 ## 지금 실행하기
 

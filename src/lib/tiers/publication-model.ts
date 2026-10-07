@@ -33,7 +33,14 @@ export const publicTierCardSchema=publicationSchema.omit({body:true}).extend({ti
   if (v.isSpoiler ? v.title !== null || v.tags !== null : v.title === null || v.tags === null)
    ctx.addIssue({code:"custom",message:"현재 공개 범위를 확인해 주세요."});
  });
-export const publicTierListSchema=z.object({items:z.array(publicTierCardSchema).max(12),hasNext:z.boolean()});
+// Featured-tier choices use the original card contract. Require popularity
+// only from the discovery RPC, which actually computes both new fields.
+export const publicTierDiscoveryCardSchema=publicTierCardSchema.and(z.object({recentCommenterCount:likeCountSchema,popularityScore:likeCountSchema}))
+ .superRefine((v,ctx)=>{
+  if (v.popularityScore !== v.recentLikeCount+2*v.recentCommenterCount)
+   ctx.addIssue({code:"custom",message:"인기 점수와 집계 기준을 확인해 주세요."});
+ });
+export const publicTierListSchema=z.object({items:z.array(publicTierDiscoveryCardSchema).max(12),hasNext:z.boolean()});
 export const tierReportSchema=z.object({id:uuidSchema,tierId:uuidSchema,reason:reportReasonSchema,detail:z.string(),
  status:z.enum(["pending","resolved","rejected"]),result:z.string(),createdAt:z.string()});
 export const tierReportQueueSchema=z.object({items:z.array(tierReportSchema),hasNext:z.boolean()});

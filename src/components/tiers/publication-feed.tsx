@@ -13,7 +13,8 @@ export async function PublicationFeed({page,filters}:{page:number;filters:TierDi
     <span className="section-chip">{tier.isSpoiler ? "스포일러 포함" : "전체 공개"}</span>
     <h3><Link href={`/tiers/${tier.id}`} prefetch={false}>{tier.title ?? "스포일러가 포함된 티어표"}</Link></h3>
     <p>{tier.name} · <time dateTime={tier.publishedAt}>{new Date(tier.publishedAt).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul"})}</time></p>
-    <p>좋아요 {tier.likeCount.toLocaleString("ko-KR")}개{filters.sort === "popular" ? <> · 최근 7일 {tier.recentLikeCount.toLocaleString("ko-KR")}개</> : null}</p>
+    <p>좋아요 {tier.likeCount.toLocaleString("ko-KR")}개</p>
+    {filters.sort === "popular" ? <p>최근 7일: 좋아요 {tier.recentLikeCount.toLocaleString("ko-KR")}개 · 댓글 참여 {tier.recentCommenterCount.toLocaleString("ko-KR")}명 · 인기 점수 {tier.popularityScore.toLocaleString("ko-KR")}점</p> : null}
     {tier.tags?.length ? <div className="tier-publication-tags" aria-label="게시본 테마 태그">{tier.tags.map(tag=><Link key={tag} className="section-chip" href={tierDiscoveryUrl({...filters,tag})} prefetch={false}>#{tag}</Link>)}</div> : null}
     <Link href={`/tiers/${tier.id}`} prefetch={false} className="text-link">현재 게시본 보기 →</Link>
    </article>)}</div>
