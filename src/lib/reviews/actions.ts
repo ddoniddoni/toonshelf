@@ -61,7 +61,8 @@ export async function setUserBlock(_state:FormState,form:FormData):Promise<FormS
   const {client} = await requireAccount();consent(form);
   const target = uuidSchema.parse(field(form,"userId"));const blocked = z.enum(["true","false"]).parse(field(form,"blocked")) === "true";
   const {error} = await client.rpc("toon_set_user_block",{p_user:target,p_blocked:blocked});reviewError(error);
-  revalidatePath("/settings/blocks");revalidatePath("/me/library");revalidatePath("/tiers","layout");revalidatePath("/share/t/[token]","page");return "/settings/blocks?updated=1";
+  revalidatePath("/settings/blocks");revalidatePath("/me/library");revalidatePath("/tiers","layout");revalidatePath("/share/t/[token]","page");
+  revalidatePath("/u/[username]/followers","page");revalidatePath("/u/[username]/following","page");return "/settings/blocks?updated=1";
  });
 }
 export async function moderateReview(_state:FormState,form:FormData):Promise<FormState> {

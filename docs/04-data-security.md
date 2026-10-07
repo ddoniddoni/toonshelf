@@ -256,6 +256,14 @@ notifications는 recipient만 SELECT와 read_at 변경이 가능하다. 생성�
 
 follows와 reactions는 타깃 존재 확인, 상호 차단 확인, active 계정 확인을 transaction 안에서 처리한다. 차단 시 양방향 follows를 삭제하고 이후 댓글/좋아요/알림 생성을 막는다.
 
+### P5 팔로우 증분 · 2026-10-07 (코드·DB 반영, 실행 미검증)
+
+`toon_follows`는 follower/following composite PK·self CHECK·profile FK cascade와 양쪽 최신 페이지 index를 갖는다. RLS를 켜고 PUBLIC/anon/authenticated/service_role의 원본 SELECT/DML을 revoke한다. 공개 관계는 제한된 조회 RPC로만 제공하며 상태/목록에는 공개 프로필 필드·실제 인원수·현재 회원의 팔로우 상태만 반환한다. 전체 관계 행, 다른 사람의 비공개 설정/동의/메일/활동·관계 시각은 제공하지 않는다. 양쪽 활성/확인/현재 동의·상호 차단 및 조회자와 양쪽의 차단을 같은 predicate로 수와 페이지에 적용한다. 비회원에는 개인 차단 필터가 없다.
+
+저장 RPC는 실제 현재 세션/회원 잠금→팔로우 제한(30회/600초)→기존 interaction pair 잠금→차단/대상 재검사→본인 목표 상태 INSERT/DELETE 순서다. 중복 INSERT는 기존 생성 시각을 바꾸지 않는다. 비활성/없어진 대상도 owner가 기존 관계를 제거할 수 있으나 공개 state는 null이다. `toon_blocks` BEFORE INSERT trigger는 같은 pair 잠금을 얻어 새 팔로우 양방향만 제거한다. 기존 `toon_set_user_block` 정의·권한·1분 30회 제한·좋아요 정리는 변경하지 않으며 block INSERT 재시도에서도 trigger가 실행된다. 해제는 관계를 복원하지 않는다. private helper/trigger의 직접 EXECUTE는 revoke하고 public 읽기는 anon/authenticated, 쓰기는 authenticated만 허용한다.
+
+추가 SQL `20261007092113_user_follows.sql`만 선택한 `zwzncrdlqnthxgdvsqxq`에 MCP로 적용해 success:true를 받았다. 기존 baseline/다른 앱/공용 Auth·default privileges는 변경하지 않았다. SQL 18번 fixture는 local rollback용 작성만 했으며 원격 권한/경합·성능과 실사용 흐름은 미검증이다. 전체 SOC-06 피드/알림 노출 및 P7 탈퇴 worker는 후속이다.
+
 ## 9. 제보와 신고
 
 ### catalogue_submissions
@@ -307,7 +315,7 @@ follows와 reactions는 타깃 존재 확인, 상호 차단 확인, active 계�
 | comments | 공개 부모의 visible 댓글 | 동일, 차단 필터 | 본인 본문/삭제만 |
 | tier_lists/publications | 현재 public 게시본만 | public 또는 소유자 | 일반 DML 금지, RPC |
 | tier_list_drafts | 불가 | 불가 | 소유자 RPC만 |
-| follows | 공개 관계 | 차단 필터 적용 | follower 본인만 |
+| follows | 제한된 공개 목록 RPC | 활성/차단 필터 적용 RPC | follower 본인 목표 상태 RPC, 직접 DML 금지 |
 | blocks | 불가 | 본인이 만든 차단만 | blocker 본인만 |
 | reactions | 공개 대상 반응 | 동일, 차단 필터 | 본인 생성/삭제만 |
 | activity_events | 공개 대상 이벤트 | 동일/팔로잉 조건 | 직접 쓰기 불가 |

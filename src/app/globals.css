@@ -374,6 +374,16 @@ main:focus { outline: none; }
 .public-profile, .legal-page { padding-block: 64px 88px; max-width: 800px; }
 .public-profile .eyebrow { margin-top: 24px; }
 .profile-bio { white-space: pre-wrap; overflow-wrap: anywhere; margin-block: 24px; }
+.follow-panel { display: grid; justify-items: start; gap: 12px; padding-block: 20px; border-block: 1px solid var(--line); margin-bottom: 28px; }
+.follow-panel p { margin: 0; }
+.follow-counts { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+.follow-counts a { padding-block: 6px; }
+.follow-directory { list-style: none; margin: 24px 0; padding: 0; }
+.follow-directory li { border-bottom: 1px solid var(--line); }
+.follow-person { display: flex; align-items: center; gap: 16px; padding: 16px 0; overflow-wrap: anywhere; }
+.follow-person > span { display: grid; gap: 6px; min-width: 0; }
+.follow-person .user-avatar { width: 52px; height: 52px; border-radius: 12px; font-size: 22px; }
+.follow-person .user-avatar img { width: 52px; height: 52px; }
 .legal-page p { margin-block: 24px; }
 .header-account a { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 1000px) {
