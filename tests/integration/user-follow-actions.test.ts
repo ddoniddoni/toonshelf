@@ -24,7 +24,7 @@ describe("user follow server boundaries (written only)",()=>{
  it("writes the desired state using the session RPC and invalidates all public relationship routes",async()=>{
   expect(await setUserFollow({id,following:true})).toEqual({ok:true,state});
   expect(mocks.rpc).toHaveBeenCalledWith("toon_set_user_follow",{p_user:id,p_following:true});
-  expect(mocks.revalidate.mock.calls).toEqual([["/u/[username]","page"],["/u/[username]/followers","page"],["/u/[username]/following","page"],["/me/feed"]]);
+  expect(mocks.revalidate.mock.calls).toEqual([["/u/[username]","page"],["/u/[username]/followers","page"],["/u/[username]/following","page"],["/me/feed"],["/me/notifications"]]);
  });
  it("accepts removal of an inaccessible target and never invents a successful new follow",async()=>{
   mocks.rpc.mockResolvedValue({data:null,error:null});

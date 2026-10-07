@@ -254,6 +254,12 @@ activity_events는 첫 공개 게시 이벤트를 중복 없이 만든다. 공�
 
 notifications는 recipient만 SELECT와 read_at 변경이 가능하다. 생성은 신뢰된 DB trigger/RPC만 할 수 있다. 알림 payload에는 리뷰/댓글 본문을 복사하지 않는다. FK가 삭제로 없어져도 일반 안내로 표시할 수 있어야 한다.
 
+**알림 구현 · 2026-10-08:** `20261007154622_notifications.sql`의 `toon_notifications`는 recipient FK CASCADE, actor/tier/comment/submission FK SET NULL, recipient+dedupe unique와 자기 알림 금지 CHECK, 수신자 페이지/미읽음 partial/FK index를 갖는다. RLS 활성화와 PUBLIC/anon/authenticated/service_role 원본 SELECT/DML revoke로 raw 접근을 막는다. 위 표의 recipient 조회·read_at 수정은 제한 RPC를 통해서만 허용하며 정책만으로 임의 컬럼 UPDATE를 허용하지 않는다. 본인 확인은 live session/current_active/auth.uid()이고 다른 recipient 입력을 받지 않는다. 생성/DTO helper 실행도 exposed role에서 revoke했다.
+
+기존 trusted source RPC 안의 invoker AFTER trigger로 미래 팔로우·티어 좋아요·댓글/답글·pending 제보의 처리 전환을 같은 transaction에 기록한다. 원문·제목·아바타·운영자 정보·결과 문구 snapshot은 저장하지 않는다. 생성 때 수신자/작성자 활성·현재 동의·양방향 차단·자기 알림·수신 설정을 확인한다. 기존 source pair 잠금을 이용하고 수신자의 access row를 추가 잠그지 않는다. 조회 DTO는 현재 source/부모/계정/차단/관계 상태를 다시 확인하고 불가한 알림에는 id/createdAt/readAt와 unavailable 종류만 남긴다. 수신자 자신의 일반 안내도 읽음 처리할 수 있다. P7 탈퇴/보존 기간 정책은 별도 후속이다.
+
+MCP 대상 `zwzncrdlqnthxgdvsqxq`에 새 SQL만 `toon_notifications`로 적용해 success:true를 받았다. 과거 이벤트 backfill, 기존 함수 재정의, 공용 Auth/여행 앱/default privileges 변경은 없으며 SQL20 local fixture는 작성만 했다. 실제 권한·경합·성능 검수는 미실행이다.
+
 follows와 reactions는 타깃 존재 확인, 상호 차단 확인, active 계정 확인을 transaction 안에서 처리한다. 차단 시 양방향 follows를 삭제하고 이후 댓글/좋아요/알림 생성을 막는다.
 
 ### P5 팔로우 증분 · 2026-10-07 (코드·DB 반영, 실행 미검증)

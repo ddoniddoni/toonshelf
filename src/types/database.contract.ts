@@ -40,6 +40,10 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      toon_list_notifications:{Args:{p_unread:boolean;p_cursor:Json|null};Returns:Json};
+      toon_notification_unread_count:{Args:Record<string,never>;Returns:number};
+      toon_mark_notification_read:{Args:{p_id:string};Returns:Json};
+      toon_mark_all_notifications_read:{Args:{p_through:string};Returns:Json};
       toon_get_following_feed:{Args:{p_cursor:Json|null};Returns:Json};
       toon_get_public_follow_state:{Args:{p_username:string};Returns:Json};
       toon_list_public_follows:{Args:{p_username:string;p_kind:string;p_page:number};Returns:Json};
