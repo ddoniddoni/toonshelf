@@ -9,7 +9,7 @@ vi.mock("@/lib/auth/session",()=>({requireAccount:vi.fn()}));
 vi.mock("@/lib/reviews/moderation",()=>({requireModerator:vi.fn()}));
 import { listPublicTiers } from "@/lib/tiers/publication-data";
 const id="20000000-0000-4000-8000-000000000001";
-const card={id,version:2,publishedVersion:1,publishedAt:"2026-10-05T00:00:00Z",authorId:id,username:"author",name:"작가",isSpoiler:false,title:"공개 표",tags:["100%_&?"],likeCount:3,recentLikeCount:1};
+const card={id,version:2,publishedVersion:1,publishedAt:"2026-10-05T00:00:00Z",authorId:id,username:"author",name:"작가",isSpoiler:false,title:"공개 표",tags:["100%_&?"],likeCount:3,recentLikeCount:1,recentCommenterCount:2,popularityScore:5};
 describe("tier discovery data",()=>{
  beforeEach(()=>{vi.resetAllMocks();mocks.env.mockReturnValue({supabase:{url:"https://example.test",key:"public-test-key"}});mocks.client.mockResolvedValue({rpc:mocks.rpc});mocks.rpc.mockResolvedValue({data:{items:[card],hasNext:false},error:null});});
  it("passes only validated literal filters and a bounded page to the session client RPC",async()=>{
@@ -26,9 +26,11 @@ describe("tier discovery data",()=>{
   mocks.env.mockReturnValue({supabase:null});expect(await listPublicTiers(1)).toBeNull();expect(mocks.rpc).not.toHaveBeenCalled();
  });
  it("strips unrelated fields and rejects missing counts or leaked spoiler metadata",async()=>{
-  mocks.rpc.mockResolvedValue({data:{items:[{...card,body:{title:"private"},likers:["private-user"]}],hasNext:false},error:null});
+  mocks.rpc.mockResolvedValue({data:{items:[{...card,body:{title:"private"},likers:["private-user"],commenters:["private-user"]}],hasNext:false},error:null});
   expect(JSON.stringify(await listPublicTiers(1))).not.toContain("private");
   mocks.rpc.mockResolvedValue({data:{items:[{...card,recentLikeCount:undefined}],hasNext:false},error:null});await expect(listPublicTiers(1)).rejects.toThrow();
+  mocks.rpc.mockResolvedValue({data:{items:[{...card,recentCommenterCount:undefined}],hasNext:false},error:null});await expect(listPublicTiers(1)).rejects.toThrow();
+  mocks.rpc.mockResolvedValue({data:{items:[{...card,popularityScore:99}],hasNext:false},error:null});await expect(listPublicTiers(1)).rejects.toThrow();
   mocks.rpc.mockResolvedValue({data:{items:[{...card,isSpoiler:true}],hasNext:false},error:null});await expect(listPublicTiers(1)).rejects.toThrow();
  });
  it("exposes safe errors without raw SQL details",async()=>{
