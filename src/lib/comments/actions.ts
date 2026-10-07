@@ -11,7 +11,7 @@ import type { FormState } from "@/types/auth";
 import { commentError } from "./errors";
 import { commentCreateSchema,commentEditSchema,commentDeleteSchema,commentAccessSchema,commentRevealSchema,commentReportInputSchema,
  commentModerateInputSchema,commentSchema,commentEditorSchema,commentModerationSchema } from "./model";
-function invalidate() {revalidatePath("/tiers","layout");revalidatePath("/admin/comment-reports");revalidatePath("/admin/comments/[id]","page");revalidatePath("/me/comment-reports");}
+function invalidate() {revalidatePath("/me/notifications");revalidatePath("/tiers","layout");revalidatePath("/admin/comment-reports");revalidatePath("/admin/comments/[id]","page");revalidatePath("/me/comment-reports");}
 export async function createTierComment(input:unknown) {
  try {
   const {client}=await requireAccount();const v=commentCreateSchema.parse(input);

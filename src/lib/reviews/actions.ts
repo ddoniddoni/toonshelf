@@ -13,7 +13,7 @@ import { requireModerator } from "./moderation";
 import { reviewError } from "./errors";
 import { draftPayloadSchema,moderationInputSchema,moderationSchema,reportInputSchema,reviewDetailSchema,type BodyResult } from "./model";
 function invalidate() {
- revalidatePath("/me/feed");
+ revalidatePath("/me/feed");revalidatePath("/me/notifications");
  revalidatePath("/reviews","layout");revalidatePath("/me/reviews","layout");revalidatePath("/works/[slug]","page");revalidatePath("/u/[username]","page");
  revalidatePath("/me/reports");revalidatePath("/admin/reports");revalidatePath("/admin/reviews","layout");
 }

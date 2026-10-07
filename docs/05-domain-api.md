@@ -177,6 +177,14 @@ sort는 title/rating/tier만 허용한다. rating은 공개 별점 내림차순,
 | getFollowingFeed | 라이브 공개 권한 join, cursor |
 | markNotificationRead / markAllNotificationsRead | recipient만 |
 
+### P5 알림 계약 · 2026-10-08 (코드·DB 반영, 실행 미검증)
+
+`toon_list_notifications(p_unread,p_cursor)`는 현재 수신자에 대해 `(created_at,id)` 내림차순으로 20개와 다음 위치, unreadCount, readThrough를 반환한다. 21개까지만 후보를 읽고 별도 원문 조회 없이 제한 DTO를 만든다. cursor는 UTC 소수 초 6자리를 보존하며 앱 envelope의 viewer/filter/v를 확인한다. DB cursor는 권한 없는 위치이고 수신자 권한을 넘기지 않는다. strict 입력과 응답 순서/중복/다음 위치/미읽음 개수를 검사하며 null/오류를 성공한 빈 목록이나 0으로 처리하지 않는다. `toon_notification_unread_count()`는 본인 전체 미읽음 수이고 일반 안내로 바뀐 알림도 포함한다.
+
+`toon_mark_notification_read(p_id)`는 자신의 한 알림만 읽음으로 표시하고 재시도 시 기존 시각을 보존한다. 타인/없는 ID는 같은 NOT_FOUND다. `toon_mark_all_notifications_read(p_through)`는 본인의 미읽음 중 생성 시각이 cutoff 이하인 것만 처리하고 변경 개수·같은 cutoff를 반환한다. 미래/무한/잘못된 시각은 거절한다. cutoff는 화면에서 받은 생성 시각 경계이며 transaction commit 순서나 고정 snapshot을 보장하는 토큰은 아니다. 변경 응답의 ID/시각 형식을 확인한 후에만 inbox와 root layout을 무효화한다. 개별 읽음 120회/분, 모두 읽음 20회/분이며 모든 변경은 사용자 세션 RPC다.
+
+수신 설정 followers/reactions/replies/announcements는 각각 팔로우/티어 좋아요/댓글·답글/제보 결과에 연결한다. 팔로우·좋아요는 기존 source pair mutex 안에서 직전 같은 사용자/대상/종류 알림으로부터 24시간 동안 생성을 억제하고 UTC 일자 dedupe key를 보조로 둔다. 취소/다시 누르기·재시도는 기존 시각이나 read_at를 되돌리지 않는다. 댓글은 source ID+수신자, 제보는 submission ID+수신자로 한 번만 생성한다. 답글은 원 댓글 작성자와 표 작성자에게 알리되 동일 수신자는 하나의 답글 알림, 자기 자신은 제외한다. 수정/재공개만으로 새 알림을 만들지 않는다. 원문 없는 불가 DTO에서는 원래 kind·actor·target도 제거한다. 기존 활동은 소급 알리지 않으며 리뷰/커뮤니티 등 아직 없는 반응/댓글 대상은 해당 도메인 구현 때 추가한다.
+
 **P5 팔로우 계약 · 2026-10-07 (코드·DB 반영, 실행 미검증):**
 
 - `toon_get_public_follow_state(username)` → 공개 `{id,username,name,avatarPath,followerCount,followingCount,following,canFollow,isSelf}` 또는 null. 별도 전역 캐시 없이 요청 단위 조회자 조건을 적용한다.

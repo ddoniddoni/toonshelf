@@ -19,7 +19,7 @@ describe("tier like action boundaries",()=>{
  });
  it("sends desired state/expected lifecycle version without an actor and revalidates current counts",async()=>{
   expect(await setTierLike(input)).toEqual({ok:true,state});expect(mocks.rpc).toHaveBeenCalledWith("toon_set_tier_like",{p_id:id,p_version:2,p_liked:true});
-  expect(mocks.revalidate.mock.calls).toEqual([["/tiers"],[`/tiers/${id}`]]);
+  expect(mocks.revalidate.mock.calls).toEqual([["/tiers"],[`/tiers/${id}`],["/me/notifications"]]);
   mocks.rpc.mockResolvedValue({data:{...state,liked:false,likeCount:0},error:null});expect(await setTierLike({...input,liked:false})).toMatchObject({ok:true,state:{liked:false,likeCount:0}});
  });
  it("maps self/stale/withdrawn/rate errors without exposing raw database details",async()=>{

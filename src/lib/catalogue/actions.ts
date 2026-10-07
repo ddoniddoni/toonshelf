@@ -23,7 +23,7 @@ async function finish(operation:()=>Promise<string>):Promise<FormState> {
   let destination:string;
   try { destination = await operation(); } catch(error) { return actionError(error); }
   revalidatePath("/explore");revalidatePath("/works","layout");revalidatePath("/admin","layout");
-  revalidatePath("/me/feed");
+  revalidatePath("/me/feed");revalidatePath("/me/notifications");
   redirect(destination);
 }
 export async function upsertWork(_state:FormState,form:FormData):Promise<FormState> {

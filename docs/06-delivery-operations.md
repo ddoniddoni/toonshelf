@@ -13,7 +13,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
-| P5 | 진행: 공개 티어 댓글·한 단계 답글/신고/차단/운영, SOC-04 티어 반응·SOC-02 팔로우/공개 목록·SOC-03 리뷰/티어 팔로잉 피드 코드/추가 DB 반영, 실행 미검증 | 아래 2026-10-07 기록. 리뷰/글 댓글·다른 반응 대상·커뮤니티 글/피드·알림은 후속 |
+| P5 | 진행: 공개 티어 댓글·답글/신고/차단/운영, SOC-04 티어 반응·SOC-02 팔로우/공개 목록·SOC-03 리뷰/티어 피드·SOC-05 앱 알림 코드/추가 DB 반영, 실행 미검증 | 아래 2026-10-08 기록. 리뷰/글 댓글·다른 반응 대상·커뮤니티 글/피드는 후속 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
 
@@ -744,3 +744,20 @@ UI 정렬명을 `최근 7일 인기순`으로 바꾸고 최근 좋아요·댓글
 **작성한 검사 파일·실행 결과:** `tests/unit/following-feed.test.ts`, `tests/unit/following-feed-view.test.tsx`, `tests/integration/following-feed-data.test.ts`, `supabase/tests/19_following_feed.test.sql`을 작성하고 기존 follow action의 무효화 기대값을 갱신했다. actor/reveal/중복 query 주입, 다른 회원 cursor·6자리 소수 초, 제한 DTO·스포일러·순서/중복/next/범위, empty/error 구분, first public/re-publish idempotency, 익명/만료/미확인/pending/정지·editable metadata·동의, private/unlisted/숨김/삭제/성인 작품·팔로우 해제/양방향 차단·현재 내용과 철회된 anchor·동점 페이지를 담았다. 모두 작성만 했으며 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/부하 검수는 미실행이다. 실제 확인한 사용자 흐름은 없다. DB 적용 성공은 실사용/테스트 통과가 아니다.
 
 **근거·Git·다음:** 설치된 Next 16.3.8의 Server Component/Promise searchParams/revalidatePath 문서와 Supabase 공식 changelog/functions/RLS, Postgres partial index/cursor, React 직렬화 지침을 읽었다. 스키마 metadata와 source/diff를 읽었으며 실행 검증은 하지 않았다. 이전 팔로우 feature `3dcbe92`/develop `e950d27` push 후 깨끗한 최신 develop fetch/fast-forward를 기준으로 새 `feature/following-feed`에서 작성했다. 개발 보고 시점에는 이번 stage/commit/push/통합 merge/PR를 요청하지 않아 하지 않았다. 이후 2026-10-07 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push→최신 develop merge/push→develop 종료를 진행한다. 검사 실행 허가는 포함되지 않으며 실제 반영 결과는 Git 이력으로 확인한다. 외부 설정으로 막힌 피드 항목은 없지만 실제 사용자/권한/화면 검수는 별도 요청 대기다. 다음은 SOC-05 알림이다. 커뮤니티 글과 피드 이벤트·리뷰/글 댓글·P4 비회원 PNG/edge 제한·P6/P7 및 기존 검수 범위는 후속이며, 규장각 API는 사용자 신청 승인 후 별도 연결한다.
+
+
+### 2026-10-08 · 앱 안 알림과 읽음 처리 (코드·추가 DB 반영, 실행 검수 대기)
+
+**상태·요구사항:** 진행/실행검수대기. SOC-05의 현재 팔로우·티어 좋아요·댓글·답글·제보 처리 알림과 읽음/모두 읽음, SOC-06의 현재 노출 경계를 작성했다. 기존 설정과 수신 여부를 연결했다. 미구현 리뷰/글 반응·댓글 대상과 커뮤니티, 전체 P5 완료는 후속이다.
+
+**변경:** `/me/notifications`의 전체/미읽음 필터·20개 커서 페이지·실제 미읽음 수·로딩/빈 상태/주소 오류/재조회·개별/모두 읽음, 상단 종과 계정 메뉴 진입, 종류별 수신 설정 안내를 작성했다. 종의 응답 오류/로딩은 가짜 0을 표시하지 않는다. 읽음 응답의 ID/cutoff를 확인한 뒤 현재 서버 상태를 불러오며 유실/오류를 성공으로 표시하지 않는다. 모두 읽음은 페이지의 readThrough 시각까지 생성된 미읽음에만 적용하고 나중 생성분은 남긴다. 고정 snapshot/commit 순서 보장은 아니며 실시간 구독 없이 다음 요청/새로고침에서 갱신한다.
+
+댓글 알림은 `/tiers/[id]/comments/[commentId]`의 현재 공개 권한·기존 스포일러 gate를 재사용한다. 제보 알림은 `/submissions/[id]`의 사용자 세션·본인 ID 필터/RLS 상세로 연결하여 최근 50개 목록 밖에서도 접근한다. 알림에는 제목/본문/제보 원문·결과 문구를 저장하거나 내려주지 않는다. 삭제/비공개/링크 공개/숨김/차단/비활성·관계/반응 취소 때 원래 종류/작성자/대상 ID·링크도 제거한 일반 안내로 바꾼다. 이미 받은 화면은 회수할 수 없다. 원본 변경 action의 알림 경로 무효화와 읽음 후 root layout 무효화를 연결했다. 새 의존성이나 공유 캐시는 없다.
+
+**DB 반영:** CLI 2.119.0 migration new help와 공식 changelog/functions/RLS 자료를 읽고 `20261007154622_notifications.sql`을 생성했다. MCP get_project_url로 선택한 `zwzncrdlqnthxgdvsqxq`를 확인하고 관련 Toon 컬럼/기존 가시성 helper 정의만 read-only로 읽었다. 새 SQL 하나를 MCP `apply_migration(name=toon_notifications)`으로 적용해 success:true를 받았다. `toon_notifications`의 recipient/dedupe unique·자기 알림 금지·FK·페이지/미읽음/FK index·RLS/raw revoke와 정밀 RPC grant를 작성했다. 원본 테이블의 AFTER INSERT/제보 pending 처리 전환 trigger는 invoker이며 기존 trusted mutation transaction에 참여한다. 기존 함수나 공용 Auth/여행 앱/default privileges, 기존 baseline·migration은 수정하지 않았다. 과거 이벤트 backfill·원격 테스트 사용자/작품/관계 생성도 없다.
+
+생성은 현재 활성/확인/동의·자기 알림 제외·양방향 차단·수신 설정을 확인한다. 댓글은 source ID+recipient, 제보는 submission ID+recipient로 중복을 막는다. 답글은 원 댓글 작성자와 표 작성자에게 보내되 같으면 한 건이며 본인은 제외한다. 팔로우/좋아요는 기존 pair lock 내 직전 동일 알림부터 24시간 rolling 억제와 일자 dedupe key를 적용하며 취소/재시도/재삽입이 생성 시각·읽음 상태를 올리거나 되돌리지 않는다. 수신자 access row 잠금을 추가하지 않는다. 현재 원본/부모의 권한을 재검사하는 제한 DTO만 조회하며 raw DML/helper 직접 실행은 막았다. 본인 읽음 RPC는 auth.uid()/현재 세션·계정으로 한정하고 개별 120회/분·모두 20회/분으로 제한한다. 수기 DB 계약은 생성 타입 검증이 아니다.
+
+**작성한 검사 파일·실행 결과:** `tests/unit/notifications.test.ts`, `tests/unit/notification-inbox.test.tsx`, `tests/integration/notification-actions-data.test.ts`, local rollback 전용 `supabase/tests/20_notifications.test.sql`을 작성하고 기존 follow/like action의 무효화 기대값을 갱신했다. cursor 계정/필터·마이크로초, actor/recipient 주입, 제한 DTO/일반 안내·순서/중복/잘못된 응답, 응답 유실·읽음 ACK, raw 권한·인증/타인 ID·자기 알림·설정·중복·답글 분배·제보 처리·cutoff 이후 미읽음 유지·비공개/차단을 담았다. 모두 작성만 했다. 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검수는 실행하지 않았다. 실제 확인한 사용자 흐름은 없으며 DDL 성공을 기능 검증으로 보고하지 않는다. 소스/diff 읽기와 설치된 Next 16.3.8의 Server Components/Promise searchParams/revalidatePath 문서만 참고했다.
+
+**Git·다음 단계:** 이전 팔로잉 피드 feature `b634486`/develop merge `e340033` push 후 최신 develop fetch/fast-forward를 기준으로 새 `feature/notifications`에서 작성했다. 개발 보고 시점에는 commit/push 요청이 없어 stage·commit·push·통합 merge·PR를 하지 않았다. 이후 2026-10-08 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다. 알림 DB 설치의 외부 설정 대기는 없지만 실제 Auth/권한/브라우저 흐름은 별도 요청 대기다. 다음은 커뮤니티 글의 초안/공개·스포일러/신고/운영과 피드 이벤트 연결이며 리뷰/글 댓글·다른 반응·P4 비회원 PNG/edge 제한·P6/P7 및 기존 검수 범위는 유지한다. 규장각 API는 사용자 신청 승인 후 별도 연동하고 인증 검수는 사용자가 나중에 직접 진행할 예정이다.
