@@ -264,6 +264,16 @@ follows와 reactions는 타깃 존재 확인, 상호 차단 확인, active 계�
 
 추가 SQL `20261007092113_user_follows.sql`만 선택한 `zwzncrdlqnthxgdvsqxq`에 MCP로 적용해 success:true를 받았다. 기존 baseline/다른 앱/공용 Auth·default privileges는 변경하지 않았다. SQL 18번 fixture는 local rollback용 작성만 했으며 원격 권한/경합·성능과 실사용 흐름은 미검증이다. 전체 SOC-06 피드/알림 노출 및 P7 탈퇴 worker는 후속이다.
 
+### P5 팔로잉 피드 증분 · 2026-10-07 (코드·DB 반영, 실행 미검증)
+
+`toon_activity_events`는 id/actor_id/review_id/tier_list_id/event_type/created_at만 보관한다. 정확히 한 대상과 종류의 일치 CHECK, 대상별 partial unique, actor+시각+id 및 시각+id 인덱스, 프로필·대상 FK cascade와 RLS를 추가했다. 리뷰/티어 첫 공개 시 기존 신뢰된 게시 RPC의 transaction 안에서 invoker trigger가 이벤트를 생성한다. 초안/링크 공개는 제외하며 unique 충돌은 기존 이벤트/생성 시각을 보존한다. 이벤트에 원문·제목·개인 기록을 복제하지 않는다. 커뮤니티 post FK/이벤트는 글 도메인 구현 때 추가한다.
+
+도입 시 현재 공개/visible·활성 작성자에 한해 기존 리뷰와 현재 공개 티어의 참조를 추가한다. 리뷰는 published_at, 티어는 현재 게시본 published_at을 초기 기준으로 사용한다. 기존 publication에 과거 visibility가 없어 이전 버전의 최초 public 시각을 추정하거나 private/unlisted 이력을 backfill하지 않는다. 추가 INSERT만 수행하고 기존 게시물/이벤트를 삭제·갱신하지 않는다.
+
+원본 SELECT/DML과 trigger 함수 EXECUTE는 PUBLIC/anon/authenticated/service_role에 revoke한다. 공개 RPC는 authenticated EXECUTE만 허용하되 live 세션·현재 active/필수 동의/확인과 auth.uid()를 다시 검사한다. 현재 팔로잉과 양방향 차단, 작성자·리뷰 작품 공개 조건 또는 public 현재 티어 게시본 조건을 페이지 제한 전에 적용한다. private/unlisted/삭제/숨김/철회/비활성/팔로우 해제는 다음 조회에서 제외된다. 공개 프로필·게시 시각·제한 카드만 투영하며 스포일러 발췌/제목은 null이다.
+
+`20261007103840_following_feed.sql` 하나를 선택한 공유 프로젝트에 MCP `toon_following_feed`로 적용해 success:true를 받았다. 기존 테이블/함수 정의·공용 Auth·다른 앱·공용 default privileges는 수정하지 않았다. SQL 19번은 로컬 rollback fixture 작성만 했으며 원격 테스트 사용자/작품을 생성하지 않았다. 실제 권한·경합·성능·페이지 검수는 별도 요청 대기다.
+
 ## 9. 제보와 신고
 
 ### catalogue_submissions

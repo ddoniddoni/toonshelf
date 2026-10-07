@@ -187,6 +187,15 @@ sort는 title/rating/tier만 허용한다. rating은 공개 별점 내림차순,
 DTO는 실제 정수 수와 공개 프로필 필드를 요구하고 추가 비공개 필드는 제거한다. 서버 입력은 strict schema로 actor/관계 수·문자열 boolean 주입을 거절한다. 버튼은 서버 확인 후 갱신하고 불확실한 변경 응답에서 재조회 전 새 변경을 막는다. 이 SQL만 MCP로 추가 적용했으며 실제 Auth/RLS/DB·UI·페이지/부하 검수는 미실행이다. 피드/알림과 다른 소셜 대상은 후속이다.
 | compareWithUser / getRecommendations | 8-11절의 데이터와 수식 사용 |
 
+### P5 팔로잉 피드 계약 · 2026-10-07 (코드·DB 반영, 실행 미검증)
+
+- `toon_get_following_feed(p_cursor jsonb|null)` → `{hasFollowing,items,next}`. 사용자 ID는 받지 않고 현재 세션의 활성 회원만 읽는다. cursor는 정확히 `{id,createdAt}`이며 UTC 소수 초 6자리와 UUID를 검증한다. `(created_at,id)` 둘 다 내림차순, 현재 가시성 적용 후 최대 21개를 읽고 20개만 반환한다. 다음 후보가 있을 때 next는 마지막 반환 항목의 위치다.
+- item 공통은 `{eventId,createdAt,author:{id,username,name,avatarPath},kind,id,isSpoiler}`다. review는 현재 공개 작품 `{id,title,slug}`와 비스포일러일 때만 최대 240자 excerpt, tier는 현재 공개 게시본의 비스포일러 title만 추가한다. 개인 평가/태그/회차/메모/초안/공유 token/원문 body는 없다. 글 대상은 후속이다.
+- URL은 `/me/feed?cursor=<v1 envelope>`다. 서버 envelope는 현재 viewer와 정렬 위치에 묶고 1024자 상한·단일 인자·버전을 검사한다. DB 직접 호출에서 정렬 위치를 바꿔도 현재 auth.uid()의 공개 팔로잉 조건을 넘어설 수 없다. 기준 이벤트가 철회돼도 해당 위치 뒤의 현재 유효 항목을 읽는다.
+- 초기 기존 공개 게시물 참조 이후 첫 공개 이벤트는 대상별 한 번만 생성한다. 수정/재게시/팔로우 반복으로 이벤트나 시각을 늘리지 않는다. 현재 내용/권한을 매번 읽으므로 이동 중 공개 상태·팔로우 관계 변화에 따라 목록은 달라질 수 있다. 고정 snapshot/실시간 전송은 제공하지 않는다.
+
+빈 응답은 실제 `hasFollowing`에 따라 팔로우 없음과 공개 글 없음으로 구분한다. DTO 누락/null·스포일러 불일치·20개 초과·중복/순서·next 불일치·커서 이전 범위 위반은 INTERNAL_ERROR이며 빈 값으로 보정하지 않는다. 수정/철회/차단 후 재조회와 실제 SDK/DB/화면·권한·경합 검수는 미실행이다.
+
 ## 4. 제한된 HTTP 경로
 
 | 경로 | 용도 |
