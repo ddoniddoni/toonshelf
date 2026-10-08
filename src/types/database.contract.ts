@@ -40,6 +40,19 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      toon_list_review_comments:{Args:{p_review:string;p_review_version:number;p_parent:string|null;p_page:number};Returns:Json};
+      toon_get_review_comment:{Args:{p_id:string;p_review_version:number;p_version:number|null;p_reveal:boolean};Returns:Json};
+      toon_create_review_comment:{Args:{p_id:string;p_review:string;p_review_version:number;p_parent:string|null;p_body:string;p_spoiler:boolean;p_confirm:boolean};Returns:string};
+      toon_get_my_review_comment:{Args:{p_id:string;p_review_version:number;p_version:number};Returns:Json};
+      toon_update_review_comment:{Args:{p_id:string;p_review_version:number;p_version:number;p_body:string;p_spoiler:boolean;p_confirm:boolean};Returns:undefined};
+      toon_delete_review_comment:{Args:{p_id:string;p_version:number;p_confirm:boolean};Returns:undefined};
+      toon_report_review_comment:{Args:{p_id:string;p_review_version:number;p_version:number;p_reason:string;p_detail:string};Returns:undefined};
+      toon_list_review_comment_reports:{Args:{p_page:number;p_own:boolean};Returns:Json};
+      toon_moderation_review_comment_snapshot:{Args:{p_id:string;p_version:number|null;p_reveal:boolean};Returns:Json};
+      toon_moderate_review_comment:{Args:{p_id:string;p_version:number;p_action:string;p_reason:string;p_report:string|null;p_result:string};Returns:undefined};
+      toon_get_review_like_state:{Args:{p_id:string};Returns:Json};
+      toon_set_review_like:{Args:{p_id:string;p_version:number;p_liked:boolean};Returns:Json};
+      toon_search_reviews:{Args:{p_work:string|null;p_username:string|null;p_page:number;p_sort:string};Returns:Json};
       toon_list_post_comments:{Args:{p_post:string;p_post_version:number;p_parent:string|null;p_page:number};Returns:Json};
       toon_get_post_comment:{Args:{p_id:string;p_post_version:number;p_version:number|null;p_reveal:boolean};Returns:Json};
       toon_create_post_comment:{Args:{p_id:string;p_post:string;p_post_version:number;p_parent:string|null;p_body:string;p_spoiler:boolean;p_confirm:boolean};Returns:string};

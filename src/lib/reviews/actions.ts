@@ -13,10 +13,11 @@ import { requireModerator } from "./moderation";
 import { reviewError } from "./errors";
 import { draftPayloadSchema,moderationInputSchema,moderationSchema,reportInputSchema,reviewDetailSchema,type BodyResult } from "./model";
 function invalidate() {
+ revalidatePath("/");
  revalidatePath("/community","layout");revalidatePath("/posts","layout");
  revalidatePath("/me/feed");revalidatePath("/me/notifications");
  revalidatePath("/reviews","layout");revalidatePath("/me/reviews","layout");revalidatePath("/works/[slug]","page");revalidatePath("/u/[username]","page");
- revalidatePath("/me/reports");revalidatePath("/admin/reports");revalidatePath("/admin/reviews","layout");
+ revalidatePath("/me/reports");revalidatePath("/admin/reports");revalidatePath("/admin/reviews","layout");revalidatePath("/works/[slug]/reviews","page");revalidatePath("/u/[username]/reviews","page");revalidatePath("/admin/review-comments","layout");
 }
 async function finish(operation:()=>Promise<string>):Promise<FormState> {
  let path:string;try {path = await operation();}catch(error){return actionError(error);}

@@ -1,5 +1,13 @@
 # 03. 기술 구조와 인증
 
+## 리뷰 반응·토론 연결 · 2026-10-08 (작성·실행 미검증)
+
+`src/lib/review-comments`와 reviews의 like 모듈은 사용자 SSR client로 공개 조회/현재 회원 저장 RPC를 호출한다. 서버에서 허용 필드·UUID·리뷰/댓글 버전·명시적 확인을 검증하고 응답 대상/버전을 대조한다. moderator/admin은 기존 private 역할 RPC로 확인하며 클라이언트 actor/역할/집계 입력을 받지 않는다. 생성 UUID 재사용으로 응답 유실 재시도의 중복을 막고 목표 좋아요 상태가 확인된 뒤 UI를 갱신한다.
+
+새 `toon_search_reviews` 계약은 engagement를 필수 검증하되 기존 카드 계약은 유지한다. 새 API 미설치에 해당하는 PGRST202/PGRST205/42883/42P01만 기존 `toon_list_reviews`로 fallback하며 정렬을 latest로 명시한다. 좋아요·댓글/신고 화면은 CONFIG_REQUIRED만 준비 상태로 처리한다. 원본 리뷰/사용자 권한 오류나 알 수 없는 장애를 가리지 않는다. DTO에 스포일러 댓글 원문/삭제된 작성자/알림 원문을 포함하지 않는다.
+
+리뷰 및 댓글 변경은 상세/작품·프로필 목록/홈·알림·신고/운영 경로를 무효화한다. 댓글/리뷰 버전이 바뀌면 펼침 상태를 초기화한다. Next dynamic 및 기존 private/no-store 경계를 유지한다. 코드·SQL 작성만 했고 DB 설치·실제 Auth/RLS/HTTP·브라우저 흐름과 자동 검사는 미실행이다.
+
 ## 현재 공유 Supabase 인증 계약 · 2026-10-07 (DB 설치·Auth 실행 미검증)
 
 사용자 결정으로 기존 Supabase 프로젝트를 공유하고 아이디 가입의 이메일 인증을 생략한다. 모든 앱 DB 식별자는 `toon_`, 내부 스키마는 `toon_private`, Storage bucket은 `toon_avatars`/`toon_licensed_covers`, cookie storage key는 `toon-sb-<project>-auth-token`이다. 공개 DTO 필드와 enum 값은 그대로다. 아래 과거 구현 기록/논리 테이블 이름은 이 물리 접두사를 기준으로 읽는다.
