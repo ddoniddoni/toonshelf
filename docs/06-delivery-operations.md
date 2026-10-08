@@ -13,7 +13,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
-| P5 | 진행: 기존 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 글·작품 연결·신고/운영·글 피드 코드/migration 작성 | 아래 2026-10-08 커뮤니티 기록. 새 SQL은 MCP 인증 오류로 원격 미적용, 모든 실행 검수 대기. 글 좋아요/댓글/인기·관련 알림과 리뷰 토론은 후속 |
+| P5 | 진행: 기존 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 글·작품 연결·신고/운영·글 피드·좋아요/댓글/답글·인기순·알림 코드/migration 작성 | 아래 2026-10-08 커뮤니티 토론 기록. 커뮤니티 SQL 2개는 MCP 인증 오류로 원격 미적용, 모든 실행 검수 대기. 리뷰 반응/토론은 후속 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
 
@@ -779,3 +779,21 @@ SQL은 `toon_posts`/`toon_post_works`, `toon_private.toon_post_drafts`/`toon_pos
 **작성한 검사 파일·실행 상태:** `tests/unit/post-model.test.ts`, `tests/unit/post-ui.test.tsx`, `tests/integration/post-actions.test.ts`, `tests/integration/post-data.test.ts`, local rollback 전용 `supabase/tests/21_community_posts.test.sql`을 작성했다. 입력/공개 길이·중복 작품·owner 주입, 저장/게시 충돌·초안 격리, spoiler DTO/검색 누출, 현재 회원/소유자/운영자, raw 권한, 신고 중복/결과·차단/작품 숨김·공개 취소·삭제, 피드 첫 공개/재게시 보존을 다룬다. 파일은 전부 미실행이며 원격 테스트 데이터는 생성하지 않았다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·생성 타입·브라우저/DB 권한·경합/부하 검수와 실제 확인한 사용자 흐름은 **없음**이다. 소스/diff 읽기만 수행했으며 통과나 정상 동작을 주장하지 않는다.
 
 **근거·Git·다음:** 설치된 Next 16.3.8 Server Actions 가이드와 Supabase 공식 changelog/functions/RLS, 적용한 Supabase/Postgres/React 스킬을 읽었다. 알림 반영 뒤 최신 develop `9c9834f`를 fetch/fast-forward 기준으로 새 `feature/community-posts`를 생성했다. 개발 보고 시점에는 stage·commit·push·통합 merge·PR를 요청하지 않아 수행하지 않았다. 이후 2026-10-08 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하며 테스트/자동 검사 실행 허가는 포함되지 않는다. MCP 재연결 후 새 DB 설치가 먼저 필요하고, 다음 개발은 글 좋아요·댓글/답글·인기순·알림이다. 리뷰 반응/토론·P4 비회원 PNG/edge 제한·P6/P7 및 기존 실행 검수는 유지한다. 규장각 API 승인/표지 연동과 사용자의 인증 검수는 별도 후속이다.
+
+### 2026-10-08 · 커뮤니티 좋아요·댓글/답글·인기순·알림 (코드 작성, DB 적용/실행 검수 대기)
+
+**상태·요구사항:** 진행/외부연결대기. COM-03/04, SOC-04/05/06, OPS-01/02/04의 글 토론 증분이다. 기존 글에 좋아요/취소, 댓글·한 단계 답글·본인 수정/삭제, 댓글 신고/운영, 최근 7일 인기 정렬과 글 좋아요/댓글/답글 알림을 작성했다. 전체 COM/P5 완료 또는 실제 동작 확인으로 표시하지 않는다.
+
+**변경:** `src/lib/post-comments`, `src/lib/posts/like-*`, 대응 UI, `/posts/[id]/comments`와 정확한 댓글 상세, `/me/post-comment-reports`, `/admin/post-comment-reports`, `/admin/post-comments/[id]`를 추가했다. 글 상세에서 좋아요/첫 댓글 페이지를 병렬 조회하고 기존 신고 화면·운영 메뉴를 연결했다. 목표 상태 좋아요와 DB ACK 후 UI 갱신, 댓글 생성 UUID 재시도, 본인 수정 버전 충돌·삭제 확인을 작성했다. 스포일러는 글/원 댓글/댓글 중 하나라도 해당하면 처음에 본문을 보내지 않고 명시적 펼치기로 현재 버전을 재검사한다. 삭제된 원 댓글은 본문/공개 신원 없이 기존 답글을 보존하지만 새 답글은 막는다.
+
+`toon_search_posts`로 기존 검색/주제/작품 조건을 유지하며 인기순을 추가했다. 최근 168시간 유효 좋아요 + 서로 다른 비작성자 댓글 참여자 × 2이며 댓글/답글 중복 참여·수정/복구 시각으로 가산하지 않는다. 현재 비공개/숨김/삭제/차단/비활성 활동을 제외하고 카드에는 집계만 표시한다. 최신순은 페이지 후보를 먼저 제한하고 인기순은 현재 후보를 집계한다. 고정 snapshot/사전 집계는 아니며 페이지 이동 중 순서가 달라질 수 있다.
+
+알림은 기존 inbox/read/preferences를 재사용하고 post_like/post_comment/post_reply와 대상 FK만 추가한다. AFTER INSERT trigger가 제목/본문 없는 참조를 원자 기록한다. 자기 알림 제외, 좋아요 24시간 억제/UTC 일자 dedupe, 댓글 source ID/수신자 중복 방지, 현재 수신 설정을 적용한다. 답글은 원 댓글 작성자와 서로 다른 글 작성자에게 전달한다. 열람 때 현재 대상/계정/차단을 다시 검사하고 볼 수 없으면 kind/actor/target까지 일반 안내로 바꾼다. 댓글 신고 결과는 본인 결과 화면에서 제공하며 별도 결과 알림은 구현하지 않았다.
+
+**DB·외부 대기:** 설치된 CLI 2.119.0 migration new로 `20261008102414_community_discussions.sql`을 생성했다. 기존 티어 RPC/테이블을 유지하고 글 전용 `toon_post_comments`/`toon_post_reactions`, private 댓글 신고/감사를 추가한다. RLS/raw revoke/정밀 RPC grant·빈 search_path·5초 제한, 현재 회원/역할·소유권·버전, 글→부모→댓글 잠금과 정렬된 interaction pair mutex, 댓글 입력/속도 제한을 작성했다. 기존 차단 RPC를 재정의하지 않는 trigger로 글 좋아요를 함께 정리한다. 글·댓글·계정의 현재 접근을 집계/알림에도 적용한다. shared Auth·여행 앱·공용 default privileges 및 이전 baseline은 변경하지 않았다.
+
+MCP `get_project_url`은 이번에도 `OAuth token refresh failed: Failed to parse server response`로 실패했다. **이전 `20261008090225_community_posts.sql`과 이번 `20261008102414_community_discussions.sql` 모두 원격 미적용**이며 이번 원격 schema 조회/DDL/데이터 변경 성공은 없다. 복구 후 `zwzncrdlqnthxgdvsqxq` 대상·관련 Toon 의존 정의/이력을 확인하고 글→토론 순서로 두 migration만 추가 적용한다. linked CLI push/reset/전체 seed는 금지다. 원격 테스트 사용자/작품을 생성하지 않았다.
+
+**작성한 검사 파일·실행 상태:** 댓글 입력/스포일러 DTO/한 단계 경계, 좋아요 및 댓글 액션의 현재 회원/정확한 ACK·대상/버전, 실패 후 UI 입력/재시도, 정렬/집계 DTO와 정확한 알림 링크를 다루는 단위/action/UI 파일을 작성했다. 기존 글 카드/DAL fixture에 실제 집계 계약을 반영했고 local rollback `supabase/tests/22_community_discussions.test.sql`에 raw 권한·비활성 사용자·좋아요 중복/본인 금지·재전송 댓글/교차 부모·스포일러·신고 중복/운영·부모 숨김/삭제·인기 기간·수신 설정/알림 중복·차단/삭제/공개 취소 경계를 작성했다. **파일 작성만 했으며 실행하지 않았다.** 테스트·lint·typecheck·build·React Doctor·advisor·env·생성 타입·브라우저/DB 권한·경합/성능 검수는 전부 미실행이다. 실제 확인한 사용자 흐름도 없음이다. 소스와 diff 읽기만 수행했고 검사 통과를 주장하지 않는다.
+
+**Git·다음 단계:** 이전 커뮤니티 글 feature `6b58df8`와 develop merge `8eb6747` push 후 깨끗한 develop에서 fetch/fast-forward 기준을 확인하고 새 `feature/community-discussions`를 생성했다. 개발 보고 시점에는 Git 반영을 하지 않았다. 이후 2026-10-08 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 테스트/자동 검사 실행 허가는 포함하지 않는다. MCP 복구 후 두 SQL 설치와 별도 요청된 검수, 다음 개발은 리뷰 좋아요/댓글·정렬/알림이다. 글 참조 작품 병합 보존 handler, 댓글 신고 FK와 공유 Auth 탈퇴 보존/비식별화, P4 비회원 PNG/edge 제한·P6/P7·기존 미검수 범위와 규장각/허가 표지 연동은 후속이다.

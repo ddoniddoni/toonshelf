@@ -23,7 +23,7 @@ describe("post data boundaries (written only)",()=>{
   await expect(getPost(id)).rejects.toThrow();
  });
  it("rejects leaked spoiler titles in list results",async()=>{
-  mocks.rpc.mockResolvedValue({data:{items:[{...card,title:"spoiler title"}],hasNext:false},error:null});
+  mocks.rpc.mockResolvedValue({data:{items:[{...card,title:"spoiler title",likeCount:0,recentLikeCount:0,recentCommenterCount:0,popularityScore:0}],hasNext:false},error:null});
   await expect(listPosts({q:"",category:null,work:null,page:1})).rejects.toThrow();
  });
  it("does not turn database errors into a successful empty list",async()=>{

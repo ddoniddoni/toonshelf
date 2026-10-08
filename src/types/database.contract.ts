@@ -40,11 +40,24 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      toon_list_post_comments:{Args:{p_post:string;p_post_version:number;p_parent:string|null;p_page:number};Returns:Json};
+      toon_get_post_comment:{Args:{p_id:string;p_post_version:number;p_version:number|null;p_reveal:boolean};Returns:Json};
+      toon_create_post_comment:{Args:{p_id:string;p_post:string;p_post_version:number;p_parent:string|null;p_body:string;p_spoiler:boolean;p_confirm:boolean};Returns:string};
+      toon_get_my_post_comment:{Args:{p_id:string;p_post_version:number;p_version:number};Returns:Json};
+      toon_update_post_comment:{Args:{p_id:string;p_post_version:number;p_version:number;p_body:string;p_spoiler:boolean;p_confirm:boolean};Returns:undefined};
+      toon_delete_post_comment:{Args:{p_id:string;p_version:number;p_confirm:boolean};Returns:undefined};
+      toon_report_post_comment:{Args:{p_id:string;p_post_version:number;p_version:number;p_reason:string;p_detail:string};Returns:undefined};
+      toon_list_post_comment_reports:{Args:{p_page:number;p_own:boolean};Returns:Json};
+      toon_moderation_post_comment_snapshot:{Args:{p_id:string;p_version:number|null;p_reveal:boolean};Returns:Json};
+      toon_moderate_post_comment:{Args:{p_id:string;p_version:number;p_action:string;p_reason:string;p_report:string|null;p_result:string};Returns:undefined};
+      toon_get_post_like_state:{Args:{p_id:string};Returns:Json};
+      toon_set_post_like:{Args:{p_id:string;p_version:number;p_liked:boolean};Returns:Json};
       toon_create_post_draft:{Args:{p_id:string};Returns:string};
       toon_save_post_draft:{Args:{p_id:string;p_version:number;p_payload:Json};Returns:undefined};
       toon_publish_post:{Args:{p_id:string;p_draft_version:number;p_post_version:number};Returns:undefined};
       toon_withdraw_post:{Args:{p_id:string;p_version:number;p_delete:boolean;p_confirm:boolean};Returns:undefined};
       toon_get_post:{Args:{p_id:string;p_reveal:boolean;p_expected_version:number|null};Returns:Json};
+      toon_search_posts:{Args:{p_category:string|null;p_work:string|null;p_q:string;p_page:number;p_sort:string};Returns:Json};
       toon_list_posts:{Args:{p_category:string|null;p_work:string|null;p_q:string;p_page:number};Returns:Json};
       toon_get_my_post_editor:{Args:{p_id:string};Returns:Json};
       toon_list_my_posts:{Args:{p_page:number};Returns:Json};
