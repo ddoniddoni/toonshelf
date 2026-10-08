@@ -8,7 +8,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 
 | 단계 | 현재 상태 | 완료 보고/근거 |
 |---|---|---|
-| P0 | 조건부: 코드 구성, DB 검증 대기 | 아래 16절. 로컬 Docker 엔진 필요 |
+| P0 | 조건부: 코드 구성, 공통 본문 높이/푸터 반응형 CSS 수정, DB·화면 검수 대기 | 아래 16절 및 2026-10-08 공통 레이아웃 기록. 로컬 Docker 엔진 필요 |
 | P1 | 진행: 아이디 즉시 가입·로그인·공유 Supabase toon_ 코드/DB 설치, 실행 미검증 | 아래 2026-10-07 기록. MCP 설치 성공·실제 Auth/권한 검수 대기 |
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
@@ -797,3 +797,11 @@ MCP `get_project_url`은 이번에도 `OAuth token refresh failed: Failed to par
 **작성한 검사 파일·실행 상태:** 댓글 입력/스포일러 DTO/한 단계 경계, 좋아요 및 댓글 액션의 현재 회원/정확한 ACK·대상/버전, 실패 후 UI 입력/재시도, 정렬/집계 DTO와 정확한 알림 링크를 다루는 단위/action/UI 파일을 작성했다. 기존 글 카드/DAL fixture에 실제 집계 계약을 반영했고 local rollback `supabase/tests/22_community_discussions.test.sql`에 raw 권한·비활성 사용자·좋아요 중복/본인 금지·재전송 댓글/교차 부모·스포일러·신고 중복/운영·부모 숨김/삭제·인기 기간·수신 설정/알림 중복·차단/삭제/공개 취소 경계를 작성했다. **파일 작성만 했으며 실행하지 않았다.** 테스트·lint·typecheck·build·React Doctor·advisor·env·생성 타입·브라우저/DB 권한·경합/성능 검수는 전부 미실행이다. 실제 확인한 사용자 흐름도 없음이다. 소스와 diff 읽기만 수행했고 검사 통과를 주장하지 않는다.
 
 **Git·다음 단계:** 이전 커뮤니티 글 feature `6b58df8`와 develop merge `8eb6747` push 후 깨끗한 develop에서 fetch/fast-forward 기준을 확인하고 새 `feature/community-discussions`를 생성했다. 개발 보고 시점에는 Git 반영을 하지 않았다. 이후 2026-10-08 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 테스트/자동 검사 실행 허가는 포함하지 않는다. MCP 복구 후 두 SQL 설치와 별도 요청된 검수, 다음 개발은 리뷰 좋아요/댓글·정렬/알림이다. 글 참조 작품 병합 보존 handler, 댓글 신고 FK와 공유 Auth 탈퇴 보존/비식별화, P4 비회원 PNG/edge 제한·P6/P7·기존 미검수 범위와 규장각/허가 표지 연동은 후속이다.
+
+### 2026-10-08 · 공통 본문 높이·푸터 반응형 배치 (코드 수정, 실행 검수 대기)
+
+**상태·요구사항:** OPS-05 반응형/P0 공통 레이아웃 수정. 사용자가 이용약관·개인정보처리방침 등 짧은 페이지에서 푸터가 화면 아래까지 내려가지 않는 현상을 보고했다. 소스에서 body에 최소 화면 높이/세로 배치가 없고 main이 남는 높이를 채우지 않는 구조를 확인했다. ThemeProvider는 별도 DOM wrapper를 만들지 않아 공통 body/main에 CSS를 적용한다.
+
+**변경:** `src/app/globals.css`에서 body를 세로 flex와 최소 100dvh(100vh fallback)로 두고 main은 flex:1 0 auto/flow-root, 헤더·푸터는 축소되지 않도록 작성했다. 짧은 페이지는 남은 화면을 채우고 긴 페이지는 내용에 따라 문서가 늘어나도록 고정 height나 푸터 fixed 배치를 사용하지 않는다. 준비/404/오류/로딩 화면의 중복 65vh 최소 높이를 제거했다. 모바일 하단 메뉴의 기존 82px 여백은 유지하면서 더 큰 safe-area-inset-bottom을 반영한다. 768px 이상에서는 기존 Stitch 규칙이 모바일 메뉴와 여백을 제거한다. 약관·개인정보 안내 문구, 인증/DB, 의존성은 변경하지 않았다.
+
+**실행 상태·Git·다음:** 소스/문서/diff 읽기만 수행했다. 테스트·lint·typecheck·build·React Doctor·env·브라우저 수동/자동 검수는 사용자 지시에 따라 미실행이며 실제 확인한 사용자 흐름은 없다. migration이나 테스트 파일 추가가 필요 없는 CSS 수정이다. 이전 커뮤니티 토론 feature `2a05b5f`/develop merge `6c4bfb7` push 후 최신 develop fetch/fast-forward 기준 새 `fix/responsive-page-height`에서 작성했다. 개발 보고 시점에는 Git 반영을 하지 않았다. 이후 사용자 요청에 따라 해당 수정 브랜치 commit/push → 최신 develop merge/push를 진행하며 검사 허가는 포함하지 않는다. 외부 설정으로 막힌 항목은 없으며 사용자가 검수를 요청하면 짧은 법적 안내/로그인/빈 상태, 긴 목록, 모바일 safe area와 화면 크기 변경을 확인한다. 기존 커뮤니티 migration 두 개의 MCP 적용 대기는 이번 CSS 수정과 별개로 유지한다.
