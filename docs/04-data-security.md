@@ -167,12 +167,19 @@ rating_steps와 canonical_tier 중 적어도 하나는 존재해야 한다. 둘 
 | 테이블 | 주요 컬럼 |
 |---|---|
 | reviews | id, user_id, work_id, body, is_spoiler, read_upto_episode nullable, publication_status, moderation_status, published_at nullable, deleted_at nullable, created_at, updated_at |
-| posts | id, user_id, title, category, body, is_spoiler, publication_status, moderation_status, published_at nullable, deleted_at nullable, created_at, updated_at |
-| post_works | post_id, work_id; 조합 PK, 게시글당 최대 5개 |
-| content_edit_drafts | id, user_id, review_id/post_id 중 하나, payload jsonb, version, updated_at; 대상별 한 건, 본인 전용 |
+| posts | id, user_id, title, category, body, is_spoiler, publication_status, moderation_status, version, published_at nullable, deleted_at nullable, created_at, updated_at |
+| post_works | post_id, work_id, position 0~4; 조합 PK와 글/position unique, 게시글당 최대 5개 |
+| content_edit_drafts | 기존 리뷰 전용 id, user_id, review_id, payload jsonb, version, updated_at; 대상별 한 건 |
+| toon_private.toon_post_drafts | post_id PK/FK, payload jsonb, version, updated_at; 글 소유자 RPC 전용 |
 | comments | id, user_id nullable, review_id nullable, post_id nullable, tier_list_id nullable, parent_id nullable, body nullable, is_spoiler, moderation_status, deleted_at nullable, created_at, updated_at |
 
-content_edit_drafts는 리뷰 또는 글 중 정확히 하나를 가리키며, 부모와 동일한 소유자만 읽고 저장한다. 새 초안과 게시 후 수정 내용을 이곳에 저장하고, 게시 RPC만 reviews/posts의 공개 본문을 교체한다. payload에는 해당 콘텐츠의 허용 필드만 담는다.
+현재 물리 구현은 `toon_content_edit_drafts`를 리뷰 전용으로 유지하고 글은 `toon_private.toon_post_drafts`로 분리한다. 두 도메인 모두 부모 소유자만 편집 초안을 읽고 저장하며 게시 RPC만 reviews/posts의 공개 본문을 교체한다. payload에는 해당 콘텐츠의 허용 필드만 담는다. 아래 comments의 다중 대상 설계는 별도 후속이며 글 migration에서 댓글 대상을 확장하지 않는다.
+
+**커뮤니티 증분 · 2026-10-08 (migration 작성, 원격 미적용):** `20261008090225_community_posts.sql`에 위 글 테이블과 `toon_private.toon_post_reports`/`toon_post_moderation_events`를 추가했다. 모두 RLS와 원시 SELECT/DML revoke를 적용하고 사용자 세션 public RPC만 정밀 허용한다. 글 생성은 caller UUID/owner 일치 재시도만 허용한다. 저장은 post→draft→정렬된 work 잠금과 draft version, 게시에는 post version도 확인한다. 공개 취소는 draft를 유지하고 삭제는 공개 본문/제목·초안·작품 연결을 제거해 최소 참조/상태만 남긴다.
+
+공개 글은 현재 published/visible/미삭제·활성 작성자·조회자 양방향 차단 없음·모든 연결 작품 public 조건을 통과해야 한다. 연결 작품이 성인/숨김/미공개로 바뀌면 글 전체를 제외한다. 스포일러 제목/발췌/본문/작품은 최초 응답에서 숨기고 검색·작품 필터로도 추정할 수 없도록 제외한다. 펼치기는 현재 권한/게시 version을 다시 확인한다. 운영자는 신고 사유/감사와 현재 게시본만 확인하며 비공개 draft/철회 원문은 받지 않는다. 신고는 본인 접수/결과 RPC와 운영 큐 RPC로 분리하며 신고자 ID를 글 작성자나 공개 DTO에 넣지 않는다. hide/restore/기각·선택 신고 결과·감사는 한 transaction이다.
+
+피드 참조의 `post_id` FK·정확히 한 대상 CHECK·대상 unique를 추가한다. 공개 trigger는 원문을 복제하지 않고 최초 이벤트만 기록하며 재게시 때 원래 시각을 유지한다. 기존 리뷰/티어 조회 경계와 함께 현재 글 권한을 매번 확인한다. 작품 병합은 현재 글의 작품 연결이나 비공개 draft가 source/target을 참조하면 거절한다. 참조 없는 작품의 기존 병합은 유지하고 비공개 payload를 운영자가 임의로 수정하지 않는다. 글 참조 보존 병합 및 P7 hard delete 시 신고 FK/보존 기한 정리는 후속이다. 기존 baseline·공용 Auth·다른 앱/default privileges는 변경하지 않았다.
 
 reviews는 deleted_at IS NULL인 `(user_id,work_id)`에 partial unique를 둔다. 한 사람의 현재 리뷰는 한 작품에 한 건이다. 리뷰의 별점은 공개 가능한 user_evaluations에서 읽으며 별도 rating 컬럼을 만들지 않는다.
 

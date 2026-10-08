@@ -9,6 +9,7 @@ const desktopLinks = [
   { href: "/explore", label: "작품 탐색" },
   { href: "/rankings", label: "실시간 순위" },
   { href: "/tiers", label: "독자 티어리스트" },
+  { href: "/community", label: "커뮤니티" },
   { href: "/me/feed", label: "팔로잉 피드" },
   { href: "/me/library", label: "내 서재" },
 ];
@@ -16,6 +17,7 @@ const desktopLinks = [
 function activePath(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   if (href === "/explore") return pathname === "/explore" || pathname.startsWith("/works/");
+  if (href === "/community" && (pathname.startsWith("/posts/") || pathname.startsWith("/me/posts"))) return true;
   if (href === "/tiers" && pathname.startsWith("/me/tiers")) return true;
   if (href === "/settings/profile") return pathname.startsWith("/settings/");
   return pathname === href || pathname.startsWith(href + "/");

@@ -22,6 +22,14 @@ Auth는 이메일/전화 식별자를 받으므로 서버가 아이디를 `<user
 
 ## 1. 버전과 라이브러리 정책
 
+### 커뮤니티 글 구조 · 2026-10-08 (코드 작성, DB 미적용·실행 미검증)
+
+`src/lib/posts`의 Zod 계약·DAL·Server Actions와 `src/components/posts`, `/community`, `/posts/[id]`, 본인/운영 경로를 추가했다. 모든 쓰기는 서버에서 현재 회원 또는 private 운영 역할을 확인하고 사용자 세션 RPC를 호출한다. DB RPC도 현재 세션·활성/확인/동의·소유권/운영 역할과 버전을 검사한다. 게시본/비공개 수정 초안을 분리하며 서버 저장본만 게시한다. 표시·저장에 service-role 클라이언트나 localStorage를 사용하지 않는다.
+
+공개 조회는 dynamic 경로와 제한된 RPC DTO를 사용한다. 스포일러의 제목·발췌·본문·작품을 최초 응답과 검색에서 제외하고 별도 확인 action이 현재 공개/차단/version을 재조회한다. 원문은 plain text이며 기존 안전한 링크 렌더러를 재사용한다. 비공개 draft는 소유자 전용, 운영자는 현재 게시본만 명시적으로 펼친다. 게시/철회/삭제/운영 후 커뮤니티·본인 목록·상세·신고·피드를 무효화하며 기존 차단 action에도 커뮤니티 무효화를 추가했다.
+
+새 migration은 `toon_posts`·`toon_post_works` 및 private 초안/신고/감사, 원문 없는 `toon_activity_events.post_id`와 글 피드 DTO를 추가한다. 작업별 입력 제한·RLS/raw revoke·빈 search_path/정밀 RPC grant를 적용한다. 기존 리뷰 전용 초안 guard를 확장하지 않고 private 글 초안을 별도로 둔다. 새 의존성이나 버전 변경은 없다. MCP 인증 갱신 오류로 원격 적용하지 않았으며 수기 `database.contract.ts`는 생성 타입 검증을 대신하지 않는다. 실제 Auth/권한/화면과 실행 검사는 전부 미실행이다.
+
 ### Stitch 원본 재대조·화면 수정 · 2026-10-02
 
 설치된 Next Image/CSS 안내를 읽고 기존 고정 의존성과 Server Component 구조를 재사용했다. 참조 치수와 화면별 스타일은 `src/app/stitch.css`에서 `globals.css` 뒤에 적용한다. 홈은 기존 공개 `searchWorks`로 최대 6개를 읽고 첫 작품의 `listReviews`를 읽어 제한된 공개 DTO만 표시한다. 미연결은 빈 상태, 조회 실패는 일반 안내로 처리하며 원문 오류나 합성 자료를 출력하지 않는다. `/me/library`의 `edit` query는 `none` 선택 해제 또는 서버에서 검증한 UUID만 허용하고 인증된 본인의 현재 페이지 결과에서만 선택한다. query가 없으면 현재 페이지에서 공개 메타데이터가 있는 첫 본인 기록을 선택한다. 오른쪽 패널과 작품 상세의 전체 너비 기록 입력은 기존 version 기반 `RecordForm`/저장 action을 사용한다. 작품 메타데이터는 기존 공개 상세 조회를 통과해야 표시한다.

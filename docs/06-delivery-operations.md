@@ -13,7 +13,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
-| P5 | 진행: 공개 티어 댓글·답글/신고/차단/운영, SOC-04 티어 반응·SOC-02 팔로우/공개 목록·SOC-03 리뷰/티어 피드·SOC-05 앱 알림 코드/추가 DB 반영, 실행 미검증 | 아래 2026-10-08 기록. 리뷰/글 댓글·다른 반응 대상·커뮤니티 글/피드는 후속 |
+| P5 | 진행: 기존 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 글·작품 연결·신고/운영·글 피드 코드/migration 작성 | 아래 2026-10-08 커뮤니티 기록. 새 SQL은 MCP 인증 오류로 원격 미적용, 모든 실행 검수 대기. 글 좋아요/댓글/인기·관련 알림과 리뷰 토론은 후속 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
 
@@ -761,3 +761,21 @@ UI 정렬명을 `최근 7일 인기순`으로 바꾸고 최근 좋아요·댓글
 **작성한 검사 파일·실행 결과:** `tests/unit/notifications.test.ts`, `tests/unit/notification-inbox.test.tsx`, `tests/integration/notification-actions-data.test.ts`, local rollback 전용 `supabase/tests/20_notifications.test.sql`을 작성하고 기존 follow/like action의 무효화 기대값을 갱신했다. cursor 계정/필터·마이크로초, actor/recipient 주입, 제한 DTO/일반 안내·순서/중복/잘못된 응답, 응답 유실·읽음 ACK, raw 권한·인증/타인 ID·자기 알림·설정·중복·답글 분배·제보 처리·cutoff 이후 미읽음 유지·비공개/차단을 담았다. 모두 작성만 했다. 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검수는 실행하지 않았다. 실제 확인한 사용자 흐름은 없으며 DDL 성공을 기능 검증으로 보고하지 않는다. 소스/diff 읽기와 설치된 Next 16.3.8의 Server Components/Promise searchParams/revalidatePath 문서만 참고했다.
 
 **Git·다음 단계:** 이전 팔로잉 피드 feature `b634486`/develop merge `e340033` push 후 최신 develop fetch/fast-forward를 기준으로 새 `feature/notifications`에서 작성했다. 개발 보고 시점에는 commit/push 요청이 없어 stage·commit·push·통합 merge·PR를 하지 않았다. 이후 2026-10-08 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다. 알림 DB 설치의 외부 설정 대기는 없지만 실제 Auth/권한/브라우저 흐름은 별도 요청 대기다. 다음은 커뮤니티 글의 초안/공개·스포일러/신고/운영과 피드 이벤트 연결이며 리뷰/글 댓글·다른 반응·P4 비회원 PNG/edge 제한·P6/P7 및 기존 검수 범위는 유지한다. 규장각 API는 사용자 신청 승인 후 별도 연동하고 인증 검수는 사용자가 나중에 직접 진행할 예정이다.
+
+### 2026-10-08 · 커뮤니티 글·운영·팔로잉 피드 (코드 작성, DB 적용/실행 검수 대기)
+
+**상태·요구사항:** 진행/외부연결대기. COM-01/02, COM-03의 최신순·주제/작품/검색, COM-04의 초안·게시·수정·공개 취소·삭제·스포일러, SOC-03 글 피드·SOC-06 차단, OPS-01/02/04 신고·운영·속도 제한 증분이다. 글 좋아요·댓글·인기순·관련 알림과 전체 P5 완료는 후속이다.
+
+**변경:** `/community`, `/community/new`, `/posts/[id]`, `/me/posts`, `/me/posts/[id]/edit`, `/me/post-reports`, `/admin/post-reports`, `/admin/posts/[id]`를 작성했다. 데스크톱/모바일 상단과 계정/운영 메뉴를 연결했다. 네 주제, 공개 작품 검색·최대 5개 선택, 20개 페이지·빈 상태·잘못된 조건 안내를 제공한다. 글 생성은 명시적 POST이며 GET에서 DB를 만들지 않는다. 초안 수동 저장과 게시본을 분리하고 게시 시 저장본 확인·두 버전으로 충돌을 감지한다. 저장 안 된 입력 안내/브라우저 종료 경고는 있으나 앱 내부 링크 이동을 차단하는 전체 이탈 방지나 자동 저장은 없다. 사용자 글은 기존 plain text/안전 링크 렌더러로 표시한다.
+
+스포일러 제목/본문/발췌/연결 작품은 최초 public DTO·피드·메타데이터에서 제외하고 검색어/작품 필터에도 사용하지 않는다. 명시 펼치기는 현재 공개·차단·작품·버전을 다시 확인한다. 연결 작품이 공개 불가이면 글 전체를 숨긴다. 신고는 공개 타인 글에 한하며 본인 접수/결과와 운영 큐를 분리한다. 운영자는 현재 게시본만 펼치며 private 수정 초안/공개 취소 원문을 받지 않는다. 숨김/복구/기각·선택 신고 결과·원문 없는 감사 기록은 원자 저장하도록 작성했다. 기존 차단 action에 커뮤니티 경로 무효화를 더했다.
+
+**DB와 외부 대기:** 설치된 CLI 2.119.0의 migration new로 `20261008090225_community_posts.sql`을 생성했다. CLI 도움말은 sandbox의 `~/.supabase` 로그 쓰기 제한 뒤 승인된 재호출로 읽었으며 검사 명령은 아니다. Supabase MCP get_project_url/search_docs가 `OAuth token refresh failed: Failed to parse server response`를 반환했다. 재연결을 요청하고 독립적인 로컬 구현을 진행했다. 이번 원격 schema 조회/DDL/데이터 변경은 성공한 것이 없고, 새 migration은 **미적용**이다. 복구 후 `zwzncrdlqnthxgdvsqxq` 대상과 관련 Toon 의존 정의를 읽고 이번 파일 하나만 MCP로 추가 적용해야 한다. 공유 linked CLI push/reset/전체 seed는 금지다.
+
+SQL은 `toon_posts`/`toon_post_works`, `toon_private.toon_post_drafts`/`toon_post_reports`/`toon_post_moderation_events`를 추가한다. 기존 리뷰 초안 guard/ACL을 바꾸지 않기 위해 글 초안을 private 전용 테이블로 분리했다. RLS/raw revoke/빈 search_path·정밀 RPC grant, auth.uid()/현재 회원/운영 역할·소유권, Unicode/JSON/UUID/개수 제한, 버전·잠금·속도 제한을 작성했다. 공개 취소는 초안을 보존하고 삭제는 본문·제목·초안·작품 연결을 지워 최소 참조/상태를 남긴다. 첫 공개 때 invoker trigger가 원문 없는 post FK 이벤트를 추가하며 unique로 수정/재게시 시각 상승을 막는다. 기존 피드 RPC는 리뷰/티어 경계를 유지하고 글 현재 권한/DTO를 추가했다. 기존 migration/baseline·공용 Auth·여행 앱·default privileges는 편집하거나 적용하지 않았다.
+
+새 글 테이블의 존재만으로 모든 작품 병합을 막지 않도록 기존 병합 summary를 이번 migration 안에서 확장했다. 삭제되지 않은 글의 현재 작품 연결 또는 private draft가 source/target을 참조하면 병합을 거절한다. 참조 없는 작품의 기존 병합은 유지한다. 글 참조/비공개 payload를 보존하는 병합 handler와 P7 신고 FK·hard delete 보존 정리는 후속이다.
+
+**작성한 검사 파일·실행 상태:** `tests/unit/post-model.test.ts`, `tests/unit/post-ui.test.tsx`, `tests/integration/post-actions.test.ts`, `tests/integration/post-data.test.ts`, local rollback 전용 `supabase/tests/21_community_posts.test.sql`을 작성했다. 입력/공개 길이·중복 작품·owner 주입, 저장/게시 충돌·초안 격리, spoiler DTO/검색 누출, 현재 회원/소유자/운영자, raw 권한, 신고 중복/결과·차단/작품 숨김·공개 취소·삭제, 피드 첫 공개/재게시 보존을 다룬다. 파일은 전부 미실행이며 원격 테스트 데이터는 생성하지 않았다. 테스트·lint·typecheck·build·React Doctor·advisor·env 검사·생성 타입·브라우저/DB 권한·경합/부하 검수와 실제 확인한 사용자 흐름은 **없음**이다. 소스/diff 읽기만 수행했으며 통과나 정상 동작을 주장하지 않는다.
+
+**근거·Git·다음:** 설치된 Next 16.3.8 Server Actions 가이드와 Supabase 공식 changelog/functions/RLS, 적용한 Supabase/Postgres/React 스킬을 읽었다. 알림 반영 뒤 최신 develop `9c9834f`를 fetch/fast-forward 기준으로 새 `feature/community-posts`를 생성했다. 개발 보고 시점에는 stage·commit·push·통합 merge·PR를 요청하지 않아 수행하지 않았다. 이후 2026-10-08 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하며 테스트/자동 검사 실행 허가는 포함되지 않는다. MCP 재연결 후 새 DB 설치가 먼저 필요하고, 다음 개발은 글 좋아요·댓글/답글·인기순·알림이다. 리뷰 반응/토론·P4 비회원 PNG/edge 제한·P6/P7 및 기존 실행 검수는 유지한다. 규장각 API 승인/표지 연동과 사용자의 인증 검수는 별도 후속이다.

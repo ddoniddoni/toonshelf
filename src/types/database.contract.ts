@@ -40,6 +40,19 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      toon_create_post_draft:{Args:{p_id:string};Returns:string};
+      toon_save_post_draft:{Args:{p_id:string;p_version:number;p_payload:Json};Returns:undefined};
+      toon_publish_post:{Args:{p_id:string;p_draft_version:number;p_post_version:number};Returns:undefined};
+      toon_withdraw_post:{Args:{p_id:string;p_version:number;p_delete:boolean;p_confirm:boolean};Returns:undefined};
+      toon_get_post:{Args:{p_id:string;p_reveal:boolean;p_expected_version:number|null};Returns:Json};
+      toon_list_posts:{Args:{p_category:string|null;p_work:string|null;p_q:string;p_page:number};Returns:Json};
+      toon_get_my_post_editor:{Args:{p_id:string};Returns:Json};
+      toon_list_my_posts:{Args:{p_page:number};Returns:Json};
+      toon_report_post:{Args:{p_post:string;p_reason:string;p_detail:string};Returns:undefined};
+      toon_list_my_post_reports:{Args:{p_page:number};Returns:Json};
+      toon_list_post_reports:{Args:{p_page:number};Returns:Json};
+      toon_moderation_post_snapshot:{Args:{p_id:string;p_reveal:boolean;p_expected_version:number|null};Returns:Json};
+      toon_moderate_post:{Args:{p_post:string;p_version:number;p_action:string;p_reason:string;p_report:string|null;p_result:string};Returns:undefined};
       toon_list_notifications:{Args:{p_unread:boolean;p_cursor:Json|null};Returns:Json};
       toon_notification_unread_count:{Args:Record<string,never>;Returns:number};
       toon_mark_notification_read:{Args:{p_id:string};Returns:Json};

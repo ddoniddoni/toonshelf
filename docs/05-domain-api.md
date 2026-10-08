@@ -156,7 +156,28 @@ sort는 title/rating/tier만 허용한다. rating은 공개 별점 내림차순,
 | setReaction | target + liked boolean, toggle 연산이 아니라 목표 상태 저장 |
 | reportContent | target/reason/detail, 동일 pending 신고 중복 방지 |
 
-리뷰/글의 게시 후 수정 내용을 자동 저장할 때 현재 공개 본문을 덮어쓰지 않는다. `content_edit_drafts`에 저장하고 `게시본 업데이트`를 눌렀을 때만 공개 본문을 교체한다. 단순 UPDATE body를 자동 저장으로 연결하지 않는다.
+리뷰/글의 게시 후 수정 내용은 현재 공개 본문을 덮어쓰지 않는다. 리뷰는 `toon_content_edit_drafts`, 글은 `toon_private.toon_post_drafts`에 저장하고 `게시본 업데이트`를 눌렀을 때만 공개 본문을 교체한다. 현재 두 편집 UI는 수동 초안 저장이며 자동 저장은 제공하지 않는다.
+
+### P5 커뮤니티 글 계약 · 2026-10-08 (코드·migration 작성, DB 미적용)
+
+| action/조회 | 사용자 세션 RPC | 계약 |
+|---|---|---|
+| createPost | toon_create_post_draft | caller UUID, 현재 owner 생성/동일 ID 재시도 |
+| savePostDraft | toon_save_post_draft | owner + draftVersion, 허용 payload만 저장 |
+| publishPost | toon_publish_post | owner + draftVersion/postVersion, 저장본 검증·원자 게시 |
+| withdrawPost | toon_withdraw_post | owner/postVersion/확인, 공개 취소 또는 본문·초안 삭제 |
+| getPost / revealPost | toon_get_post | 현재 공개 DTO, reveal은 확인 + expectedVersion |
+| listPosts | toon_list_posts | category/work/q/page, 최초 게시 최신순 20개 + 다음 여부 |
+| getMyPostEditor / listMyPosts | toon_get_my_post_editor / toon_list_my_posts | 소유자만, 목록에 draft 본문 제외 |
+| reportPost / getMyPostReports | toon_report_post / toon_list_my_post_reports | 현재 공개 타인 글 신고, 본인 접수·결과 20개 |
+| 운영 큐/검토/펼치기 | toon_list_post_reports / toon_moderation_post_snapshot | private 운영 역할, 큐 20개/신고·감사 각 최근 50개, 현재 게시본만 |
+| moderatePost | toon_moderate_post | 버전·사유·hide/restore/reject_report·선택 신고 결과/감사 원자 저장 |
+
+초안 payload는 `{title,body,category,isSpoiler,workIds}`만 허용한다. category는 request/recommendation/information/general, workIds는 중복 없는 공개 UUID 최대 5개이며 순서를 보존한다. 64KiB JSON/제목 최대 100자/본문 최대 10000 Unicode code point, 게시 시 JS와 같은 Unicode trim 후 제목 5자·본문 20자 이상을 검사한다. 작업자·상태·버전을 payload로 바꿀 수 없다. 작품 검색 action은 현재 회원/2~100자 검색어를 검사하고 공개 카탈로그 결과 최대 10개의 ID/제목/slug만 반환한다.
+
+목록 q는 최대 100자, page는 1~1000, category/work는 지정된 enum/UUID만 받는다. 스포일러 글은 title/excerpt/body=null, works=[]이며 q/work 검색에서 숨긴 내용을 이용하지 않는다. 펼치기에 저장된 private 초안을 섞지 않는다. 메타데이터는 일반 안내이고 모든 글 페이지는 noindex다. 최초 게시 시각은 업데이트·공개 취소 후 재게시에도 유지하며 피드 이벤트도 한 번만 생성한다. offset 목록은 고정 snapshot이 아니므로 탐색 중 변경으로 항목 위치가 달라질 수 있다.
+
+DB 사용자별 제한: 초안 생성 10회/10분, 저장 60회/분, 게시 10회/10분, 철회·삭제 20회/분, 신고 5회/10분, 운영 조치 30회/분. 동일 글 pending 신고는 중복 생성하지 않는다. 이미 받은 화면을 회수하지는 못하며 다음 조회부터 차단/공개 철회/운영 상태를 반영한다. 글 좋아요·댓글·인기순·관련 알림과 글 참조를 보존하는 작품 병합은 후속이다. 테스트 파일은 작성만 했으며 실제 사용자 흐름·DB 권한/경합·부하·UI 검수는 미실행이다.
 
 ### 티어와 소셜
 
