@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search,MessagesSquare } from "lucide-react";
 import { DesktopNavigation } from "./navigation";
 import { ThemeSwitcher } from "./theme-switcher";
 import { Suspense } from "react";
@@ -19,7 +19,7 @@ export function AppHeader() {
         <button type="submit" aria-label="작품 찾기"><Search size={16} aria-hidden="true" /></button>
       </form>
       <DesktopNavigation />
-      <div className="header-actions"><Link className="header-icon header-mobile-search" href="/explore" aria-label="작품 검색"><Search size={18} aria-hidden="true"/></Link><ThemeSwitcher /><Suspense fallback={<NotificationBellLink/>}><NotificationBell/></Suspense><div className="header-account"><Suspense fallback={<Link className="header-profile" href="/settings/profile">내 계정</Link>}><SessionMenu/></Suspense></div></div>
+      <div className="header-actions"><Link className="header-icon header-mobile-community" href="/community" aria-label="커뮤니티"><MessagesSquare size={18} aria-hidden="true"/></Link><Link className="header-icon header-mobile-search" href="/explore" aria-label="작품 검색"><Search size={18} aria-hidden="true"/></Link><ThemeSwitcher /><Suspense fallback={<NotificationBellLink/>}><NotificationBell/></Suspense><div className="header-account"><Suspense fallback={<Link className="header-profile" href="/settings/profile">내 계정</Link>}><SessionMenu/></Suspense></div></div>
     </div>
   </header>;
 }

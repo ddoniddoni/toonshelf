@@ -10,8 +10,9 @@ export const feedPositionSchema = z.strictObject({id:uuidSchema,createdAt:timeSc
 const common = {eventId:uuidSchema,createdAt:timeSchema,author:followProfileSchema,id:uuidSchema,isSpoiler:z.boolean()};
 export const feedItemSchema = z.discriminatedUnion("kind",[
  z.object({...common,kind:z.literal("review"),work:z.object({id:uuidSchema,title:text(1,200),slug:slugSchema}),excerpt:text(0,240).nullable()}),
- z.object({...common,kind:z.literal("tier"),title:text(1,80).nullable()})
-]).refine(item=>item.kind === "review" ? item.isSpoiler === (item.excerpt === null) : item.isSpoiler === (item.title === null),
+ z.object({...common,kind:z.literal("tier"),title:text(1,80).nullable()}),
+ z.object({...common,kind:z.literal("post"),title:text(5,100).nullable(),excerpt:text(0,240).nullable()})
+]).refine(item=>item.kind === "review" ? item.isSpoiler === (item.excerpt === null) : item.kind === "post" ? item.isSpoiler === (item.title === null) && item.isSpoiler === (item.excerpt === null) : item.isSpoiler === (item.title === null),
  {message:"스포일러 표시와 공개 내용이 일치하지 않아요."});
 export const feedPageSchema = z.object({hasFollowing:z.boolean(),items:z.array(feedItemSchema).max(20),next:feedPositionSchema.nullable()})
  .superRefine((page,ctx)=>{

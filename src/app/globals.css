@@ -556,3 +556,23 @@ main:focus { outline: none; }
  .notification-toolbar { align-items: start; }
  .notifications-page .hub-section-heading { align-items: start; flex-wrap: wrap; gap: 16px; }
 }
+
+/* Community uses the existing catalogue and reader-note visual system. */
+.community-page { padding-block: 2.5rem 4rem; max-width: 960px; }
+.post-heading-actions, .post-work-links { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; }
+.post-filters { display: flex; flex-wrap: wrap; gap: .8rem; align-items: end; margin-block: 1.5rem 1rem; }
+.post-filters label, .post-work-search { display: grid; gap: .45rem; }
+.post-filters label:nth-child(2) { flex: 1; min-width: 12rem; }
+.post-filters input, .post-filters select, .post-work-search input { border: 1px solid var(--line); border-radius: .6rem; padding: .7rem; background: var(--surface); color: inherit; min-width: 0; }
+.post-card h2 { overflow-wrap: anywhere; }
+.post-card .review-author { margin-top: 1rem; }
+.post-work-links { margin-top: .8rem; }
+.post-work-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(120px,1fr)); gap: 1rem; margin-block: 1rem; }
+.post-picker-list { list-style: none; padding: 0; display: grid; gap: .7rem; }
+.post-picker-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.post-picker-list li span { overflow-wrap: anywhere; }
+.post-body-input { min-height: 18rem; }
+.post-content-title { overflow-wrap: anywhere; white-space: pre-wrap; }
+.header-mobile-community { display: none; }
+@media (max-width: 800px) { .header-mobile-community { display: inline-flex; } }
+@media (max-width: 640px) { .post-heading-actions { margin-top: 1rem; } .post-filters { align-items: stretch; } .post-filters label { width: 100%; } }
