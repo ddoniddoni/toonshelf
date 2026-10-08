@@ -1,5 +1,25 @@
 # 04. 데이터 모델과 보안
 
+## 커뮤니티 토론 물리 모델 · 2026-10-08 (작성·미적용/미검증)
+
+`20261008102414_community_discussions.sql`은 먼저 `20261008090225_community_posts.sql`이 필요하다. 두 파일 모두 MCP 인증 오류로 원격 미적용이다. 아래는 로컬 SQL 계약이며 설치·권한 검수 결과가 아니다. 기존 티어 전용 `toon_comments`/`toon_reactions`의 제약·RPC를 변경하지 않고 다음 글 전용 테이블을 추가한다.
+
+| 객체 | 보관·접근 경계 |
+|---|---|
+| `public.toon_post_comments` | post FK, 같은 글 부모 composite FK, 한 단계 답글 guard, 1~1000 code point/4000byte 본문, immutable 대상/부모/소유자, version |
+| `public.toon_post_reactions` | user/post unique, 생성 시각, 사용자별 목표 상태 저장, 직접 조회/수정 불가 |
+| `toon_private.toon_post_comment_reports` | 본인 신고 결과 또는 역할 제한 운영 큐, pending 신고자/댓글 unique |
+| `toon_private.toon_post_comment_moderation_events` | 조치/사유/대상/신고 참조, 본문 사본 없는 감사 기록 |
+| `public.toon_notifications` 추가 컬럼 | post_id/post_comment_id FK와 세 kind 확장, 원문 없이 참조만 저장 |
+
+새 테이블에 RLS를 켜고 public/anon/authenticated/service_role의 raw 권한을 회수한다. private helper 실행 권한도 회수하며 제한된 public RPC에만 anon/authenticated를 구분해 부여한다. RPC는 빈 search_path와 5초 statement timeout, 입력/현재 세션·활성/확인/동의·소유권 또는 private 운영 역할을 검사한다. 공용 Auth·다른 앱·공용 default privileges는 수정하지 않는다.
+
+공개 글·모든 연결 작품·댓글과 원 댓글의 현재 상태, 조회자와 작성자 및 글 작성자와 댓글 작성자의 양방향 차단을 매 조회 검사한다. 삭제된 댓글은 본문/공개 신원을 제거한 tombstone으로 기존 답글을 보존하지만 새 답글은 금지한다. 숨김/차단/비활성 원 댓글은 답글도 숨긴다. 본인 본문 삭제는 이후 글 접근을 잃어도 가능하며 원문/대상 정보는 반환하지 않는다. 운영자는 현재 게시된 글의 댓글만 명시적으로 펼칠 수 있고 비공개 글 원문/편집 초안은 받지 않는다. 신고 FK·비식별화/보존·공유 Auth 탈퇴 hard-delete는 P7 후속이다.
+
+쓰기 잠금은 현재 사용자 접근 행 → 정렬된 상대별 pair mutex → 글 SHARE → 부모 SHARE → 댓글 UPDATE 순서다. 좋아요와 새 block trigger도 기존 pair mutex를 공유하며 차단 시 양방향 글 좋아요를 제거하고 해제로 복구하지 않는다. 글의 공개 취소/숨김/삭제와 댓글 수정/조치는 버전·잠금으로 충돌을 감지하도록 작성했다. 실제 경합은 미검증이다.
+
+인기 집계는 현재 유효한 최근 168시간 좋아요와 서로 다른 비작성자 댓글 참여자만 사용하며 원문/참여자 ID는 반환하지 않는다. 삭제된 원 댓글 아래의 현재 유효한 답글은 집계할 수 있으나 숨김/차단된 원 댓글 아래 답글은 제외한다. 알림은 현재 대상/관계/계정 상태를 재조회하고 접근 불가이면 kind/actor/target까지 일반 안내로 대체한다. 유효 글·댓글 참조가 없는 과거 알림도 원문을 복구하지 않는다.
+
 ## 공유 프로젝트 물리 이름·가입 경계 · 2026-10-07 (DB 설치·권한 실행 미검증)
 
 이 문서의 논리 테이블 이름 앞에는 모두 `toon_`를 붙인다. 공개 예시는 `public.toon_profiles`, `public.toon_user_settings`, `public.toon_genres`이고 내부 예시는 `toon_private.toon_user_access`, `toon_private.toon_consent_records`, `toon_private.toon_rate_limit_buckets`다. RPC·enum·index도 `toon_`이며 Auth/Storage의 Supabase 관리 테이블은 그대로 둔다. 새 스키마는 독립적으로 생성하고 public 스키마 CREATE 권한/공용 default privileges를 변경하지 않는다. 기본 PUBLIC 함수 실행권 정리는 toon_private 및 public.toon_*에만 한정한다. 기존 앱 데이터의 rename·backfill·삭제는 없다.

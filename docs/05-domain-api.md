@@ -1,5 +1,26 @@
 # 05. 도메인 규칙과 API 계약
 
+## 커뮤니티 토론 API 증분 · 2026-10-08 (작성·미적용/미검증)
+
+| 사용자 세션 RPC | 입력/계약 |
+|---|---|
+| `toon_search_posts` | q/category/work/page/sort(`latest` 또는 `popular`), 20개+lookahead, page 1~1000; 기존 `toon_list_posts` 계약 보존 |
+| `toon_get_post_like_state` / `toon_set_post_like` | id → 현재 count/liked/canLike/version; 저장은 id/version/liked 목표 상태, 본인 좋아요 금지 |
+| `toon_list_post_comments` / `toon_get_post_comment` | post/version/parent/page 또는 comment/postVersion/commentVersion/reveal; 목록 DTO는 스포일러 본문 없음 |
+| `toon_create_post_comment` | 호출자 요청 UUID/post/version/parent/body/isSpoiler/공개 확인, 동일 소유자·대상·내용의 재전송만 같은 ID ACK |
+| `toon_get_my_post_comment` / `toon_update_post_comment` | 현재 접근 가능한 본인 댓글·글 버전/댓글 버전 확인; 수정은 body/spoiler/확인 |
+| `toon_delete_post_comment` | id/version/확인, 본인 원문 삭제는 글 접근과 별개, 대상 정보 반환 없음 |
+| `toon_report_post_comment` / `toon_list_post_comment_reports` | 댓글·글 버전/사유/상세; 본인 결과 또는 private 역할 제한 pending 큐 |
+| `toon_moderation_post_comment_snapshot` / `toon_moderate_post_comment` | 명시적 현재 댓글 펼치기; hide/restore/reject_report·version/사유/선택 신고/결과를 원자 처리 |
+
+본문은 trim 후 1~1000 Unicode code point와 4000byte 상한이며 HTML을 실행하지 않는다. 댓글 생성/수정/삭제는 각각 회원당 30회/300초, 신고 5회/600초, 운영 조치 30회/60초, 좋아요 40회/60초다. 클라이언트 userId/카운트/역할은 입력으로 받지 않는다. 응답 DTO와 요청 대상/버전을 서버에서 대조하며 응답이 불명확한 좋아요는 현재 상태를 다시 불러온다. 댓글 UUID는 성공 ACK 전까지 유지한다. 이미 저장된 UUID로 내용을 바꿔 재전송하면 CONFLICT이며 최신 댓글을 확인하도록 안내한다.
+
+목록 카드에 `likeCount/recentLikeCount/recentCommenterCount/popularityScore`를 추가한다. 점수는 `[transaction now - 168시간, transaction now]`의 유효 좋아요 + 서로 다른 비작성자 댓글 참여자 × 2이며 댓글/답글 중복 작성자는 한 명이다. 수정/운영 복구 시각을 새 활동으로 세지 않는다. 본인/삭제/숨김/비활성/차단 활동을 현재 댓글 접근 helper로 제외한다. 동률은 첫 게시 시각 내림차순·ID 내림차순이다. 최신순은 페이지 후보를 먼저 제한하고 집계하며, 인기순은 현재 후보 점수를 계산한다. snapshot/사전 집계가 아니므로 이동 중 순서가 바뀔 수 있고 부하 검수는 대기다. 검색·작품 조건은 계속 스포일러 내용을 제외한다.
+
+알림 kind는 `post_like/post_comment/post_reply`다. 글 좋아요와 댓글은 글 작성자, 답글은 원 댓글 작성자와 서로 다른 글 작성자에게 자기 알림을 제외하고 전달한다. `reactions/replies` 설정은 이후 생성분부터 적용한다. 좋아요는 직전 알림 이후 24시간 억제와 UTC 일자 dedupe, 댓글은 source ID/수신자 unique를 사용한다. 원문/제목을 복제하지 않고 정확한 글/댓글 링크를 현재 권한에서 구성한다. 취소/삭제/숨김/차단된 대상은 kind/actor/target 없는 일반 안내다. 수정·재시도로 알림 생성 시각/읽음 상태를 되돌리거나 과거 활동을 backfill하지 않는다. 댓글 신고 결과는 본인 결과 페이지로 제공하며 별도 결과 알림은 이번 범위에 없다.
+
+이전 글과 이번 토론 migration 모두 MCP 인증 오류로 미적용이며 수기 타입·단위/action/UI/rollback SQL 파일 작성만 수행했다. 모든 실행 검사는 별도 사용자 요청 대기다.
+
 ## 현재 인증 API·물리 접두사 · 2026-10-07
 
 `signUp` 입력은 `{username,password,confirmPassword,terms,privacy,age14,returnTo}`이고 `signIn`은 `{username,password,returnTo}`다. 아이디를 서버 전용 Auth 식별자로 변환하며 비밀번호·서비스 키·Auth 응답 원문을 action state/URL에 넣지 않는다. 내부 주소는 연락/복구 이메일이 아니다. 가입 후 기본 private 설정과 필수 동의를 저장하고 자동 로그인하며 mail confirmation/추가 onboarding을 요구하지 않는다. 계정 복구는 준비 상태다. username 계정 비밀번호 변경은 currentPassword를 요구하고 실제 동일 Auth 사용자 재로그인 후 수행한다.

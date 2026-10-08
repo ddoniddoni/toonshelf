@@ -18,7 +18,7 @@ function version(form:FormData,key:string) {return z.string().regex(/^[1-9][0-9]
 function consent(form:FormData) {if(!checked(form,"confirm"))throw new AuthFailure("VALIDATION_ERROR","작업 내용을 확인하고 동의해 주세요.");}
 async function finish(operation:()=>Promise<string>):Promise<FormState> {
  let path:string;try{path=await operation();}catch(error){return actionError(error);}
- revalidatePath("/community","layout");revalidatePath("/posts","layout");revalidatePath("/me/posts","layout");revalidatePath("/me/feed");revalidatePath("/me/post-reports");revalidatePath("/admin/post-reports");revalidatePath("/admin/posts","layout");redirect(path);
+ revalidatePath("/me/notifications");revalidatePath("/community","layout");revalidatePath("/posts","layout");revalidatePath("/me/posts","layout");revalidatePath("/me/feed");revalidatePath("/me/post-reports");revalidatePath("/admin/post-reports");revalidatePath("/admin/posts","layout");redirect(path);
 }
 export async function createPost(_state:FormState,form:FormData):Promise<FormState> {
  return finish(async()=>{const {client}=await requireAccount();const id=uuidSchema.parse(field(form,"id"));const {data,error}=await client.rpc("toon_create_post_draft",{p_id:id});postError(error);return `/me/posts/${uuidSchema.parse(data)}/edit`;});

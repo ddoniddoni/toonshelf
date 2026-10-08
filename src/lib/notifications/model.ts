@@ -16,6 +16,9 @@ export const notificationSchema=z.discriminatedUnion("kind",[
  z.object({...common,kind:z.literal("tier_like"),actor:actorSchema,tierId:uuidSchema}),
  z.object({...common,kind:z.literal("tier_comment"),actor:actorSchema,tierId:uuidSchema,commentId:uuidSchema}),
  z.object({...common,kind:z.literal("tier_reply"),actor:actorSchema,tierId:uuidSchema,commentId:uuidSchema}),
+ z.object({...common,kind:z.literal("post_like"),actor:actorSchema,postId:uuidSchema}),
+ z.object({...common,kind:z.literal("post_comment"),actor:actorSchema,postId:uuidSchema,commentId:uuidSchema}),
+ z.object({...common,kind:z.literal("post_reply"),actor:actorSchema,postId:uuidSchema,commentId:uuidSchema}),
  z.object({...common,kind:z.literal("submission_result"),submissionId:uuidSchema})
 ]);
 export const notificationsPageSchema=z.object({items:z.array(notificationSchema).max(20),unreadCount:notificationCountSchema,readThrough:notificationTimeSchema,next:notificationPositionSchema.nullable()})
@@ -46,6 +49,8 @@ export function notificationLink(item:Notification):string|null {
   case "follow":return `/u/${item.actor.username}`;
   case "tier_like":return `/tiers/${item.tierId}`;
   case "tier_comment":case "tier_reply":return `/tiers/${item.tierId}/comments/${item.commentId}`;
+  case "post_like":return `/posts/${item.postId}`;
+  case "post_comment":case "post_reply":return `/posts/${item.postId}/comments/${item.commentId}`;
   case "submission_result":return `/submissions/${item.submissionId}`;
   case "unavailable":return null;
  }
