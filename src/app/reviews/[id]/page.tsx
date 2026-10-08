@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReviewDiscussion } from "@/components/reviews/discussion";
 import { notFound } from "next/navigation";
 import { getReview } from "@/lib/reviews/data";
 import { getCurrentAccount } from "@/lib/auth/session";
@@ -26,6 +27,6 @@ export default async function Page({params}:Props) {
   {own ? <Link className="button button-secondary" href={"/me/reviews/"+review.id+"/edit"}>내 리뷰 수정</Link> : null}
   {active ? <CopyToLibrary workId={review.workId}/> : <Link className="text-link" href={"/auth/sign-in?returnTo="+encodeURIComponent("/reviews/"+review.id)}>로그인하고 내 서재에 저장하기</Link>}
   {active && !own ? <><details className="library-privacy-panel"><summary>리뷰 신고</summary><ReportReviewForm id={review.id}/></details><details className="library-privacy-panel"><summary>작성자 차단</summary><BlockForm userId={review.authorId} name={review.name}/></details></> : null}
-  <p className="field-hint">좋아요와 댓글은 소셜 기능 개발에서 이어갈 예정이에요.</p>
+  <ReviewDiscussion id={review.id} version={review.version} own={own} active={Boolean(active)}/>
  </article>;
 }

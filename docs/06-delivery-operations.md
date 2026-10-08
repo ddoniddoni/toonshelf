@@ -13,7 +13,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
-| P5 | 진행: 기존 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 글·작품 연결·신고/운영·글 피드·좋아요/댓글/답글·인기순·알림 코드/migration 작성 | 아래 2026-10-08 커뮤니티 토론 기록. 커뮤니티 SQL 2개는 MCP 인증 오류로 원격 미적용, 모든 실행 검수 대기. 리뷰 반응/토론은 후속 |
+| P5 | 진행: 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림 코드/migration 작성 | 아래 2026-10-08 리뷰 토론 기록. 커뮤니티 2개+리뷰 1개 SQL은 MCP 인증 오류로 원격 미적용, 모든 실행 검수 대기 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
 
@@ -817,3 +817,17 @@ MCP `get_project_url`은 이번에도 `OAuth token refresh failed: Failed to par
 **Git·보존·남은 작업:** 최신 origin/develop에서 `fix/community-loading-error`를 생성했으며 이전 `fix/responsive-page-height` 작업의 미커밋 globals.css와 UX/진행 문서 변경을 그대로 보존했다. 이번 오류 수정과 레이아웃 변경은 별도 작업이다. 개발 보고 시점에는 Git 반영을 하지 않았으며 이후 사용자 요청으로 각 수정 브랜치 commit/push → develop merge/push를 분리 진행한다. 실제 결과는 Git 이력으로 확인하고 검사 실행 허가는 포함하지 않는다. MCP 복구 후 `zwzncrdlqnthxgdvsqxq`의 Toon 의존 정의·migration 이력을 확인하고 미적용 `20261008090225_community_posts.sql` → `20261008102414_community_discussions.sql`을 순서대로 추가 적용해야 한다. 기존 baseline·공유 Auth/다른 앱·공용 default privileges는 유지하며 linked CLI push/reset/전체 seed는 금지다. 검사와 실제 흐름 확인은 별도 사용자 요청을 따른다.
 
 **같은 작업 후속 · 처리된 오류의 콘솔 출력 수정:** 사용자가 `[posts] Community database API unavailable {}`와 `console.error` 8번 줄을 가리키는 개발 오류창을 보고했다. 이전 수정에서 준비 상태를 catch하더라도 추가한 console.error가 개발 오류 표시를 유발하는 문제였다. 예상된 CONFIG_REQUIRED 분기의 console.error를 제거하고 해당 네 오류 코드가 로그 없이 분류되는지에 대한 기존 테스트 파일의 기대값을 수정했다. 예상하지 못한 오류 전파/진단은 유지한다. 같은 `fix/community-loading-error`에서 이어갔으며 레이아웃 변경도 보존했다. 소스/diff만 읽었고 테스트·자동 검사·브라우저 검수는 미실행이다. 이번 콘솔 수정은 DB 설치 완료를 뜻하지 않으며 두 migration의 원격 적용은 MCP 인증 복구 후 진행해야 한다.
+
+### 2026-10-08 · 이전 수정 Git Flow 완료와 리뷰 반응·토론 (코드 작성·DB/실행 검수 대기)
+
+**Git 결과:** 기존 미커밋 레이아웃과 커뮤니티 오류 변경을 보존해 각 집중 브랜치로 분리했다. `fix/responsive-page-height`의 `eb3d7f3`을 push하고 develop `c57d80e`로 merge/push했다. `fix/community-loading-error`의 `9d87f1d`를 push하고 develop `77bec41`로 merge/push했다. 원격 refs와 깨끗한 develop 상태를 읽어 확인했다. 검사 훅을 실행하지 않았으며 main/force push/PR는 하지 않았다. 최신 develop을 fetch/fast-forward 확인한 뒤 새 `feature/review-discussions`를 생성했다. 개발 보고 시점에는 이번 리뷰 기능 자체를 stage/commit/push/통합 merge하지 않았다. 이후 사용자 요청에 따라 feature/review-discussions commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다.
+
+**변경·요구사항:** REV-03/04, SOC-04/05/06, OPS-01/02/04 증분이다. 리뷰 좋아요/취소·댓글/한 단계 답글·본인 수정/삭제, 타인 신고/차단, 내 신고 결과/운영 큐/숨김·복구·감사, 알림의 정확한 댓글 링크를 작성했다. 작품별/회원별 목록의 latest/likes/popular 정렬과 현재 유효한 좋아요·최근 168시간 참여자/점수를 연결했다. 리뷰 ID 참조는 기존 작품 병합의 work_id 변경에도 유지하도록 작성했다. 숨김/차단/스포일러/삭제한 부모의 현재 접근을 집계와 알림에도 적용한다.
+
+**설치 대기 대응:** 새 조회 API가 없는 것으로 분류되는 네 DB 코드만 기존 최신순 리뷰 RPC로 fallback하고 실제 정렬/집계 준비 상태를 표시한다. 좋아요/댓글·관련 신고 화면도 CONFIG_REQUIRED를 준비 안내로 처리한다. 기대한 미설치 상태에 console.error를 쓰지 않으며 알 수 없는 실패를 빈 데이터로 바꾸지 않는다. 기존 리뷰 본문/카드/알림 종류를 유지한다.
+
+**SQL·외부 대기:** 설치된 CLI 2.119.0의 migration new로 `20261008121123_review_discussions.sql`을 만들었다. 새 toon_review_comments/reactions와 private 신고/감사, RLS/raw revoke/정밀 grants·버전·잠금·속도 제한·참조 알림을 작성했다. MCP get_project_url은 OAuth token refresh failed: Failed to parse server response로 실패했다. 이번 원격 조회/DDL/데이터 변경 성공은 없다. `20261008090225_community_posts.sql` → `20261008102414_community_discussions.sql` → `20261008121123_review_discussions.sql` 모두 원격 미적용이다. 복구 후 zwzncrdlqnthxgdvsqxq와 Toon 의존 정의/이력을 확인하고 세 증분만 순서대로 설치한다. baseline·공유 Auth·여행 앱·공용 default privileges 변경, linked CLI push/reset/전체 seed, 원격 테스트 사용자/작품 생성은 하지 않았다.
+
+**작성 파일·실행 상태:** 댓글 계약/스포일러/재전송/수정 입력 보존, 좋아요 ACK와 권한 입력 제한, 실제 집계/알림 DTO, 목록 fallback 및 예상 밖 장애 전파의 단위/action/UI mock 테스트를 작성했다. `supabase/tests/23_review_discussions.test.sql`은 로컬 rollback 전용으로 raw 권한·정지/본인 금지·중복/부모 관계·스포일러·신고/숨김·인기 집계·알림 설정·차단/삭제·작품 비공개 경계를 작성했다. **파일 작성만 했으며 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검수는 전부 미실행이다. 실제 확인한 사용자 흐름은 없다.** 소스와 diff를 읽은 것을 실행 검수로 보고하지 않는다.
+
+**다음 단계:** MCP 복구 후 세 SQL 설치, 사용자가 요청할 때만 실행 검수. 다음 개발 후보는 커뮤니티 참조 작품 병합 보존과 P5 잔여 정리다. P4 비회원 PNG/edge 제한, P6 비교/추천, P7 공유 Auth 앱 탈퇴/댓글 신고 보존·비식별화, 규장각 API 승인/허가 표지 연동과 기존 미검증 범위를 유지한다.

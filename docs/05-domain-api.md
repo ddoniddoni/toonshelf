@@ -1,5 +1,24 @@
 # 05. 도메인 규칙과 API 계약
 
+## 리뷰 토론 API 증분 · 2026-10-08 (작성·미적용/미검증)
+
+| 사용자 세션 RPC | 입력/결과 |
+|---|---|
+| `toon_search_reviews` | work UUID 또는 username 중 하나, page 1~1000, sort latest/likes/popular; 12개 items/total/hasNext |
+| `toon_get_review_like_state` / `toon_set_review_like` | id → version/likeCount/liked/canLike; 저장은 id/version/liked 목표 상태 |
+| `toon_list_review_comments` / `toon_get_review_comment` | review/version/parent/page 또는 comment/reviewVersion/commentVersion/reveal; 스포일러는 펼치기 전 body=null |
+| `toon_create_review_comment` | 요청 UUID/review/version/parent/body/spoiler/확인; 동일 내용 재시도만 같은 ID 반환 |
+| `toon_get_my_review_comment` / `toon_update_review_comment` | 현재 본인 댓글과 리뷰/댓글 버전 확인, body/spoiler/공개 확인 |
+| `toon_delete_review_comment` | id/version/확인, 접근을 잃어도 본인 원문 삭제 가능, 대상 정보는 반환하지 않음 |
+| `toon_report_review_comment` / `toon_list_review_comment_reports` | 댓글/리뷰 버전·사유·상세; 본인 결과 또는 역할 제한 pending 큐 |
+| `toon_moderation_review_comment_snapshot` / `toon_moderate_review_comment` | 현재 댓글 명시적 펼침; hide/restore/reject_report·사유·신고/결과 원자 처리 |
+
+본문은 trim 후 1~1000 Unicode code point/4000byte다. 댓글 생성/수정/삭제 각각 30회/300초, 신고 5회/600초, 조치 30회/60초, 좋아요 40회/60초 제한이다. 저장의 사용자/역할은 DB 현재 세션에서 가져온다. 댓글은 최신순, 답글은 작성순으로 20개와 다음 페이지 유무를 반환한다.
+
+새 목록 카드의 `engagement`는 likeCount/recentLikeCount/recentCommenterCount/popularityScore다. 실제 유효 최근 168시간 좋아요 + 비작성자 댓글 참여자 × 2이며 중복 댓글/답글 작성자는 한 명으로 센다. 수정/숨김 복구가 생성 시각을 갱신하지 않는다. 정렬 동률은 최초 게시일 내림차순, ID 오름차순으로 기존 리뷰 계약을 유지한다. 최신순은 페이지 12개를 먼저 제한하고 집계하며 인기/좋아요순은 현재 후보를 집계하므로 페이지 이동 중 순서 변동과 부하 검수는 남는다. 기존 목록 RPC는 변경하지 않고 새 API 미설치만 latest로 fallback한다.
+
+알림은 review_like/review_comment/review_reply이며 리뷰 작성자와 원 댓글 작성자에게 자기 알림을 제외해 전달한다. 수신 reactions/replies 설정을 적용하고 좋아요는 최근 24시간 억제+UTC 일자 dedupe, 댓글은 source UUID/수신자 unique를 사용한다. 알림에 원문/제목을 복제하거나 과거 활동을 backfill하지 않는다. 댓글 신고 결과는 본인 접수 페이지에서 조회한다.
+
 ## 커뮤니티 토론 API 증분 · 2026-10-08 (작성·미적용/미검증)
 
 | 사용자 세션 RPC | 입력/계약 |

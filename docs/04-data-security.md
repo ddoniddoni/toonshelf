@@ -1,5 +1,13 @@
 # 04. 데이터 모델과 보안
 
+## 리뷰 전용 토론 저장소 · 2026-10-08 (작성·미적용/미검증)
+
+`20261008121123_review_discussions.sql`은 두 미적용 커뮤니티 migration 다음에 적용한다. `public.toon_review_comments`·`toon_review_reactions`, `toon_private.toon_review_comment_reports`·`toon_review_comment_moderation_events`를 별도로 추가한다. 기존 reviews 및 티어/글 토론 계약은 보존한다. RLS와 raw 권한 회수로 직접 읽기/쓰기를 막고 필요한 공개 조회·회원/역할 RPC만 허용한다. 모든 함수는 빈 search_path를 사용하며 외부 RPC에는 5초 statement timeout을 둔다. 공용 default privileges·Auth·여행 앱 변경은 없다.
+
+댓글은 같은 리뷰의 최상위 댓글만 부모로 참조한다. 리뷰/작품/작성자/조회자/부모의 현재 공개·차단 상태를 읽기·집계·알림에서 재검사한다. 스포일러는 리뷰+부모+댓글의 OR다. 본인 soft delete와 FK 익명화는 본문을 제거하고 기존 답글을 보존한다. 숨긴 부모 아래 답글은 비노출이고 삭제된 부모 아래에는 새 답글을 쓰지 못한다. 리뷰 공유 잠금→부모→댓글, 정렬된 사용자 pair mutex와 expected version을 사용한다. 차단 trigger는 해당 관계의 리뷰 좋아요를 같은 transaction에서 정리한다.
+
+리뷰 ID 기반 FK라 기존 작품 병합의 리뷰 work_id 이동에도 댓글/반응 연결을 유지하도록 설계했다. 실제 병합/경합은 미검증이다. 신고 comment FK와 공유 Auth 탈퇴의 보존/비식별화 및 hard-delete 순서는 P7 작업자에서 처리해야 한다. 신규 알림은 리뷰/댓글 참조만 저장하고 현재 대상이 접근 불가이면 actor/kind/target이 없는 unavailable DTO를 반환한다. 기존 post/tier/follow/submission 알림 분기를 유지한다.
+
 ## 커뮤니티 토론 물리 모델 · 2026-10-08 (작성·미적용/미검증)
 
 `20261008102414_community_discussions.sql`은 먼저 `20261008090225_community_posts.sql`이 필요하다. 두 파일 모두 MCP 인증 오류로 원격 미적용이다. 아래는 로컬 SQL 계약이며 설치·권한 검수 결과가 아니다. 기존 티어 전용 `toon_comments`/`toon_reactions`의 제약·RPC를 변경하지 않고 다음 글 전용 테이블을 추가한다.

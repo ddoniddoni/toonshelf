@@ -3,18 +3,27 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicEnv } from "@/lib/env/public";
 import { requireAccount } from "@/lib/auth/session";
+import { usernameSchema } from "@/lib/auth/validation";
+import { reviewApiUnavailable } from "./availability";
 import { uuidSchema } from "@/lib/catalogue/model";
 import { reviewError } from "./errors";
-import { blockListSchema,editorSchema,myReviewListSchema,reviewDetailSchema,reviewListSchema,reportRowSchema } from "./model";
+import { blockListSchema,editorSchema,myReviewListSchema,reviewDetailSchema,reviewListSchema,reviewDiscoverySchema,reviewSortSchema,reportRowSchema,type ReviewSort } from "./model";
 import { z } from "zod";
 export const getReview = cache(async(id:string)=>{
  if (!getPublicEnv().supabase || !uuidSchema.safeParse(id).success) return null;
  const {data,error} = await (await createClient()).rpc("toon_get_review",{p_id:id,p_reveal:false,p_expected_version:null});
  reviewError(error);return data === null ? null : reviewDetailSchema.parse(data);
 });
-export async function listReviews(workId:string|null,username:string|null,page=1) {
- const {data,error} = await (await createClient()).rpc("toon_list_reviews",{p_work:workId,p_username:username,p_page:page});
- reviewError(error);return data === null ? null : reviewListSchema.parse(data);
+export async function listReviews(workId:string|null,username:string|null,page=1,sort:ReviewSort="latest") {
+ const input=z.object({work:uuidSchema.nullable(),username:usernameSchema.nullable(),page:z.number().int().min(1).max(1000),sort:reviewSortSchema})
+  .refine(v=>(v.work===null)!==(v.username===null)).parse({work:workId,username,page,sort});
+ const client=await createClient();
+ const {data,error}=await client.rpc("toon_search_reviews",{p_work:input.work,p_username:input.username,p_page:input.page,p_sort:input.sort});
+ if(reviewApiUnavailable(error)) {
+  const legacy=await client.rpc("toon_list_reviews",{p_work:input.work,p_username:input.username,p_page:input.page});
+  reviewError(legacy.error);return legacy.data===null ? null : {...reviewListSchema.parse(legacy.data),sort:"latest" as const,engagementAvailable:false};
+ }
+ reviewError(error);return data===null ? null : {...reviewDiscoverySchema.parse(data),sort:input.sort,engagementAvailable:true};
 }
 export async function getMyReviewEditor(id:string) {
  const {client} = await requireAccount();
