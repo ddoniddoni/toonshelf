@@ -85,3 +85,7 @@ Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 최근 
 - 단위·통합·E2E·접근성·DB·회귀 테스트와 테스트를 포함하는 `npm run check` 등 복합 명령을 자동 실행하지 않는다.
 - 기존 문서나 skill의 자동 테스트 지침보다 이 사용자 결정을 우선한다. 테스트를 실행하지 않은 경우 결과 보고에 미실행을 명시하며 통과했다고 쓰지 않는다.
 - lint, typecheck, build, React Doctor, advisor, env 검사와 브라우저 수동·자동 검수도 자동 실행하지 않는다. 필요한 소스·문서 읽기와 코드 작성은 계속하되 실행 검증은 별도 요청을 기다린다. 테스트 파일 작성 자체는 허용한다.
+
+## 최신 작업 기록 · 2026-10-09 취향 비교
+
+이전 작품 병합 feature `2799db3`/develop merge `be37d0e`를 push하고 develop에서 종료했다. 새 개발 요청으로 최신 develop fetch/fast-forward 확인 뒤 `feature/taste-comparison`에서 DISC-01/05, SOC-06의 프로필 진입·내 평가/상대 public 평가 비교·5편 기준·함께 S/차이 목록·20편 페이지·private 응답 코드를 작성했다. CLI 생성 `20261009091203_taste_comparison.sql`과 local rollback 25번 fixture를 작성했으며 개발 보고 시점에는 미커밋이었다. 이후 2026-10-09 사용자 Git Flow 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 검사·원격 SQL 적용 허가는 포함하지 않는다. MCP 연결 복구 후 `zwzncrdlqnthxgdvsqxq`·migration 이력·Toon 의존 함수/제약/컬럼을 read-only로 확인했다. 첫 대기 `toon_community_posts` apply_migration은 자동 승인 검토가 공유 원격 DDL 적용의 명시적 사용자 승인 부족으로 거절했다. 우회/재시도나 원격 변경 성공은 없다. 적용 승인 범위는 community_posts → community_discussions → review_discussions → community_work_merge → taste_comparison 총 5개 파일이다. 기존 baseline/공유 Auth/여행 앱/default privileges·운영 데이터는 유지하고 linked CLI push/reset/전체 seed 금지다. 모든 테스트/자동 검사/타입 생성/브라우저·DB 권한/성능/실제 사용자 흐름은 미실행이며 SQL 적용 승인은 검사 허가가 아니다. 다음 기능 후보는 P6 S 공동 평가 기반 작품 추천이며 기존 잔여 범위는 유지한다.

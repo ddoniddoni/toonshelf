@@ -36,6 +36,7 @@ export default async function Page({params,searchParams}: {params:Promise<{usern
   if (!library || !stats || !follow) notFound();
   return <section className="page-container public-profile"><UserAvatar path={profile.avatar_path} name={profile.display_name}/><p className="eyebrow">@{profile.username}</p><h1>{profile.display_name}</h1><p className="profile-bio">{profile.bio || "아직 소개를 남기지 않았어요."}</p>
     <FollowPanel initial={follow}/>
+    {account?.user.id !== profile.id ? <p><Link className="text-link" href={"/compare/"+username} prefetch={false}>나와 취향 비교하기 →</Link></p> : null}
     <section aria-labelledby="profile-featured-tier"><h2 id="profile-featured-tier">대표 티어표</h2>{featured ? <FeaturedTierCard tier={featured}/> : <p>현재 표시할 대표 티어표가 없어요.</p>}{account?.user.id === profile.id ? <Link className="text-link" href="/me/tiers">내 대표 티어표 관리 →</Link> : null}</section>
     <ReadingStatistics stats={stats} isPublic/><h2>공개 서재와 평가 · {library.total}편</h2><p className="field-hint">서재와 평가가 각각 공개된 경우에만 표시돼요. 비공개 기록·메모·회차·태그는 포함하지 않아요.</p>
     <Link className="text-link" href={"/u/"+username+"/library"}>공개 서재 검색·필터 →</Link><PublicLibraryItems items={library.items}/>

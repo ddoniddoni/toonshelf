@@ -1,5 +1,9 @@
 # 03. 기술 구조와 인증
 
+## 취향 비교 조회 · 2026-10-09 (작성·실행 미검증)
+
+Server Component → guardPage/requireAccount → 현재 사용자 세션의 `toon_compare_taste` RPC → 제한 DTO를 사용한다. route는 force-dynamic, 정적 비식별 metadata/noindex, `/compare/:path*`는 private/no-store/no-referrer다. 프로필 진입·필터·페이지 링크는 prefetch를 끄며 사용자별 결과를 공유 캐시에 넣지 않는다. 서버와 DB에서 username/section/page를 검증하고 viewer ID는 외부에서 받지 않는다. 반환 profile/section/page를 대조한다. SQL은 stable 단일 요청 snapshot과 공통 후보 CTE를 재사용하며 사용자 쌍 전체를 일괄 계산하거나 클라이언트에 전체 평가를 전송하지 않는다. 기존 `(user_id,work_id)` PK를 통한 두 사용자 교집합이며 실행 계획/부하 검수는 대기다.
+
 ## 커뮤니티 작품 병합 통합 · 2026-10-08 (작성·실행 미검증)
 
 기존 public 병합 RPC signature와 admin/private 역할·명시적 확인·10분 preview token 계약을 유지한다. 기존 개인/티어 구현은 private 함수로 옮기고 직접 실행권을 제거한 뒤 새 public wrapper에서 호출한다. 작품 잠금 이후 관련 글/초안/연결과 소유자 access를 NOWAIT로 잠그고 기존 fingerprint 검사부터 개인/티어/카탈로그 갱신, 커뮤니티 연결 보존까지 한 transaction에서 처리한다. 익명의 RPC 실행권은 제거하며 authenticated 호출도 기존 사용자 세션의 관리자 역할 검사를 통과해야 한다.

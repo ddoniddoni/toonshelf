@@ -1,5 +1,11 @@
 # 05. 도메인 규칙과 API 계약
 
+## 취향 비교 RPC · 2026-10-09 (작성·미적용/미검증)
+
+`toon_compare_taste(p_username,p_section,p_page)`는 현재 회원 자신과 지정한 상대만 비교한다. section은 all/common_s/different, page는 1~1000, 페이지당 20편이다. 공통 canonical tier 우선 → 둘 다 별점일 때 fallback → 서로 다른 신호만 있으면 제외한다. 아래 9절 수식을 SQL에서 적용하며 similarity는 n≥5일 때만 반올림한 0~100 정수, confidence는 n/(n+10)이다. confidence를 정확도 확률로 표시하지 않는다. 함께 S는 공통 S 티어, different는 정규화 차이≥0.4이며 차이 내림차순 뒤 제목 C collation/UUID, 그 외는 제목/UUID로 정렬한다.
+
+반환은 profile(id/username/name), commonCount/tierCount/ratingCount/commonSCount/differentCount, similarity/confidence, section/page/hasNext, items(work id/slug/title, signal, mine, other, difference)다. signal=tier면 mine/other는 기본 티어, rating이면 1~10 rating_steps다. 다른 신호와 private metadata는 전송하지 않는다. 모든 집계와 items는 같은 현재 접근 교집합이다. 대상 미노출은 null, 자기 비교는 SELF_COMPARE, 비로그인·비활성은 권한 오류다. 서버 DTO는 집계/표본/페이지·최대 길이와 요청 대상 일치를 확인한다. missing API는 CONFIG_REQUIRED 준비 상태이며 0점/빈 결과로 대체하지 않는다.
+
 ## 커뮤니티 작품 병합 API · 2026-10-08 (작성·미적용/미검증)
 
 `toon_admin_merge_preview`의 기존 source/target/token/records/conflicts/canMerge에 optional `community:{posts,drafts,deduplicatedPosts,deduplicatedDrafts}`를 추가한다. 미설치 응답의 community는 undefined로 유지한다. 관리자에게 raw 글/초안/owner ID/원문 hash를 제공하지 않는다. 기존 `toon_admin_merge_works`의 signature·latest_private·확인·버전/token은 유지하며 실제 변경 건수는 기존 감사 records에도 posts/postDrafts로 담는다.
