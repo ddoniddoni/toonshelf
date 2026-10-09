@@ -1,5 +1,11 @@
 # 04. 데이터 모델과 보안
 
+## 공동 S 추천 데이터 경계 · 2026-10-10 (작성·미적용/미검증)
+
+`20261009170725_shared_s_recommendations.sql`은 새 `toon_get_shared_s_recommendations(uuid)` RPC 하나다. 기존 테이블/RLS/default privileges·공유 Auth/다른 앱을 변경하지 않는다. 공개 집계와 기존 권리 확인 카드 helper에 한정한 SECURITY DEFINER/빈 search_path를 사용하고 명시 revoke 뒤 anon/authenticated에 실행을 부여한다. 로그인 UID가 있으면 live session·current_active를 요구하며 실패 시 익명으로 재조회하지 않는다.
+
+기준 작품과 후보 모두 work_public이어야 한다. 기준의 public S 평가 중 profile_visible(활성·동의·인증·조회자 양방향 차단)이 참인 사용자만 cohort에 포함하고, 후보의 public canonical tier만 센다. 양쪽 planned를 제외하며 서재 공개 범위는 평가 공개 범위와 독립이다. 본인 평가도 private이면 제외한다. 공유 티어표/별점/사용자 추천 노출 opt-in은 이 집계의 신호가 아니다. 후보별 PK(user_id,work_id)로 1인 1표이며 n≥5/s≥3 아래의 후보·평가자 ID/원시 cohort 총수는 반환하지 않는다. 표지 권한은 기존 display helper를 따르고 OG/export 권한으로 확장하지 않는다.
+
 ## 취향 비교 권한 · 2026-10-09 (작성·미적용/미검증)
 
 `20261009091203_taste_comparison.sql`은 `public.toon_compare_taste(text,text,integer)` 하나를 추가한다. 기존 테이블/RLS/grant/default privileges·Auth·여행 앱을 수정하지 않는다. 제한 집계를 위한 SECURITY DEFINER는 빈 search_path와 명시적 live session/active/동의/상대 profile_visible/work_public 검사를 수행한다. PUBLIC/anon/authenticated/service_role 실행권을 회수하고 authenticated에만 다시 부여한다. 본인 auth.uid() 평가는 공개 범위와 관계없이 읽되 상대는 evaluation.visibility=public만 사용한다. 서재 공개 범위와 평가 공개 범위는 독립이고 양쪽 planned는 제외한다. 차단·정지·미동의/미인증·성인·테스트/숨김/병합/공식 링크 없는 작품은 현재 공개 predicate로 제외한다. raw 상대 전체 평가 수·서재 상태·메모·이메일·수정 시각·초안은 DTO에 없다. 추천 노출 discovery_opt_in은 직접 지정한 공개 프로필 비교와 구분한다. 새 데이터 저장/fixture 삽입은 하지 않는다.

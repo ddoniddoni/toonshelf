@@ -13,8 +13,8 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
-| P5 | 진행: 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드/migration 작성 | 아래 2026-10-08 리뷰 토론 기록. 커뮤니티/리뷰/병합 SQL 4개는 MCP 복구 후 원격 DDL 승인 대기, 모든 실행 검수 대기 |
-| P6 | 진행: DISC-01/05 취향 비교 화면·세션 RPC·계산/노출 경계 작성 | 아래 2026-10-09 기록. SQL 미적용·모든 실행 검수 대기, 추천/순위·분석 잔여 |
+| P5 | 진행: 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드/migration 작성 | 아래 2026-10-08 리뷰 토론 기록. 커뮤니티/리뷰/병합 SQL 4개는 적용 승인 후 MCP OAuth 재연결 대기, 모든 실행 검수 대기 |
+| P6 | 진행: DISC-01/03/05 취향 비교·공동 S 작품 추천 화면/RPC·계산/노출 경계 작성 | 아래 2026-10-10 기록. SQL 미적용·모든 실행 검수 대기, 개인 추천/순위·분석 잔여 |
 | P7 | 미착수 | 없음 |
 
 Codex는 완료 시 `상태: 완료/진행/외부설정대기`, 구현 요구사항 ID, 변경 파일, migration, 테스트 명령/결과, 미검증 항목을 해당 표와 마지막 작업 기록에 남긴다.
@@ -857,3 +857,15 @@ MCP `get_project_url`은 이번에도 `OAuth token refresh failed: Failed to par
 **근거·작성한 검사:** 설치된 Next 16.3.8 fetching guide, Supabase changelog/functions/RLS, Postgres/Supabase/React 스킬을 읽었다. 단위 DTO/표본 구간/URL 주입, DAL 현재 회원·대상/페이지 대조·미설치 오류, UI 표본 부족/실제 0/페이지 보존, local rollback `25_taste_comparison.test.sql`의 80점·별점 fallback/0점·20편 페이지·현재 공개/차단/상대 상태/세션 경계를 작성했다. **파일 작성만 했고 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·성능 검수는 모두 미실행이며 실제 확인한 사용자 흐름은 없다.** DDL/컬럼 metadata 읽기는 권한 동작 검수가 아니다. 원격 테스트 사용자/작품/seed는 만들지 않았다. 사용자 요청 전 검사 금지는 계속 적용한다.
 
 **Git·다음:** 이전 feature `2799db3`와 develop `be37d0e` push 이후 깨끗한 develop에서 fetch/fast-forward를 확인하고 `feature/taste-comparison`을 생성했다. 개발 보고 시점에는 stage/commit/push/통합 merge/PR를 하지 않았다. 이후 2026-10-09 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하며 검사·원격 SQL 적용 허가는 포함하지 않는다. 원격 SQL 적용 승인과 검사 요청은 별도다. 다음 후보는 P6 공개 S 공동 평가 기반 작품 추천이며 분석/순위/유사 사용자·P4/P5/P7 및 인증/규장각/허가 표지와 기존 미검증 범위는 유지한다.
+
+### 2026-10-10 · 공개 S 공동 평가 작품 추천 (작성·MCP 재연결/실행 검수 대기)
+
+**상태·요구사항:** DISC-03/05, SOC-06 진행. 작품 상세에 기존 S 독자들의 공동 평가 기반 추천 최대 6편과 실제 n/s·계산 시각·추천 설명을 작성했다. 공통 표본 n≥5/s≥3, s/(n+10) 보정 정렬을 사용하며 표본 부족·API 미설치·일시 실패·접근 불가를 구분한다. Suspense로 추천 로딩을 분리하고 추천 실패는 안전한 안내로 제한해 작품/리뷰 경로를 유지한다. 같은 장르 목록은 별도로 유지하고 UI는 기존 WorkCard/허가 이미지·텍스트 표지·색상 토큰과 반응형 grid를 쓴다. 개인 이웃 추천/순위/분석과 P6 전체 완료는 후속이다.
+
+**SQL·권한:** CLI 2.119.0 migration new로 `20261009170725_shared_s_recommendations.sql`을 생성했다(UTC 파일명, KST 작업일 10일). 새 RPC 하나이며 공개 기준 S cohort → 후보 공개 canonical tier 집계 → 최소 표본 → score/n/s/UUID 정렬 → 상위 6카드 투영이다. 본인도 비공개 평가면 제외하며 서재 status는 공개하지 않고 planned만 제외한다. 기존 profile_visible/work_public/current_active/session_live와 권리 확인 card helper를 사용한다. 로그인 UID가 있으면 활성 세션을 요구하고 실패 시 익명 우회가 없다. 반환에는 작품 정보와 집계값만 있으며 평가자 ID/표본 미달 후보/전체 cohort 수는 없다. raw ACL/RLS·baseline/공유 Auth/여행 앱/default privileges·원격 사용자/작품 데이터는 변경하지 않았다. 기존 평가 PK·public-work index를 사용하며 성능 검증/새 index 추가는 하지 않았다.
+
+**MCP·이전 SQL:** 사용자의 ‘좋아 고고’는 직전 안내한 대기 SQL 5개 적용과 다음 추천 개발의 진행 승인으로 받아 시작했다. get_project_url/list_migrations 모두 OAuth token refresh failed: Failed to parse server response라 현재 원격 대상/이력 읽기와 DDL 성공은 없다. 재연결 질문을 보냈고 그동안 코드 작성은 진행했다. 연결 복구 후 `zwzncrdlqnthxgdvsqxq`와 최신 이력/Toon 의존 정의를 확인하고 `20261008090225_community_posts.sql` → `20261008102414_community_discussions.sql` → `20261008121123_review_discussions.sql` → `20261008141422_community_work_merge.sql` → `20261009091203_taste_comparison.sql` → `20261009170725_shared_s_recommendations.sql` 순서로 이어간다. 현재 총 6개 미적용이며 기존 5개의 적용 승인을 다시 요청할 이유는 없다. 이번에는 원격 DDL 호출 자체를 하지 않아 자동 승인 검토의 새 거절도 없다. linked CLI push/reset/전체 seed는 금지다.
+
+**검사·근거:** 설치된 Next 16.3.8 fetching/Suspense 문서, Supabase 공식 changelog/functions, Supabase/Postgres/React 스킬을 읽었다. 단위 DTO 최소 표본/계산식/본인 작품·중복/identity 주입, DAL 요청 세션·잘못된 대상·missing API/timeout, UI 실제 근거·빈 상태와 패널 실패 격리, local rollback `26_shared_s_recommendations.test.sql`의 표본 경계/보정 정렬/상위 6개·동점/공개 철회·양방향 차단/비활성·세션 거절 fixture를 작성했다. **실행은 하지 않았다. 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·부하 검수 및 실제 사용자 흐름은 모두 미실행**이며 사용자 요청 전 금지를 유지한다. 새로운 dependency/버전 변경은 없다.
+
+**Git·다음:** 취향 비교 feature `dbb09ee`/develop `9a924f9` push 후 깨끗한 develop에서 fetch/fast-forward 확인, 새 `feature/shared-s-recommendations`를 만들었다. 개발 보고 시점에는 미커밋이었다. 이후 2026-10-10 사용자 Git Flow 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다. 우선 MCP 재연결 후 승인된 SQL 적용을 재개한다. 다음 기능 후보는 P6 공개 평가 기반 이웃 개인 추천이며 P4/P5/P7·순위/분석·인증/규장각/허가 표지와 기존 미검증 범위는 유지한다.

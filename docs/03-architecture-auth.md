@@ -1,5 +1,9 @@
 # 03. 기술 구조와 인증
 
+## 공동 S 추천 조회 · 2026-10-10 (작성·실행 미검증)
+
+작품 상세의 독립 Server Component가 요청 쿠키를 유지하는 일반 SSR client로 `toon_get_shared_s_recommendations`를 한 번 호출한다. 입력은 workId만 허용하며 반환 workId·DTO·최소 표본·분수 공식·최대 6편·중복/자기 작품을 검증한다. 서비스 키나 익명 대체 요청·공유 캐시는 쓰지 않는다. `/works/:path*`에 private/no-store/no-referrer를 명시하고 기존 force-dynamic·SDK no-store를 유지한다. Suspense와 해당 패널의 안전한 오류 안내를 사용하며 오류를 빈 표본으로 변환하지 않는다. Next 16.3.8 설치 문서의 [Server Component/Suspense](../node_modules/next/dist/docs/01-app/01-getting-started/06-fetching-data.md), [Supabase 함수](https://supabase.com/docs/guides/database/functions)와 [changelog](https://supabase.com/changelog)를 읽었고 dependency는 변경하지 않았다.
+
 ## 취향 비교 조회 · 2026-10-09 (작성·실행 미검증)
 
 Server Component → guardPage/requireAccount → 현재 사용자 세션의 `toon_compare_taste` RPC → 제한 DTO를 사용한다. route는 force-dynamic, 정적 비식별 metadata/noindex, `/compare/:path*`는 private/no-store/no-referrer다. 프로필 진입·필터·페이지 링크는 prefetch를 끄며 사용자별 결과를 공유 캐시에 넣지 않는다. 서버와 DB에서 username/section/page를 검증하고 viewer ID는 외부에서 받지 않는다. 반환 profile/section/page를 대조한다. SQL은 stable 단일 요청 snapshot과 공통 후보 CTE를 재사용하며 사용자 쌍 전체를 일괄 계산하거나 클라이언트에 전체 평가를 전송하지 않는다. 기존 `(user_id,work_id)` PK를 통한 두 사용자 교집합이며 실행 계획/부하 검수는 대기다.
