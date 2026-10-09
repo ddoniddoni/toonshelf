@@ -13,8 +13,8 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
-| P5 | 진행: 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드/migration 작성 | 아래 2026-10-08 리뷰 토론 기록. 커뮤니티/리뷰/병합 SQL 4개는 적용 승인 후 MCP OAuth 재연결 대기, 모든 실행 검수 대기 |
-| P6 | 진행: DISC-01/03/05 취향 비교·공동 S 작품 추천 화면/RPC·계산/노출 경계 작성 | 아래 2026-10-10 기록. SQL 미적용·모든 실행 검수 대기, 개인 추천/순위·분석 잔여 |
+| P5 | 진행: 티어 토론·반응/팔로우/피드/알림, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드·DB 반영 | 아래 2026-10-10 SQL 적용 기록. 커뮤니티/리뷰/병합 SQL 4개 MCP 적용 성공·이력 확인, 모든 실행 검수 대기 |
+| P6 | 진행: DISC-01/03/05 취향 비교·공동 S 작품 추천 화면/RPC·계산/노출 경계 코드·DB 반영 | 아래 2026-10-10 SQL 적용 기록. 비교/추천 SQL 2개 MCP 적용 성공·이력 확인, 모든 실행 검수 대기, 개인 추천/순위·분석 잔여 |
 | P7 | 미착수 | 없음 |
 
 Codex는 완료 시 `상태: 완료/진행/외부설정대기`, 구현 요구사항 ID, 변경 파일, migration, 테스트 명령/결과, 미검증 항목을 해당 표와 마지막 작업 기록에 남긴다.
@@ -869,3 +869,23 @@ MCP `get_project_url`은 이번에도 `OAuth token refresh failed: Failed to par
 **검사·근거:** 설치된 Next 16.3.8 fetching/Suspense 문서, Supabase 공식 changelog/functions, Supabase/Postgres/React 스킬을 읽었다. 단위 DTO 최소 표본/계산식/본인 작품·중복/identity 주입, DAL 요청 세션·잘못된 대상·missing API/timeout, UI 실제 근거·빈 상태와 패널 실패 격리, local rollback `26_shared_s_recommendations.test.sql`의 표본 경계/보정 정렬/상위 6개·동점/공개 철회·양방향 차단/비활성·세션 거절 fixture를 작성했다. **실행은 하지 않았다. 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·부하 검수 및 실제 사용자 흐름은 모두 미실행**이며 사용자 요청 전 금지를 유지한다. 새로운 dependency/버전 변경은 없다.
 
 **Git·다음:** 취향 비교 feature `dbb09ee`/develop `9a924f9` push 후 깨끗한 develop에서 fetch/fast-forward 확인, 새 `feature/shared-s-recommendations`를 만들었다. 개발 보고 시점에는 미커밋이었다. 이후 2026-10-10 사용자 Git Flow 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다. 우선 MCP 재연결 후 승인된 SQL 적용을 재개한다. 다음 기능 후보는 P6 공개 평가 기반 이웃 개인 추천이며 P4/P5/P7·순위/분석·인증/규장각/허가 표지와 기존 미검증 범위는 유지한다.
+
+
+### 2026-10-10 · 대기 SQL 6개 원격 적용 완료 (기능 검수 대기)
+
+**상태·요구사항:** 사용자 ‘좋아 아까 sql작업해야한다는거 진행해’ 요청으로 COM-01/02/03/04, REV-03/04, SOC-03/04/05/06, CAT-08, OPS-01/02/04, DISC-01/03/05의 대기 migration 6개를 적용했다. MCP get_project_url은 `zwzncrdlqnthxgdvsqxq`를 반환했고, 적용 전 이력과 관련 Toon 테이블 컬럼·제약·함수 정의를 read-only로 확인했다. 기존 로컬 SQL을 수정하지 않고 아래 순서로 각각 apply_migration에 전달했다.
+
+| 순서 | 로컬 SQL 파일 | 원격 migration 이름 | 원격 version (UTC) | 적용 결과 |
+|---|---|---|---|---|
+| 1 | `20261008090225_community_posts.sql` | `toon_community_posts` | `20261009180324` | success:true |
+| 2 | `20261008102414_community_discussions.sql` | `toon_community_discussions` | `20261009180338` | success:true |
+| 3 | `20261008121123_review_discussions.sql` | `toon_review_discussions` | `20261009180344` | success:true |
+| 4 | `20261008141422_community_work_merge.sql` | `toon_community_work_merge` | `20261009180351` | success:true |
+| 5 | `20261009091203_taste_comparison.sql` | `toon_taste_comparison` | `20261009180358` | success:true |
+| 6 | `20261009170725_shared_s_recommendations.sql` | `toon_shared_s_recommendations` | `20261009180403` | success:true |
+
+**설치 근거·범위:** 마지막 list_migrations에 위 6건이 모두 등록됐고 기존 여행 앱 12건과 Toon 설치/인기/팔로우/피드/알림 이력도 유지됐다. 이번 대기 SQL은 모두 설치 완료이며 아래/위 과거 작업의 미적용·연결 대기 기록은 당시 상태다. 공용 Auth/다른 앱/default privileges·기존 baseline 변경, linked CLI push/reset/전체 seed, 원격 테스트 사용자/작품 생성은 하지 않았다. migration 안의 새 트리거/함수만 설치했으며 실제 글 게시·반응·작품 병합 등 사용자 동작을 실행하지 않았다.
+
+**미검증·다음:** 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검사와 실제 사용자 흐름은 모두 미실행이다. DDL 성공/이력 확인은 기능·권한 검수 통과를 뜻하지 않는다. 연결/SQL 설치를 막던 항목은 해소됐으며, 실행 검수는 별도 사용자 요청 때 진행한다. 다음 개발 후보는 P6 공개 평가 기반 이웃 개인 추천이고 기존 P4/P5/P7·순위/분석·인증/규장각/허가 표지 잔여 범위는 유지한다.
+
+**Git:** 공동 S 추천 feature `cb2ada5`/develop merge `1d1014c` push 이후 최신 develop fetch/fast-forward 확인 후 `chore/apply-pending-supabase-migrations`를 생성했다. 이번 변경 파일은 README·진행표·AGENTS 적용 기록뿐이다. SQL 적용 보고 시점에는 미커밋이었다. 이후 사용자 Git Flow 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다.
