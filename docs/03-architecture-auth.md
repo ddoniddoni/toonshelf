@@ -1,5 +1,11 @@
 # 03. 기술 구조와 인증
 
+## 커뮤니티 작품 병합 통합 · 2026-10-08 (작성·실행 미검증)
+
+기존 public 병합 RPC signature와 admin/private 역할·명시적 확인·10분 preview token 계약을 유지한다. 기존 개인/티어 구현은 private 함수로 옮기고 직접 실행권을 제거한 뒤 새 public wrapper에서 호출한다. 작품 잠금 이후 관련 글/초안/연결과 소유자 access를 NOWAIT로 잠그고 기존 fingerprint 검사부터 개인/티어/카탈로그 갱신, 커뮤니티 연결 보존까지 한 transaction에서 처리한다. 익명의 RPC 실행권은 제거하며 authenticated 호출도 기존 사용자 세션의 관리자 역할 검사를 통과해야 한다.
+
+미리보기 fingerprint는 기존 개인/티어와 현재 관련 글·초안·작품 연결을 포함하고 외부에 반환하지 않는다. 쓰기 경로의 잠금 순서가 반대인 경우 기다리지 않고 CONFLICT로 전체 rollback한다. 커뮤니티 목록/글 상세와 기존 me/u/works/reviews/tiers/feed/notifications 경로를 무효화한다. 작성자 이력 DAL은 현재 계정·입력·RPC의 postId를 확인하고 원문/운영자 정보 없이 연결 이력 DTO만 전달한다. 실제 HTTP/DB/경합/브라우저 동작은 미검수다.
+
 ## 리뷰 반응·토론 연결 · 2026-10-08 (작성·실행 미검증)
 
 `src/lib/review-comments`와 reviews의 like 모듈은 사용자 SSR client로 공개 조회/현재 회원 저장 RPC를 호출한다. 서버에서 허용 필드·UUID·리뷰/댓글 버전·명시적 확인을 검증하고 응답 대상/버전을 대조한다. moderator/admin은 기존 private 역할 RPC로 확인하며 클라이언트 actor/역할/집계 입력을 받지 않는다. 생성 UUID 재사용으로 응답 유실 재시도의 중복을 막고 목표 좋아요 상태가 확인된 뒤 UI를 갱신한다.

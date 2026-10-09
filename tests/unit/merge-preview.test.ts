@@ -18,4 +18,11 @@ describe("administrator merge projection",()=>{
   expect(mergePolicySchema.safeParse("latest_private").success).toBe(true);
   for (const policy of ["prefer_public","delete_old_review","source","target",""]) expect(mergePolicySchema.safeParse(policy).success).toBe(false);
  });
+ it("keeps community counts optional for older databases without inventing zeros",()=>{
+  expect(mergePreviewSchema.parse(preview).community).toBeUndefined();
+  const community={posts:3,drafts:2,deduplicatedPosts:1,deduplicatedDrafts:2};
+  const parsed=mergePreviewSchema.parse({...preview,community:{...community,body:"draft-secret",owners:["private-owner"]}});
+  expect(parsed.community).toEqual(community);expect(JSON.stringify(parsed)).not.toMatch(/draft-secret|private-owner/);
+  expect(mergePreviewSchema.safeParse({...preview,community:{...community,deduplicatedPosts:4}}).success).toBe(false);
+ });
 });

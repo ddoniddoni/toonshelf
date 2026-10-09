@@ -13,7 +13,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
-| P5 | 진행: 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림 코드/migration 작성 | 아래 2026-10-08 리뷰 토론 기록. 커뮤니티 2개+리뷰 1개 SQL은 MCP 인증 오류로 원격 미적용, 모든 실행 검수 대기 |
+| P5 | 진행: 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드/migration 작성 | 아래 2026-10-08 리뷰 토론 기록. 커뮤니티/리뷰/병합 SQL 4개는 MCP 재연결 요구로 원격 미적용, 모든 실행 검수 대기 |
 | P6 | 미착수 | 없음 |
 | P7 | 미착수 | 없음 |
 
@@ -831,3 +831,17 @@ MCP `get_project_url`은 이번에도 `OAuth token refresh failed: Failed to par
 **작성 파일·실행 상태:** 댓글 계약/스포일러/재전송/수정 입력 보존, 좋아요 ACK와 권한 입력 제한, 실제 집계/알림 DTO, 목록 fallback 및 예상 밖 장애 전파의 단위/action/UI mock 테스트를 작성했다. `supabase/tests/23_review_discussions.test.sql`은 로컬 rollback 전용으로 raw 권한·정지/본인 금지·중복/부모 관계·스포일러·신고/숨김·인기 집계·알림 설정·차단/삭제·작품 비공개 경계를 작성했다. **파일 작성만 했으며 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검수는 전부 미실행이다. 실제 확인한 사용자 흐름은 없다.** 소스와 diff를 읽은 것을 실행 검수로 보고하지 않는다.
 
 **다음 단계:** MCP 복구 후 세 SQL 설치, 사용자가 요청할 때만 실행 검수. 다음 개발 후보는 커뮤니티 참조 작품 병합 보존과 P5 잔여 정리다. P4 비회원 PNG/edge 제한, P6 비교/추천, P7 공유 Auth 앱 탈퇴/댓글 신고 보존·비식별화, 규장각 API 승인/허가 표지 연동과 기존 미검증 범위를 유지한다.
+
+### 2026-10-08 · 커뮤니티 작품 병합 보존 (코드 작성·DB/검수 대기)
+
+**Git·인증:** 이전 리뷰 토론 feature `d39e988`와 develop merge `627c94a`를 push한 깨끗한 develop에서 fetch/fast-forward 확인 후 새 `feature/community-work-merge`를 생성했다. 개발 보고 시점에는 stage/commit/push/통합 merge/PR를 수행하지 않았다. 2026-10-09 사용자 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다. 직전 사용자 승인으로 `codex mcp login supabase`는 Successfully logged in을 반환했지만, 이번 get_project_url은 MCP authentication required. Reconnect to continue using this server.를 반환했다. 사용자가 재연결했다고 알려 준 뒤 한 번 더 호출했으나 동일했다. 원격 DB 설치/조회 성공은 없으며 무한 재인증 반복이나 다른 프로젝트/토큰 경로로 우회하지 않았다.
+
+**변경·요구사항:** CAT-08, COM-01/02/03, OPS-04. 기존 글 연결 작품의 병합 차단을 별도 보존 처리로 대체했다. 게시본/초안의 source→target ID 치환, 첫 위치 기준 중복 제거·게시본 위치 정리, 각각의 변경 버전 증가, 원문·공개/스포일러/운영 상태·댓글/좋아요/신고·최초 게시일/수정일·피드/알림 보존을 작성했다. 대상 작품만 연결된 글은 수정하지 않는다. 원본 작품이 공개 불가이면 연결이 있는 글/초안을 unavailable 충돌로 막아 재노출하지 않는다. 본인 원문 없는 연결 이력을 private에 보관하고 내 글 편집에서 `/me/posts/[id]/merge-history`로 확인한다. 관리자 미리보기/감사는 건수만 제공한다.
+
+**DB·충돌:** 설치된 CLI 2.119.0 도움말과 migration new로 `20261008141422_community_work_merge.sql`을 생성했다. 기존 개인/티어 병합 코드를 private wrapper로 보존하고 직접 실행권을 회수했다. public RPC는 기존 role/confirm/token/version 검사를 유지한다. 작품 잠금과 관련 글/초안/연결/access NOWAIT 잠금 아래 전체 transaction으로 실행한다. 글/초안 내용과 연결을 private fingerprint에 추가하고 변경 후에는 미리보기를 다시 요구한다. PostgreSQL 공식 locking 문서와 Supabase changelog를 읽었으며 새 dependency/업그레이드는 하지 않았다. 원격 PostgreSQL 버전·권한·동작 확인은 아니다.
+
+**원격 적용 대기:** `20261008090225_community_posts.sql` → `20261008102414_community_discussions.sql` → `20261008121123_review_discussions.sql` → `20261008141422_community_work_merge.sql` 네 파일 모두 미적용이다. 연결 복구 후 `zwzncrdlqnthxgdvsqxq`와 Toon 관련 정의/이력을 확인하고 이 순서로 추가 적용한다. 기존 baseline·공유 Auth·다른 앱·공용 default privileges 변경, linked CLI push/reset/전체 seed, 원격 사용자/작품 fixture 생성은 없다.
+
+**작성한 검사·실행 상태:** 관리자 DTO에서 private 데이터 제외·구 DB optional 집계, 캐시 무효화, 본인 이력 DAL의 auth/입력/대상 확인·미설치 안내와 bounded DTO 테스트를 작성했다. local rollback 전용 `supabase/tests/24_community_work_merge.test.sql`은 권한/미리보기 stale·비공개 원본 차단·게시본/초안의 서로 다른 순서·중복 제거·원문/참조/이벤트 보존·버전 충돌·본인 이력 경계를 작성했다. **파일 작성만 했고 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검수는 모두 미실행이다. 실제 확인한 사용자 흐름은 없다.** 소스/diff 읽기와 CLI 도움말·파일 생성은 실행 검수로 간주하지 않는다.
+
+**다음:** MCP 연결 복구와 4개 SQL 적용, 사용자 요청 시에만 검수. 다음 기능 후보는 P6 공개 평가 기반 취향 비교다. P4 비회원 PNG/edge 제한·P5 잔여·P7 공유 Auth 앱 탈퇴/보존·비식별화·규장각 API/허가 표지·인증 검수와 이전 미검증 범위는 유지한다.

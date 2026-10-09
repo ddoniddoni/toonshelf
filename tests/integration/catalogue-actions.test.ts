@@ -37,6 +37,7 @@ describe("catalogue action authorization",()=>{
     await expect(mergeWorks(null,form({...merge,userId:"victim",role:"admin"}))).rejects.toThrow("NEXT_REDIRECT");
     expect(mocks.rpc).toHaveBeenCalledWith("toon_admin_merge_works",{p_source:merge.sourceId,p_target:merge.targetId,p_source_version:2,p_target_version:4,p_reason:merge.reason,p_confirm:true,p_preview_token:merge.previewToken,p_conflict_policy:"latest_private"});
     expect(mocks.revalidate).toHaveBeenCalledWith("/me","layout");expect(mocks.revalidate).toHaveBeenCalledWith("/u/[username]","layout");expect(mocks.revalidate).toHaveBeenCalledWith("/reviews","layout");
+    expect(mocks.revalidate).toHaveBeenCalledWith("/community");expect(mocks.revalidate).toHaveBeenCalledWith("/posts","layout");expect(mocks.revalidate).toHaveBeenCalledWith("/me/feed");expect(mocks.revalidate).toHaveBeenCalledWith("/me/notifications");
   });
   it("returns a safe conflict and no success invalidation when the preview is stale or records conflict",async()=>{
     for (const message of ["MERGE_PREVIEW_EXPIRED","MERGE_RECORD_CONFLICT","MERGE_REQUIRES_DOMAIN_HANDLERS","CONFLICT"]) {
