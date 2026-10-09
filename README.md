@@ -1,5 +1,11 @@
 # ToonShelf 개발 문서
 
+## 최신 작업 · 대기 SQL 6개 원격 적용 (2026-10-10)
+
+사용자의 SQL 작업 진행 요청으로 Supabase MCP 연결과 대상 `zwzncrdlqnthxgdvsqxq`, migration 이력·관련 Toon 테이블/제약/함수 정의를 확인했다. 커뮤니티 글 → 커뮤니티 토론 → 리뷰 토론 → 커뮤니티 작품 병합 → 취향 비교 → 공동 S 추천의 기존 SQL 6개를 수정 없이 순서대로 적용했으며, 각 `apply_migration`의 `success:true`와 최종 migration 이력 6건을 확인했다. **이번 대기 SQL 6개는 모두 적용 완료**다. 아래 과거 기록의 미적용/재연결 상태는 당시 이력이며, 로컬 파일과 원격 version 대응은 `docs/06-delivery-operations.md`의 최신 기록에 남겼다.
+
+기존 baseline·공유 Auth·여행 앱·공용 default privileges는 변경하지 않았고 reset/push/seed도 실행하지 않았다. 테스트·자동 검사·타입 생성·브라우저/DB 권한 검수·실제 사용자 흐름은 미실행이다. SQL 설치 성공과 기능 검수 완료는 구분한다. 적용 기록은 최신 develop에서 만든 `chore/apply-pending-supabase-migrations`에 작성했다. SQL 적용 보고 시점에는 미커밋이었으며, 이후 사용자 Git Flow 요청에 따라 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인한다.
+
 ## 최신 작업 · 공개 S 공동 평가 기반 작품 추천 (2026-10-10)
 
 취향 비교 feature `dbb09ee`/develop merge `9a924f9` push 이후 최신 develop fetch/fast-forward 기준 새 `feature/shared-s-recommendations`에서 DISC-03/05, SOC-06 코드를 작성했다. 작품 상세에 기준 작품의 S 독자가 함께 좋아한 최대 6작품, 실제 공동 평가자/S 수, 계산 시각·추천 이유·표본 부족과 오류 구분을 추가했다. 공개 기본 티어만 사용하고 현재 계정·차단·작품 공개/표지 권한을 적용한다. 기존 같은 장르 목록과 작품/리뷰 화면은 유지한다.
@@ -32,7 +38,7 @@ REV-03/04, SOC-04/05/06, OPS-01/02/04 증분으로 리뷰 좋아요·댓글/한 
 
 **원격 적용 대기:** MCP OAuth 인증 갱신 오류로 `20261008090225_community_posts.sql` → `20261008102414_community_discussions.sql` → `20261008121123_review_discussions.sql` 세 파일이 미적용이다. 복구 후 선택한 `zwzncrdlqnthxgdvsqxq`와 관련 Toon 의존 정의/이력을 확인하고 이 순서로만 추가 적용한다. 테스트 파일은 작성만 했고 테스트·자동 검사·타입 생성·브라우저/DB 권한 검수·실제 사용자 흐름은 모두 미실행이다. 개발 보고 시점의 리뷰 기능은 미커밋이었으며, 이후 사용자 요청에 따라 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하고 검사 허가는 포함하지 않는다. 다음은 커뮤니티 참조 작품의 안전 병합 보존과 P5 잔여 정리다. P4 잔여·P6/P7, 규장각/허가 표지 연동과 인증 검수는 후속으로 유지한다.
 
-**문서 버전:** 1.28 / **갱신일:** 2026-10-10 / **상태:** P6 취향 비교·공동 S 추천 코드 작성, 기존 적용 승인 후 MCP OAuth 재연결 대기·SQL 6개 미적용, 실행 검수 대기
+**문서 버전:** 1.28 / **갱신일:** 2026-10-10 / **상태:** P6 취향 비교·공동 S 추천 코드 작성, 대기 SQL 6개 원격 적용 완료, 실행 검수 대기
 
 ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 이름이 아니다.
 
