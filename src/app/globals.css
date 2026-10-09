@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+.shared-s-section { margin-block: 32px; padding-block: 28px; border-top: 1px solid var(--line); }
+.shared-s-section > h2 { font-size: 22px; margin-bottom: 12px; }
+.shared-s-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 16px; margin-block: 24px; }
+.shared-s-item { min-width: 0; }
+.shared-s-reason { font-size: 13px; line-height: 1.7; margin-top: 10px; color: var(--muted); }
+.shared-s-reason strong { color: var(--ink); }
+.shared-s-empty { display: grid; gap: 12px; padding: 24px; margin-block: 20px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 6px; }
+.shared-s-method { margin-top: 20px; font-size: 14px; }
+.shared-s-method summary { cursor: pointer; font-weight: 700; }
+.shared-s-method p { margin-top: 12px; line-height: 1.8; }
+@media (max-width: 800px) { .shared-s-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 380px) { .shared-s-grid { grid-template-columns: minmax(0, 1fr); } }
+
 .comparison-page { max-width: 960px; padding-block: 40px 80px; }
 .comparison-heading { margin-block: 28px; }
 .comparison-heading h1 { margin-block: 8px 12px; font-size: clamp(26px, 4vw, 38px); overflow-wrap: anywhere; }

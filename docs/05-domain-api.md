@@ -1,5 +1,11 @@
 # 05. 도메인 규칙과 API 계약
 
+## 공동 S 추천 RPC · 2026-10-10 (작성·미적용/미검증)
+
+`toon_get_shared_s_recommendations(p_work)` → `{workId,computedAt,items:[{work,sampleCount,sharedSCount,coSRatio,rankingScore}]}`. 기준 공개 S 평가자 중 후보에도 공개 기본 티어를 남긴 수가 n, 후보도 S인 수가 s다. n≥5/s≥3만 노출하고 coSRatio=s/n, rankingScore=(s/n)×n/(n+10)=s/(n+10)이다. score 내림차순→n 내림차순→s 내림차순→work UUID 오름차순 상위 6개이며 전체 후보 페이지/전체 cohort 수를 제공하지 않는다. 기존 평가 PK와 public work index를 이용해 기준 cohort와 후보를 연결하고 카드는 상위 6개에 대해서만 투영한다. 실제 실행계획/부하 검수는 대기다.
+
+computedAt은 요청 statement 시각의 UTC 문자열이다. 기준 작품 비공개는 null, 유효 후보 없음은 items=[], API 미설치는 CONFIG_REQUIRED, 로그인 세션/계정 오류는 권한 오류로 구분한다. 상태는 매 조회 계산하고 권한 변경 후 이전 결과를 재사용하지 않는다. 작품 기반 공동 선호 집계이므로 내 서재에 저장된 후보도 포함할 수 있으며, 개인 추천의 기저장 작품 제외 계약과 구분한다. 아래 10절 수식은 그대로 유지한다.
+
 ## 취향 비교 RPC · 2026-10-09 (작성·미적용/미검증)
 
 `toon_compare_taste(p_username,p_section,p_page)`는 현재 회원 자신과 지정한 상대만 비교한다. section은 all/common_s/different, page는 1~1000, 페이지당 20편이다. 공통 canonical tier 우선 → 둘 다 별점일 때 fallback → 서로 다른 신호만 있으면 제외한다. 아래 9절 수식을 SQL에서 적용하며 similarity는 n≥5일 때만 반올림한 0~100 정수, confidence는 n/(n+10)이다. confidence를 정확도 확률로 표시하지 않는다. 함께 S는 공통 S 티어, different는 정규화 차이≥0.4이며 차이 내림차순 뒤 제목 C collation/UUID, 그 외는 제목/UUID로 정렬한다.
