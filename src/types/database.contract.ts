@@ -40,6 +40,7 @@ export type DatabaseContract = {
     };
     Views: Record<string, never>;
     Functions: {
+      toon_get_my_post_merge_history:{Args:{p_id:string;p_page:number};Returns:Json};
       toon_list_review_comments:{Args:{p_review:string;p_review_version:number;p_parent:string|null;p_page:number};Returns:Json};
       toon_get_review_comment:{Args:{p_id:string;p_review_version:number;p_version:number|null;p_reveal:boolean};Returns:Json};
       toon_create_review_comment:{Args:{p_id:string;p_review:string;p_review_version:number;p_parent:string|null;p_body:string;p_spoiler:boolean;p_confirm:boolean};Returns:string};

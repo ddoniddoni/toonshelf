@@ -1,5 +1,13 @@
 # 05. 도메인 규칙과 API 계약
 
+## 커뮤니티 작품 병합 API · 2026-10-08 (작성·미적용/미검증)
+
+`toon_admin_merge_preview`의 기존 source/target/token/records/conflicts/canMerge에 optional `community:{posts,drafts,deduplicatedPosts,deduplicatedDrafts}`를 추가한다. 미설치 응답의 community는 undefined로 유지한다. 관리자에게 raw 글/초안/owner ID/원문 hash를 제공하지 않는다. 기존 `toon_admin_merge_works`의 signature·latest_private·확인·버전/token은 유지하며 실제 변경 건수는 기존 감사 records에도 posts/postDrafts로 담는다.
+
+예: 게시본 `[A,C,B]`, 초안 `[B,C,A]`에서 A→B 병합하면 둘 다 `[B,C]`가 된다. `[C,A]` 초안은 `[C,B]`로 남는다. 게시본과 초안은 별도로 정리하며 본문과 상태를 복사/자동 게시하지 않는다. target만 연결된 글은 수정하지 않고, source 연결이 바뀐 글에만 이력을 쓴다. 같은 글의 댓글/반응/신고 ID는 변하지 않는다.
+
+`toon_get_my_post_merge_history(p_id,p_page)`는 현재 회원의 삭제되지 않은 글만 허용한다. 본인 이외/삭제 글은 null, 유효 페이지는 1~1000이며 20개+lookahead다. 결과는 postId/items/hasNext, 각 item은 id/sourceId/targetId/sourceTitle/targetTitle/publishedBefore/publishedAfter/draftBefore/draftAfter/createdAt이다. 배열은 최대 5개이고 초안 미존재만 null이다. 정렬은 createdAt DESC, id DESC다. 본문/운영자/다른 회원 정보는 반환하지 않는다. API 미설치는 CONFIG_REQUIRED로 안내한다.
+
 ## 리뷰 토론 API 증분 · 2026-10-08 (작성·미적용/미검증)
 
 | 사용자 세션 RPC | 입력/결과 |

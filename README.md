@@ -1,5 +1,13 @@
 # ToonShelf 개발 문서
 
+## 최신 작업 · 중복 작품 병합과 커뮤니티 연결 보존 (2026-10-08)
+
+리뷰 토론은 feature `d39e988`/develop merge `627c94a`로 push를 마쳤다. 다음 개발은 최신 develop fetch/fast-forward 기준 새 `feature/community-work-merge`에서 작성했다. CAT-08, COM-01/02/03, OPS-04 증분으로 중복 작품 병합 시 게시본과 비공개 초안의 연결을 각각 옮기고, 중복은 먼저 나온 위치에 하나만 남긴다. 글/초안 내용·공개/스포일러 상태·댓글·좋아요·최초 게시 시각은 유지하며 초안을 자동 게시하지 않는다. 관리자에게는 영향/중복 건수만, 작성자에게는 `/me/posts/[id]/merge-history`에서 본인 연결 변경 이력을 제공하도록 작성했다.
+
+새 SQL은 `20261008141422_community_work_merge.sql`이다. 이전 3개에 이어 **총 4개 migration이 원격 미적용**이다. CLI OAuth 로그인 성공 뒤에도 이 대화의 MCP는 `MCP authentication required. Reconnect to continue using this server.`를 반환했고, 사용자 재연결 후 재시도도 동일했다. 원격 설치 성공이나 DB 검수를 주장하지 않는다. 연결 복구 후 `zwzncrdlqnthxgdvsqxq`와 Toon 의존 정의/이력을 확인하고 community_posts → community_discussions → review_discussions → community_work_merge 순서로만 추가 적용한다.
+
+코드·SQL·테스트 파일·문서를 작성했으며 개발 보고 시점에는 미커밋이었다. 2026-10-09 사용자 요청에 따라 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행하며 실제 결과는 Git 이력으로 확인한다. 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검수와 실제 사용자 흐름은 모두 미실행이다. 다음 개발 후보는 P6 공개 평가 기반 취향 비교이며 기존 P4/P5/P7 잔여와 규장각·허가 표지 연동은 유지한다.
+
 ## 최신 작업 · 리뷰 좋아요·댓글·정렬·알림 (2026-10-08)
 
 이전 레이아웃 수정은 `eb3d7f3`/develop merge `c57d80e`, 커뮤니티 준비 상태 오류 수정은 `9d87f1d`/develop merge `77bec41`로 각각 commit/push와 develop merge/push를 마쳤다. 깨끗한 develop에서 최신 원격을 fetch/fast-forward 확인한 뒤 `feature/review-discussions`를 생성했다.
@@ -8,7 +16,7 @@ REV-03/04, SOC-04/05/06, OPS-01/02/04 증분으로 리뷰 좋아요·댓글/한 
 
 **원격 적용 대기:** MCP OAuth 인증 갱신 오류로 `20261008090225_community_posts.sql` → `20261008102414_community_discussions.sql` → `20261008121123_review_discussions.sql` 세 파일이 미적용이다. 복구 후 선택한 `zwzncrdlqnthxgdvsqxq`와 관련 Toon 의존 정의/이력을 확인하고 이 순서로만 추가 적용한다. 테스트 파일은 작성만 했고 테스트·자동 검사·타입 생성·브라우저/DB 권한 검수·실제 사용자 흐름은 모두 미실행이다. 개발 보고 시점의 리뷰 기능은 미커밋이었으며, 이후 사용자 요청에 따라 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하고 검사 허가는 포함하지 않는다. 다음은 커뮤니티 참조 작품의 안전 병합 보존과 P5 잔여 정리다. P4 잔여·P6/P7, 규장각/허가 표지 연동과 인증 검수는 후속으로 유지한다.
 
-**문서 버전:** 1.25 / **갱신일:** 2026-10-08 / **상태:** 기존 인증·소셜 DB 설치, 커뮤니티·리뷰 토론 코드와 migration 3개 작성 및 MCP 재연결 대기, 실행 검수 대기
+**문서 버전:** 1.26 / **갱신일:** 2026-10-08 / **상태:** 기존 인증·소셜 DB 설치, 커뮤니티·리뷰 토론/작품 병합 보존 코드와 migration 4개 작성 및 MCP 재연결 대기, 실행 검수 대기
 
 ToonShelf는 가칭이다. 상표나 도메인의 사용 가능성을 확인한 이름이 아니다.
 

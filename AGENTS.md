@@ -75,6 +75,10 @@ Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 최근 
 
 레이아웃 `eb3d7f3`/develop merge `c57d80e`, 커뮤니티 오류 `9d87f1d`/develop merge `77bec41`을 각각 push하고 develop에서 종료했다. 새 개발 요청으로 최신 develop fetch/fast-forward 확인 뒤 `feature/review-discussions`를 생성했다. REV-03/04, SOC-04/05/06, OPS-01/02/04의 리뷰 좋아요·댓글/답글·신고/운영·정렬/인기·알림 코드를 작성했으며 개발 보고 시점에는 미커밋이었다. `20261008121123_review_discussions.sql`과 local rollback 23번 fixture를 작성했다. MCP OAuth 갱신 오류로 이전 community_posts/community_discussions와 이번 review_discussions 세 SQL은 모두 원격 미적용이다. 새 리뷰 API 미설치에는 legacy 최신순 조회와 준비 안내를 사용하며 집계를 만들어 표시하지 않는다. 기존 baseline·공유 Auth/여행 앱·공용 default privileges는 보존한다. 원격 연결 복구 후 zwzncrdlqnthxgdvsqxq의 의존 정의/이력을 확인하고 위 세 SQL만 순서대로 추가 적용한다. linked CLI push/reset/전체 seed 금지다. 테스트 파일 작성만 했고 모든 테스트·자동 검사·타입 생성·브라우저/DB 권한·실제 사용자 흐름은 미실행이다. 이후 사용자가 기본 Git Flow를 요청해 이번 리뷰 기능을 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료 순서로 반영한다. 검사 실행 허가는 포함하지 않으며 실제 결과는 Git 이력으로 확인한다. 다음 후보는 커뮤니티 작품 병합 보존/P5 잔여이며 P4/P6/P7과 인증/규장각 검수 대기는 유지한다.
 
+## 최신 작업 기록 · 2026-10-08 커뮤니티 작품 병합
+
+리뷰 feature `d39e988`/develop merge `627c94a`를 push하고 깨끗한 develop에서 종료했다. 다음 개발 요청으로 fetch/fast-forward 확인 후 `feature/community-work-merge`를 생성했다. CAT-08, COM-01/02/03, OPS-04의 게시본/초안 연결 치환·첫 위치 dedupe·버전/미리보기 충돌·원문/상태/반응 보존·본인 전용 연결 이력을 작성했다. 새 `20261008141422_community_work_merge.sql`과 rollback 24번 fixture를 작성했으며 개발 보고 시점에는 미커밋이었다. 2026-10-09 사용자 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다. 직전 codex mcp login supabase는 성공했지만 이번 get_project_url과 사용자 재연결 후 재시도는 모두 MCP authentication required. Reconnect to continue using this server.였다. 원격 조회/설치 성공은 없고 이전 community_posts/community_discussions/review_discussions와 이번 community_work_merge 총 4개 SQL이 적용 대기다. 복구 후 zwzncrdlqnthxgdvsqxq·관련 Toon 정의/이력을 확인하고 네 SQL만 순서대로 추가 적용한다. 기존 baseline/공유 Auth/다른 앱/default privileges는 유지하며 linked CLI push/reset/전체 seed는 금지다. 모든 테스트/자동 검사/타입 생성/브라우저·DB 권한·경합·성능/실제 사용자 흐름은 미실행이다. 다음 개발 후보는 P6 취향 비교이며 기존 미검증/출시 잔여 범위는 유지한다.
+
 ## 사용자 지정 테스트 실행 규칙 (2026-10-02)
 
 - 테스트와 자동 검사는 사용자가 명시적으로 실행을 요청한 경우에만 실행한다. 구현, 커밋, push, PR 요청 자체는 검사 실행 허가가 아니다.

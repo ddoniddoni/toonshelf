@@ -1,5 +1,13 @@
 # 04. 데이터 모델과 보안
 
+## 작품 병합 시 글·초안 연결 보존 · 2026-10-08 (작성·미적용/미검증)
+
+`20261008141422_community_work_merge.sql`을 이전 커뮤니티/리뷰 SQL 3개 뒤에 추가한다. 기존 baseline과 공유 Auth/여행 앱/공용 default privileges는 수정하지 않는다. private `toon_post_work_merge_history`는 원문 없이 post/owner/source/target 참조, 두 작품명, 게시본·초안의 전후 UUID 배열과 시각만 보관한다. RLS/raw revoke와 본인 전용 RPC로 제한하고 운영자는 타인 이력을 읽지 못한다. post/user hard delete에는 CASCADE, 글 soft delete 후에는 RPC 접근을 차단한다. 공유 Auth 탈퇴 처리 자체는 P7 후속이다.
+
+원본 ID를 대상 ID로 바꾸고 첫 위치를 보존하며 dedupe한 뒤 게시본 위치를 0부터 재배치한다. 초안 payload는 workIds만 바꾼다. 변경된 게시본/초안의 version만 각각 갱신하고 게시본의 본문·공개/운영/스포일러 상태·게시/수정 시각, 댓글/좋아요/신고 참조와 피드/알림 이벤트는 보존한다. 원본이 현재 비공개이고 해당 글/초안 연결이 있으면 unavailable 충돌로 막아 병합을 통한 공개 확대를 방지한다. 개인/티어의 기존 보호 조건은 유지한다. 관리자 감사에는 글/초안 건수만 추가한다.
+
+작품 UPDATE 잠금 후 관련 글/초안/연결/계정 행을 NOWAIT로 확보하고 새 연결 쓰기가 작품 SHARE 잠금에서 직렬화되도록 기존 저장 RPC 계약을 사용한다. fingerprint는 본문 변경도 감지하되 digest를 외부에 보내지 않는다. 잠금/직렬화 실패는 전체 rollback하며 실제 동시성·부하 검수는 아직 실행하지 않았다.
+
 ## 리뷰 전용 토론 저장소 · 2026-10-08 (작성·미적용/미검증)
 
 `20261008121123_review_discussions.sql`은 두 미적용 커뮤니티 migration 다음에 적용한다. `public.toon_review_comments`·`toon_review_reactions`, `toon_private.toon_review_comment_reports`·`toon_review_comment_moderation_events`를 별도로 추가한다. 기존 reviews 및 티어/글 토론 계약은 보존한다. RLS와 raw 권한 회수로 직접 읽기/쓰기를 막고 필요한 공개 조회·회원/역할 RPC만 허용한다. 모든 함수는 빈 search_path를 사용하며 외부 RPC에는 5초 statement timeout을 둔다. 공용 default privileges·Auth·여행 앱 변경은 없다.
