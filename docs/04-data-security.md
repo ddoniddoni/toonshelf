@@ -1,5 +1,9 @@
 # 04. 데이터 모델과 보안
 
+## 취향 비교 권한 · 2026-10-09 (작성·미적용/미검증)
+
+`20261009091203_taste_comparison.sql`은 `public.toon_compare_taste(text,text,integer)` 하나를 추가한다. 기존 테이블/RLS/grant/default privileges·Auth·여행 앱을 수정하지 않는다. 제한 집계를 위한 SECURITY DEFINER는 빈 search_path와 명시적 live session/active/동의/상대 profile_visible/work_public 검사를 수행한다. PUBLIC/anon/authenticated/service_role 실행권을 회수하고 authenticated에만 다시 부여한다. 본인 auth.uid() 평가는 공개 범위와 관계없이 읽되 상대는 evaluation.visibility=public만 사용한다. 서재 공개 범위와 평가 공개 범위는 독립이고 양쪽 planned는 제외한다. 차단·정지·미동의/미인증·성인·테스트/숨김/병합/공식 링크 없는 작품은 현재 공개 predicate로 제외한다. raw 상대 전체 평가 수·서재 상태·메모·이메일·수정 시각·초안은 DTO에 없다. 추천 노출 discovery_opt_in은 직접 지정한 공개 프로필 비교와 구분한다. 새 데이터 저장/fixture 삽입은 하지 않는다.
+
 ## 작품 병합 시 글·초안 연결 보존 · 2026-10-08 (작성·미적용/미검증)
 
 `20261008141422_community_work_merge.sql`을 이전 커뮤니티/리뷰 SQL 3개 뒤에 추가한다. 기존 baseline과 공유 Auth/여행 앱/공용 default privileges는 수정하지 않는다. private `toon_post_work_merge_history`는 원문 없이 post/owner/source/target 참조, 두 작품명, 게시본·초안의 전후 UUID 배열과 시각만 보관한다. RLS/raw revoke와 본인 전용 RPC로 제한하고 운영자는 타인 이력을 읽지 못한다. post/user hard delete에는 CASCADE, 글 soft delete 후에는 RPC 접근을 차단한다. 공유 Auth 탈퇴 처리 자체는 P7 후속이다.

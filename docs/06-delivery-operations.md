@@ -13,8 +13,8 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P2 | 진행: 카탈로그 코드 작성, 모든 실행 검사 미실행 | 아래 16절. P1 연결과 DB·관리자·Storage 설정 후 검수 필요 |
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
-| P5 | 진행: 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드/migration 작성 | 아래 2026-10-08 리뷰 토론 기록. 커뮤니티/리뷰/병합 SQL 4개는 MCP 재연결 요구로 원격 미적용, 모든 실행 검수 대기 |
-| P6 | 미착수 | 없음 |
+| P5 | 진행: 티어 토론·반응/팔로우/피드/알림 코드·DB 반영, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드/migration 작성 | 아래 2026-10-08 리뷰 토론 기록. 커뮤니티/리뷰/병합 SQL 4개는 MCP 복구 후 원격 DDL 승인 대기, 모든 실행 검수 대기 |
+| P6 | 진행: DISC-01/05 취향 비교 화면·세션 RPC·계산/노출 경계 작성 | 아래 2026-10-09 기록. SQL 미적용·모든 실행 검수 대기, 추천/순위·분석 잔여 |
 | P7 | 미착수 | 없음 |
 
 Codex는 완료 시 `상태: 완료/진행/외부설정대기`, 구현 요구사항 ID, 변경 파일, migration, 테스트 명령/결과, 미검증 항목을 해당 표와 마지막 작업 기록에 남긴다.
@@ -845,3 +845,15 @@ MCP `get_project_url`은 이번에도 `OAuth token refresh failed: Failed to par
 **작성한 검사·실행 상태:** 관리자 DTO에서 private 데이터 제외·구 DB optional 집계, 캐시 무효화, 본인 이력 DAL의 auth/입력/대상 확인·미설치 안내와 bounded DTO 테스트를 작성했다. local rollback 전용 `supabase/tests/24_community_work_merge.test.sql`은 권한/미리보기 stale·비공개 원본 차단·게시본/초안의 서로 다른 순서·중복 제거·원문/참조/이벤트 보존·버전 충돌·본인 이력 경계를 작성했다. **파일 작성만 했고 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검수는 모두 미실행이다. 실제 확인한 사용자 흐름은 없다.** 소스/diff 읽기와 CLI 도움말·파일 생성은 실행 검수로 간주하지 않는다.
 
 **다음:** MCP 연결 복구와 4개 SQL 적용, 사용자 요청 시에만 검수. 다음 기능 후보는 P6 공개 평가 기반 취향 비교다. P4 비회원 PNG/edge 제한·P5 잔여·P7 공유 Auth 앱 탈퇴/보존·비식별화·규장각 API/허가 표지·인증 검수와 이전 미검증 범위는 유지한다.
+
+### 2026-10-09 · P6 취향 비교 (코드 작성·원격 적용 승인/검수 대기)
+
+**상태·요구사항:** DISC-01/05, SOC-06 진행. 타인 프로필의 취향 비교 진입, 로그인 복귀·본인 비교 안내, 공통 평가/함께 S/차이 큰 작품 20편 페이지·빈 상태·loading·계산 설명을 작성했다. 둘 다 기본 티어 우선, 그 외 공통 별점, 서로 다른 신호만 가진 작품 제외, n<5 null, 정수 점수와 표본 구간을 구현했다. 기존 Stitch 토큰과 반응형 페이지 구조를 유지한다. 실제 동작/권한/화면 검수는 아직 없으며 P6 전체나 요구사항 완료 체크는 하지 않는다.
+
+**DB·보안:** CLI 2.119.0의 migration new로 `20261009091203_taste_comparison.sql`을 생성했다. 새 stable `toon_compare_taste` 하나이며 사용자 세션/현재 계정/상대 활성·동의·차단·현재 공개 작품을 검사한다. 본인 공개/비공개와 상대 public 평가만 교집합으로 집계하며 원시 전체 수/독서 상태/메모는 반환하지 않는다. security definer/빈 search_path/명시 권한/함수별 revoke·grant를 사용하고 테이블/RLS/공유 Auth/다른 앱/default privileges는 변경하지 않는다. profile/section/page/집계/페이지 응답을 서버에서 검증하고 private/no-store/noindex/no-referrer·prefetch false를 적용했다. SQL은 기존 두 사용자 PK 범위를 사용하며 성능 증명은 하지 않았다.
+
+**MCP·승인 차단:** get_project_url은 `https://zwzncrdlqnthxgdvsqxq.supabase.co`를 반환했고 list_migrations 및 관련 Toon 함수 정의·제약·평가/서재/프로필 컬럼을 read-only로 읽었다. 이전 4개 SQL이 없는 이력을 확인한 뒤 첫 `toon_community_posts` apply_migration을 요청했으나 자동 승인 검토가 공유 프로젝트 원격 DDL의 명시적 적용 승인 부족으로 거절했다. 원격 DDL 성공은 없고 우회/재시도하지 않았다. 현재 승인을 받을 구체 범위는 `20261008090225_community_posts.sql` → `20261008102414_community_discussions.sql` → `20261008121123_review_discussions.sql` → `20261008141422_community_work_merge.sql` → `20261009091203_taste_comparison.sql`이다. 앞 4개는 기존에 작성·커밋한 파일이며 새 비교 RPC는 평가 기반만 사용한다. 공유 앱 데이터/계정 변경이나 초기화는 하지 않는다.
+
+**근거·작성한 검사:** 설치된 Next 16.3.8 fetching guide, Supabase changelog/functions/RLS, Postgres/Supabase/React 스킬을 읽었다. 단위 DTO/표본 구간/URL 주입, DAL 현재 회원·대상/페이지 대조·미설치 오류, UI 표본 부족/실제 0/페이지 보존, local rollback `25_taste_comparison.test.sql`의 80점·별점 fallback/0점·20편 페이지·현재 공개/차단/상대 상태/세션 경계를 작성했다. **파일 작성만 했고 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·성능 검수는 모두 미실행이며 실제 확인한 사용자 흐름은 없다.** DDL/컬럼 metadata 읽기는 권한 동작 검수가 아니다. 원격 테스트 사용자/작품/seed는 만들지 않았다. 사용자 요청 전 검사 금지는 계속 적용한다.
+
+**Git·다음:** 이전 feature `2799db3`와 develop `be37d0e` push 이후 깨끗한 develop에서 fetch/fast-forward를 확인하고 `feature/taste-comparison`을 생성했다. 개발 보고 시점에는 stage/commit/push/통합 merge/PR를 하지 않았다. 이후 2026-10-09 사용자가 기본 Git Flow를 요청해 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 반영 결과는 Git 이력으로 확인하며 검사·원격 SQL 적용 허가는 포함하지 않는다. 원격 SQL 적용 승인과 검사 요청은 별도다. 다음 후보는 P6 공개 S 공동 평가 기반 작품 추천이며 분석/순위/유사 사용자·P4/P5/P7 및 인증/규장각/허가 표지와 기존 미검증 범위는 유지한다.
