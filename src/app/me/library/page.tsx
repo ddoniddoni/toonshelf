@@ -29,7 +29,7 @@ export default async function Page({searchParams}:{searchParams:Promise<SearchPa
   const work = selected?.work ? await getWorkDetail(selected.work.slug) : null;
   const total = Object.values(stats?.statuses ?? {}).reduce((sum,count)=>sum+count,0);
   return <section className="page-container library-page">
-    <nav className="personal-recommendation-links" aria-label="내 서재 관련 메뉴">
+    <nav className="personal-recommendation-links" aria-label="내 서재 관련 메뉴"><Link className="text-link" href="/me/analysis" prefetch={false}>내 취향 분석 →</Link>
       <Link className="text-link" href="/me/recommendations" prefetch={false}>나를 위한 작품 추천 →</Link>
       <Link className="text-link" href="/me/feed" prefetch={false}>팔로우한 독자의 새 게시물 →</Link>
       <Link className="text-link" href="/me/library/merges">내 작품 병합 이력 · 원본 기록 확인 →</Link>

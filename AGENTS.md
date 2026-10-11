@@ -103,3 +103,14 @@ Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 최근 
 ## 최신 작업 기록 · 2026-10-12 개인 작품 추천
 
 이전 SQL 기록 commit `b915cdb`/develop merge `b0430fe` push 후 최신 develop fetch/fast-forward 확인, 새 `feature/personal-recommendations`에서 DISC-03/05, SOC-06을 작성했다. `/me/recommendations`, 내 서재/계정 메뉴, 유사 이웃 평가 기반 최대 12편·실제 평가자 수/공통 편수/점수/시각·설명·관심 장르 fallback·독립 로딩/오류를 연결했다. 최근 본인 평가 공개 작품 100편×작품별 공개 평가 200건→overlap 상위 200명→공통 5편 이상/양수 가중치 상위 50명→작품별 3명·score≥0.6 기준이다. 본인 private 평가는 본인 결과만, 타인 public·discovery opt-in·현재 활성/차단/non-planned/작품 공개 조건을 적용하며 기저장 작품은 모두 제외한다. CLI 생성 `20261011153322_personal_recommendations.sql`은 새 RPC 하나만 추가하고 기존 index/ACL을 유지한다. MCP get_project_url이 OAuth token refresh failed: Failed to parse server response여서 새 SQL 1개만 원격 미적용이다. 이전 6개는 설치 완료이며 재적용하지 않는다. 연결 복구 후 zwzncrdlqnthxgdvsqxq·의존 정의/이력 확인 후 이번 SQL만 적용한다. baseline/공유 Auth/여행 앱/default privileges와 linked CLI push/reset/전체 seed는 변경/실행하지 않았다. 단위 UI/DTO·DAL·local rollback SQL27 작성만 했고 모든 테스트/자동 검사/타입 생성/브라우저·DB 권한/성능/실제 사용자 흐름은 미실행이다. 개발 보고 시점에는 미커밋이었다. 이후 사용자 Git Flow 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 새 SQL 원격 적용/검사 실행은 포함하지 않는다. 다음 후보는 DISC-02 취향 분석이며 기존 잔여 범위는 유지한다.
+
+
+## 최신 작업 기록 · 2026-10-12 내 취향 분석
+
+개인 추천 feature `5ca547d`/develop merge `f194974`를 push하고 깨끗한 develop에서 종료했다. 새 개발 요청으로 최신 develop fetch/fast-forward 확인 후 `feature/taste-analysis`를 생성했다. DISC-02/05의 `/me/analysis`·메뉴·전체/읽은/완독/평균 별점·장르/제공 플랫폼 가중 비중·상태/평가/기본 티어 분포·로딩/오류/빈 상태를 작성했다. own private 포함, planned 제외, 현재 공개 작품 경계, 플랫폼 중복 링크 합산 후 1/k 분할과 실제 이용처 추정 금지를 유지한다. 새 no-argument RPC는 사용자 세션/활성 회원/auth.uid()만 허용하고 한 CTE 문장으로 집계한다. 기존 공개 통계/테이블/권한은 변경하지 않았다.
+
+CLI migration new로 `20261011155646_taste_analysis.sql`을 생성했다. MCP get_project_url은 OAuth token refresh failed: Failed to parse server response로 실패해 원격 조회/DDL 성공은 없다. 이전 `20261011153322_personal_recommendations.sql`→이번 분석 총 2개 SQL이 설치 대기다. 기존 6개는 2026-10-10 설치 완료로 재적용하지 않는다. 연결 복구 후 선택한 zwzncrdlqnthxgdvsqxq·현재 정의/이력을 확인해 별도 적용한다. 공유 Auth/여행 앱/default privileges/baseline과 원격 데이터는 보존하며 linked CLI push/reset/전체 seed는 금지다.
+
+단위 DTO/UI·mock DAL·local rollback SQL28을 작성만 했다. source/docs/Git diff만 읽고 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·성능 검수와 실제 사용자 흐름은 모두 미실행이다. 개발 보고 시점에는 stage/commit/push/merge/PR를 하지 않았다. 다음 후보는 DISC-04 순위이며 P4/P5/P7·인증/규장각/허가 표지 및 기존 미검증 범위는 유지한다.
+
+2026-10-12 사용자 Git Flow 요청으로 취향 분석을 작업 브랜치 commit/push → 최신 develop merge/push 순서로 반영한다. 별도 worktree의 작품 순위도 별도 커밋/통합하며 최종 원래 작업 폴더는 develop에서 종료한다. 실제 결과는 Git 이력으로 확인한다. 테스트·자동 검사·원격 SQL 적용은 이번 요청에 포함하지 않는다.

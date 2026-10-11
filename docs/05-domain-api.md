@@ -1,5 +1,11 @@
 # 05. 도메인 규칙과 API 계약
 
+## 본인 취향 분석 계약 · 2026-10-12 (작성·미적용/미검증)
+
+`toon_get_my_taste_analysis()` → viewerId, computedAt(UTC 요청 시각), totalCount, readCount, statuses, ratings, tiers, genres, platforms. totalCount/statuses는 현재 공개 가능 작품의 본인 서재 전 상태이며 readCount는 planned를 제외한다. 본인 평가 공개 여부와 무관하게 non-planned의 rating_steps 1~10, canonical S/A/B/C/D/F만 각각 집계한다. 평균은 Σ(steps/2×count)/별점 평가 편수, 0편이면 null이다. 미평가 작품을 0점으로 넣거나 티어표 배치를 중복 집계하지 않는다. 이는 본인 통계이므로 공개 평균 최소 표본 5건 조건을 적용하지 않는다.
+
+genres/platforms 항목은 id(nullable), name, weight, workCount, share다. 읽은 작품별 활성 장르를 1/k편 분할하고 없으면 미분류 1편이다. 플랫폼은 active 플랫폼+active 공식 링크+verified_at≤now()+전체/12/15 이용가 링크만 사용하고 작품별 플랫폼 ID를 DISTINCT한 후 1/k편으로 나눈다. 없으면 미분류다. workCount는 해당 분류에 속한 실제 편수, weight는 분할 후 환산 편수, share=weight/readCount이며 weight 합=readCount다. 배열은 weight 내림차순·이름·ID순이고 0편이면 빈 배열이다. 실제 이용 서비스는 추정하지 않는다. DTO는 알려진 상태/점수/티어, 정수 범위, 합계·중복 ID·분할 비중(소수 오차 허용)을 검증한다. 화면 반올림만 하며 계산값은 보존한다. 기존 toon_get_reading_stats 공개/본인 계약은 그대로다.
+
 ## 개인 추천 RPC · 2026-10-12 (작성·미적용/미검증)
 
 `toon_get_personal_recommendations()`는 입력 없이 현재 회원의 viewerId, ownEvaluationCount(공개 작품·non-planned의 본인 유효 평가 수), computedAt(UTC 요청 시각), mode, items를 반환한다. mode=collaborative면 최대 12개 work/card, sampleCount(3~50), minCommonCount/maxCommonCount(5 이상), score(0.6~1)다. genre면 reason과 work/card·일치하는 관심 장르명 목록만, empty면 reason과 빈 items다. reason은 insufficient_evaluations(본인 5편 미만)/no_candidates다. 준비 상태/권한/시간 초과/응답 오류는 empty로 바꾸지 않는다.
