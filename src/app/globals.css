@@ -630,3 +630,7 @@ main:focus { outline: none; }
 .header-mobile-community { display: none; }
 @media (max-width: 800px) { .header-mobile-community { display: inline-flex; } }
 @media (max-width: 640px) { .post-heading-actions { margin-top: 1rem; } .post-filters { align-items: stretch; } .post-filters label { width: 100%; } }
+
+.personal-recommendations-page { padding-block: 2rem; }
+.personal-recommendations-page h2 { margin-block: 1.5rem 1rem; }
+.personal-recommendation-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-block: 1.5rem; }

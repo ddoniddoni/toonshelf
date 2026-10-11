@@ -1,5 +1,9 @@
 # 03. 기술 구조와 인증
 
+## 개인 추천 조회 · 2026-10-12 (작성·실행 미검증)
+
+Server Component → guardPage/requireAccount → 사용자 SSR client의 `toon_get_personal_recommendations()` → Zod DTO 경계다. viewerId 입력은 없고 DB auth.uid()로만 계산하며 반환 viewerId를 DAL에서 현재 사용자와 대조한다. service-role/익명 재요청이나 공유 캐시를 쓰지 않는다. 기존 `/me/:path*` private/no-store/no-referrer, force-dynamic, noindex와 별도 loading 경로를 사용한다. 기존 카드와 계정/서재 메뉴에 연결했으며 새 dependency/버전 변경은 없다. Next 16.3.8 설치 fetching 가이드와 Supabase 공식 함수 문서를 읽었다. 공식 changelog markdown 조회는 도구의 content-type 오류로 읽지 못했다.
+
 ## 공동 S 추천 조회 · 2026-10-10 (작성·실행 미검증)
 
 작품 상세의 독립 Server Component가 요청 쿠키를 유지하는 일반 SSR client로 `toon_get_shared_s_recommendations`를 한 번 호출한다. 입력은 workId만 허용하며 반환 workId·DTO·최소 표본·분수 공식·최대 6편·중복/자기 작품을 검증한다. 서비스 키나 익명 대체 요청·공유 캐시는 쓰지 않는다. `/works/:path*`에 private/no-store/no-referrer를 명시하고 기존 force-dynamic·SDK no-store를 유지한다. Suspense와 해당 패널의 안전한 오류 안내를 사용하며 오류를 빈 표본으로 변환하지 않는다. Next 16.3.8 설치 문서의 [Server Component/Suspense](../node_modules/next/dist/docs/01-app/01-getting-started/06-fetching-data.md), [Supabase 함수](https://supabase.com/docs/guides/database/functions)와 [changelog](https://supabase.com/changelog)를 읽었고 dependency는 변경하지 않았다.

@@ -1,5 +1,13 @@
 # 05. 도메인 규칙과 API 계약
 
+## 개인 추천 RPC · 2026-10-12 (작성·미적용/미검증)
+
+`toon_get_personal_recommendations()`는 입력 없이 현재 회원의 viewerId, ownEvaluationCount(공개 작품·non-planned의 본인 유효 평가 수), computedAt(UTC 요청 시각), mode, items를 반환한다. mode=collaborative면 최대 12개 work/card, sampleCount(3~50), minCommonCount/maxCommonCount(5 이상), score(0.6~1)다. genre면 reason과 work/card·일치하는 관심 장르명 목록만, empty면 reason과 빈 items다. reason은 insufficient_evaluations(본인 5편 미만)/no_candidates다. 준비 상태/권한/시간 초과/응답 오류는 empty로 바꾸지 않는다.
+
+최근 본인 평가의 공개 작품 100편(평가 updated_at 내림차순, UUID)에서 기존 공개 평가 index로 작품별 user UUID순 200건만 찾는다. 현재 참여/계정/차단/non-planned와 비교 가능 신호를 필터한 뒤 표본 overlap 건수 내림차순·UUID순 최대 200명을 선정한다. 이들만 본인의 전체 유효 평가와 비교해 아래 9절의 반올림 전 유사도 × confidence가 양수이고 공통 5편 이상인 상위 50명을 고른다(동점 공통 편수·UUID). 제한 탐색이므로 전 회원의 최적 이웃을 보장하지 않는다.
+
+후보별 티어 우선/별점 fallback 정규화 값을 이웃 가중치로 평균한다. 유효 이웃 3명 이상·score≥0.6인 후보를 score 내림차순→sampleCount 내림차순→UUID순 상위 12개로 제한한다. 0.6은 초기 품질 기준이며 선호 확률이 아니다. 개인 서재에 planned를 포함해 이미 저장한 모든 작품은 제외한다. 협업 결과가 없으면 현재 활성 관심 장르와 일치하는 공개 작품을 최근 등록순·UUID로 최대 12개 반환한다. 인기 보완/순위는 이번 범위에 포함하지 않으며 아래 전체 계획의 후속이다.
+
 ## 공동 S 추천 RPC · 2026-10-10 (작성·미적용/미검증)
 
 `toon_get_shared_s_recommendations(p_work)` → `{workId,computedAt,items:[{work,sampleCount,sharedSCount,coSRatio,rankingScore}]}`. 기준 공개 S 평가자 중 후보에도 공개 기본 티어를 남긴 수가 n, 후보도 S인 수가 s다. n≥5/s≥3만 노출하고 coSRatio=s/n, rankingScore=(s/n)×n/(n+10)=s/(n+10)이다. score 내림차순→n 내림차순→s 내림차순→work UUID 오름차순 상위 6개이며 전체 후보 페이지/전체 cohort 수를 제공하지 않는다. 기존 평가 PK와 public work index를 이용해 기준 cohort와 후보를 연결하고 카드는 상위 6개에 대해서만 투영한다. 실제 실행계획/부하 검수는 대기다.
