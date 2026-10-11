@@ -1,5 +1,9 @@
 # 03. 기술 구조와 인증
 
+## 순위 조회 경로 · 2026-10-12 (작성·미설치/미검수)
+
+`/rankings`는 force-dynamic/noindex Server Component이며 필터를 서버 Zod로 검증하고 options/RPC를 병렬 조회한다. 사용자 쿠키를 보존하는 기존 SSR client와 no-store fetch를 사용하며 service key/공유 cache는 추가하지 않는다. `/rankings` 응답에 private/no-store/no-referrer를 설정하고 순위 진입·페이지 Link prefetch를 끈다. server-only DAL은 API 미설치/timeout/권한/잘못된 조건/응답 오류를 빈 순위와 구분하고 조건 envelope·20편 페이지·최소 표본·중복 작품을 확인한다. 익명 조회는 허용하되 auth.uid()가 있는 만료/제한 계정은 익명으로 폴백하지 않는다.
+
 ## 본인 취향 분석 경로 · 2026-10-12 (작성·미설치/미검수)
 
 `/me/analysis`는 force-dynamic·noindex 서버 페이지로 guardPage/requireAccount와 기존 사용자 SSR client를 사용한다. 기존 `/me/:path*` private/no-store/no-referrer 및 SSR no-store fetch를 재사용하고 본인 화면 진입 Link의 prefetch를 끈다. `toon_get_my_taste_analysis()`는 임의 사용자 인수를 받지 않으며 DAL은 응답 viewerId를 현재 user.id와 비교하고 집계 일관성을 검증한다. server-only DAL 외 브라우저 client/cache/공유 URL/메모는 추가하지 않는다. 권한 실패는 빈 통계로 대체하지 않으며 기존 공개 프로필/서재 통계 API는 변경하지 않는다.

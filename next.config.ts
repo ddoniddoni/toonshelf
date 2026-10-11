@@ -38,6 +38,9 @@ const nextConfig: NextConfig = {
       source: "/compare/:path*",
       headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }],
     }, {
+      source: "/rankings",
+      headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }],
+    }, {
       source: "/works/:path*",
       headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }],
     }, {

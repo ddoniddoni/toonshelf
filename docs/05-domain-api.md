@@ -1,5 +1,11 @@
 # 05. 도메인 규칙과 API 계약
 
+## 작품 순위 RPC · 2026-10-12 (작성·미적용/미검증)
+
+`toon_get_work_rankings(p_audience,p_platform,p_genre,p_section,p_page)`를 추가했다. audience=all/completed/experienced/completed_experienced, platform=활성 code 또는 null, genre=활성 slug 또는 null, section=ranked/insufficient, page=1~1000. 직접 RPC도 허용 값과 활성 분류 존재를 검증한다. 응답은 조건 envelope, computedAt(UTC 요청 시각), total, hasNext, items 최대 20개다. item은 권한 적용 WorkCard, sampleCount, rank, average다. ranked는 최소 5건·평균 R·1부터 현재 조건의 연속 위치를 반환하고 부족 표본은 rank/average 모두 null이다. insufficient는 공개 작품 중 현재 조건 0~4건이며 sampleCount 내림차순·UUID순이다. 아무 표본도 없으면 ranked는 빈 목록이고 실제 작품은 부족 목록에서만 보인다.
+
+R/v는 현재 선택한 평가 대상의 유효 공개 평가로 계산한다. C는 같은 조회자의 현재 계정/작품/양방향 차단 경계를 적용한 사이트 전체 공개 평가에서 장르·플랫폼·평가 대상 조건을 적용하기 전에 계산한다. 원래 사이트 전체 기준은 유지하되 차단된 평가가 우회 반영되지 않도록 조회자별 공개 범위를 우선한다. 이 때문에 로그인/차단에 따라 C와 순위가 달라질 수 있다. m=20이며 반올림 전 `(v*R+20*C)/(v+20)` 내림차순→v 내림차순→work UUID순으로 정렬한다. C/보정 점수는 응답에 노출하지 않고 UI 평균만 소수 둘째 자리로 표시한다. 플랫폼/장르는 EXISTS로 제한해 다중 링크/장르가 평가를 복제하지 않는다. 경험 30편은 현재 공개 가능 작품의 public 서재 non-planned 수이며 필터와 무관하다. 1,000페이지 이후에는 필터로 범위를 줄인다. 페이지 이동마다 현재 집계라 고정 snapshot/실시간 구독은 아니다.
+
 ## 본인 취향 분석 계약 · 2026-10-12 (작성·미적용/미검증)
 
 `toon_get_my_taste_analysis()` → viewerId, computedAt(UTC 요청 시각), totalCount, readCount, statuses, ratings, tiers, genres, platforms. totalCount/statuses는 현재 공개 가능 작품의 본인 서재 전 상태이며 readCount는 planned를 제외한다. 본인 평가 공개 여부와 무관하게 non-planned의 rating_steps 1~10, canonical S/A/B/C/D/F만 각각 집계한다. 평균은 Σ(steps/2×count)/별점 평가 편수, 0편이면 null이다. 미평가 작품을 0점으로 넣거나 티어표 배치를 중복 집계하지 않는다. 이는 본인 통계이므로 공개 평균 최소 표본 5건 조건을 적용하지 않는다.

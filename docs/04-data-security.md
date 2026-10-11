@@ -1,5 +1,9 @@
 # 04. 데이터 모델과 보안
 
+## 순위 RPC 경계 · 2026-10-12 (작성·원격 미적용)
+
+`20261011161937_work_rankings.sql`은 stable security-definer `toon_get_work_rankings(text,text,text,text,integer)`만 추가한다. 빈 search_path·스키마 한정 참조, 직접 RPC 입력 검증, PUBLIC/service_role revoke와 anon/authenticated execute를 명시한다. public 평가·현재 공개 작품·활성/동의/차단 profile_visible만 집계하고 서재 공개 여부는 완독/경험 자격에만 사용한다. 공개 독서 30편은 현재 공개 가능한 작품의 public/non-planned 기록으로만 계산하며 장르/플랫폼 필터 이전이다. 한 SQL 문장의 baseline/집계/페이지 스냅샷을 사용한다. 원시 평가자 ID/개인 기록/보정값·기준 평균은 반환하지 않는다. 기존 PK/공개 평가 index를 재사용하고 테이블·raw grants·공유 Auth/다른 앱/default privileges는 변경하지 않는다. 전체 표본 집계의 성능은 미검수다.
+
 ## 본인 분석 RPC 보안 · 2026-10-12 (작성·원격 미적용)
 
 새 `20261011155646_taste_analysis.sql`은 `toon_get_my_taste_analysis()`만 추가한다. stable security definer·빈 search_path·정규화한 스키마 참조, 세션 생존/현재 활성 회원 확인 후 auth.uid()의 library/evaluation만 집계한다. PUBLIC/anon/service_role 실행권을 revoke하고 authenticated만 허용한다. 다른 사용자 ID 인수, 개인 메모, 원본 목록·raw grant·새 테이블·공유 Auth/default privileges 변경은 없다. 현재 toon_work_public 경계를 매 요청 적용하고 한 CTE 문장의 스냅샷으로 집계한다. 기존 owner/PK/index와 공개 통계 RPC는 유지한다. 개인 추천→분석 SQL 2개 원격 설치 대기이며 DB 권한·성능·세션 검수는 미실행이다.

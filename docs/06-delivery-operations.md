@@ -14,7 +14,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
 | P5 | 진행: 티어 토론·반응/팔로우/피드/알림, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드·DB 반영 | 아래 2026-10-10 SQL 적용 기록. 커뮤니티/리뷰/병합 SQL 4개 MCP 적용 성공·이력 확인, 모든 실행 검수 대기 |
-| P6 | 진행: 비교·공동 S 코드/DB 반영, 개인 추천·DISC-02/05 취향 분석 코드·SQL 작성 | 아래 2026-10-12 기록. 새 SQL 2개 MCP 인증 오류로 미적용, 모든 실행 검수 대기·순위 잔여 |
+| P6 | 진행: 비교·공동 S 설치, 개인 추천·취향 분석·DISC-04/05 순위 코드/SQL 작성 | 아래 2026-10-12 기록. 새 SQL 3개 미적용·실행 검수 대기, 분석/순위 별도 커밋 후 develop 통합 |
 | P7 | 미착수 | 없음 |
 
 Codex는 완료 시 `상태: 완료/진행/외부설정대기`, 구현 요구사항 ID, 변경 파일, migration, 테스트 명령/결과, 미검증 항목을 해당 표와 마지막 작업 기록에 남긴다.
@@ -913,3 +913,20 @@ CLI migration new로 `20261011155646_taste_analysis.sql`을 생성했다. MCP ge
 단위 DTO/UI·mock DAL·local rollback SQL28을 작성만 했다. source/docs/Git diff만 읽고 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·성능 검수와 실제 사용자 흐름은 모두 미실행이다. 개발 보고 시점에는 stage/commit/push/merge/PR를 하지 않았다. 다음 후보는 DISC-04 순위이며 P4/P5/P7·인증/규장각/허가 표지 및 기존 미검증 범위는 유지한다.
 
 2026-10-12 사용자 Git Flow 요청으로 취향 분석을 작업 브랜치 commit/push → 최신 develop merge/push 순서로 반영한다. 별도 worktree의 작품 순위도 별도 커밋/통합하며 최종 원래 작업 폴더는 develop에서 종료한다. 실제 결과는 Git 이력으로 확인한다. 테스트·자동 검사·원격 SQL 적용은 이번 요청에 포함하지 않는다.
+
+### 2026-10-12 · 작품 순위 (작성·원격 설치/실행 검수 대기)
+
+개인 추천 feature `5ca547d`/develop `f194974` 이후 취향 분석은 원래 `/Users/ddoni/dev/toonshelf`의 `feature/taste-analysis`에 미커밋으로 보존했다. 다음 개발 요청으로 fetch origin develop 후 같은 최신 f194974에서 `feature/work-rankings`를 별도 worktree로 생성했다. 처음 /private/tmp/toonshelf-work-rankings에서 작성하고 지속 보관을 위해 `/Users/ddoni/dev/toonshelf-worktrees/work-rankings`로 옮겼다. 두 기능 코드/브랜치를 섞거나 자동 커밋하지 않았다. 향후 Git Flow는 각 worktree의 변경을 별도 커밋/통합하며 문서 등 공통 파일 충돌은 두 기록을 모두 보존해 해결한다.
+
+DISC-04/05, SOC-06. `/rankings` 실제 조회 화면·상단 명칭/탐색 진입·전체/공개 완독/공개 독서 30편/결합 조건·장르/플랫폼·20편 페이지·평균/표본·부족 목록·집계 설명/시간·로딩/오류를 작성했다. 최소 5건, m=20 보정 순·동점 표본/UUID, 화면은 실제 평균만 표시한다. C는 같은 조회자의 현재 공개 경계를 적용한 사이트 전체 평가로 필터 전에 계산하고 부족 평균은 SQL에서 null로 반환한다. 여러 작품 링크를 join해 표본을 늘리지 않으며 현재 차단·비활성·비공개·작품 공개를 적용한다. private 서재 자격/메모/평가자 ID는 반환하지 않는다. 기존 공개 통계·서재 RPC는 유지한다.
+
+CLI migration new로 `20261011161937_work_rankings.sql`을 생성했다. MCP get_project_url은 OAuth token refresh failed: Failed to parse server response로 실패했고 원격 조회/DDL 성공은 없다. 개인 추천 `20261011153322_personal_recommendations.sql`→다른 worktree의 취향 분석 `20261011155646_taste_analysis.sql`→이번 순위 총 3개가 원격 설치 대기다. 이전 6개는 2026-10-10 설치 완료이며 재적용하지 않는다. 복구 후 선택 프로젝트 zwzncrdlqnthxgdvsqxq·정의/이력을 확인해 별도 적용한다. baseline/공유 Auth/여행 앱/default privileges·원격 데이터는 보존하며 linked CLI push/reset/전체 seed는 금지다.
+
+단위 DTO/UI·mock DAL·local rollback SQL29를 작성만 했다. SQL29에는 보정 순서·동점·필터 독립 C·4/5건·29/30편·private/공개 상태·다중 링크·페이지·차단·만료 세션 사례를 작성했다. 실제로 읽은 것은 설치된 Next 16.3.8 fetching 가이드, Supabase 공식 함수 문서, 기존 source와 Git diff다. changelog.md는 웹 도구의 content-type 오류로 읽지 못했다. 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·성능 검사와 실제 사용자 흐름은 모두 미실행이다. stage/commit/push/merge/PR도 하지 않았다. 다음은 대기 기능 Git/DB 반영과 별도 요청된 검수, P4/P5/P7·인증/규장각/허가 표지/출시 잔여다. P6 전체 완료로 표시하지 않았다.
+
+2026-10-12 사용자 Git Flow 요청으로 취향 분석과 작품 순위를 각 작업 브랜치 commit/push → 최신 develop에 순서대로 merge/push하며, 마지막 원래 작업 폴더는 develop에서 종료한다. 작품 순위 worktree는 보존하고 실제 결과는 Git 이력으로 확인한다. 원격 SQL 3개 적용과 테스트·자동 검사는 이번 요청에 포함하지 않는다.
+
+
+### 2026-10-12 Git 통합 기록
+
+사용자 Git Flow 요청으로 취향 분석 `897bbf7`과 작품 순위 `8e31e45`를 각 작업 브랜치에 커밋·push했다. 취향 분석은 develop merge `26a2f85`까지 push했고 작품 순위를 이어서 통합한다. 공통 문서·CSS·수기 DB 타입 충돌은 두 기능의 추가 내용을 모두 보존해 해결했다. 개발 당시의 미커밋/별도 작업 경로 설명은 이력이며 최종 통합본은 원래 `/Users/ddoni/dev/toonshelf`의 develop에 있다. 순위 worktree는 깨끗한 작업 브랜치로 보존한다. 최종 merge/push 결과는 Git 이력으로 확인한다. 개인 추천·취향 분석·순위 SQL 3개는 계속 원격 미적용이고 모든 테스트·자동 검사·브라우저/DB 권한/실제 사용자 흐름 검수도 미실행이다.
