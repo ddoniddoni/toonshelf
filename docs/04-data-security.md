@@ -1,5 +1,9 @@
 # 04. 데이터 모델과 보안
 
+## 본인 분석 RPC 보안 · 2026-10-12 (작성·원격 미적용)
+
+새 `20261011155646_taste_analysis.sql`은 `toon_get_my_taste_analysis()`만 추가한다. stable security definer·빈 search_path·정규화한 스키마 참조, 세션 생존/현재 활성 회원 확인 후 auth.uid()의 library/evaluation만 집계한다. PUBLIC/anon/service_role 실행권을 revoke하고 authenticated만 허용한다. 다른 사용자 ID 인수, 개인 메모, 원본 목록·raw grant·새 테이블·공유 Auth/default privileges 변경은 없다. 현재 toon_work_public 경계를 매 요청 적용하고 한 CTE 문장의 스냅샷으로 집계한다. 기존 owner/PK/index와 공개 통계 RPC는 유지한다. 개인 추천→분석 SQL 2개 원격 설치 대기이며 DB 권한·성능·세션 검수는 미실행이다.
+
 ## 개인 추천 권한 · 2026-10-12 (작성·원격 미적용/미검증)
 
 새 `20261011153322_personal_recommendations.sql`은 조회 RPC 하나를 추가한다. SECURITY DEFINER/빈 search_path/fully-qualified 이름이며 기존 session_live/current_active 검사 뒤 auth.uid()의 본인 평가와 다른 독자의 public 평가만 읽는다. PUBLIC/anon/service_role EXECUTE는 revoke하고 authenticated만 허용한다. 기존 `(work_id,user_id)` 공개 평가 partial index와 개인별 PK를 재사용하고 테이블/RLS/default privileges/Auth를 바꾸지 않는다.

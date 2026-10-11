@@ -634,3 +634,25 @@ main:focus { outline: none; }
 .personal-recommendations-page { padding-block: 2rem; }
 .personal-recommendations-page h2 { margin-block: 1.5rem 1rem; }
 .personal-recommendation-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-block: 1.5rem; }
+
+/* Private reading analysis: text accompanies every decorative bar. */
+.taste-analysis-page { padding-block: 2.5rem; }
+.analysis-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1rem; margin-block: 1.5rem; }
+.analysis-summary > div, .analysis-panel { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 1.25rem; min-width: 0; }
+.analysis-summary dt, .analysis-summary small, .analysis-timestamp { color: var(--muted); }
+.analysis-summary dd { margin: .5rem 0 0; font-size: 1.75rem; font-weight: 700; }
+.analysis-summary small { display: block; font-size: .8rem; font-weight: 400; }
+.analysis-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; margin-block: 1.5rem; }
+.analysis-panel h2 { font-size: 1.15rem; margin: 0 0 1rem; }
+.analysis-panel summary { cursor: pointer; }
+.analysis-bars { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; }
+.analysis-bar-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem .75rem; font-size: .875rem; overflow-wrap: anywhere; }
+.analysis-bar-caption > span:last-child { color: var(--muted); }
+.analysis-bar-track { height: .5rem; border-radius: 6px; overflow: hidden; background: var(--line); margin-top: .4rem; }
+.analysis-bar-track > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.analysis-timestamp { font-size: .8rem; margin-top: 1.5rem; }
+@media (max-width: 700px) {
+ .analysis-summary { grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; }
+ .analysis-grid { grid-template-columns: minmax(0,1fr); }
+ .analysis-summary > div, .analysis-panel { padding: 1rem; }
+}

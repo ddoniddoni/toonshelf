@@ -1,5 +1,9 @@
 # 03. 기술 구조와 인증
 
+## 본인 취향 분석 경로 · 2026-10-12 (작성·미설치/미검수)
+
+`/me/analysis`는 force-dynamic·noindex 서버 페이지로 guardPage/requireAccount와 기존 사용자 SSR client를 사용한다. 기존 `/me/:path*` private/no-store/no-referrer 및 SSR no-store fetch를 재사용하고 본인 화면 진입 Link의 prefetch를 끈다. `toon_get_my_taste_analysis()`는 임의 사용자 인수를 받지 않으며 DAL은 응답 viewerId를 현재 user.id와 비교하고 집계 일관성을 검증한다. server-only DAL 외 브라우저 client/cache/공유 URL/메모는 추가하지 않는다. 권한 실패는 빈 통계로 대체하지 않으며 기존 공개 프로필/서재 통계 API는 변경하지 않는다.
+
 ## 개인 추천 조회 · 2026-10-12 (작성·실행 미검증)
 
 Server Component → guardPage/requireAccount → 사용자 SSR client의 `toon_get_personal_recommendations()` → Zod DTO 경계다. viewerId 입력은 없고 DB auth.uid()로만 계산하며 반환 viewerId를 DAL에서 현재 사용자와 대조한다. service-role/익명 재요청이나 공유 캐시를 쓰지 않는다. 기존 `/me/:path*` private/no-store/no-referrer, force-dynamic, noindex와 별도 loading 경로를 사용한다. 기존 카드와 계정/서재 메뉴에 연결했으며 새 dependency/버전 변경은 없다. Next 16.3.8 설치 fetching 가이드와 Supabase 공식 함수 문서를 읽었다. 공식 changelog markdown 조회는 도구의 content-type 오류로 읽지 못했다.
