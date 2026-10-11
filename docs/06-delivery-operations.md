@@ -14,7 +14,7 @@ P0부터 P7까지 전체가 최종 구현 범위다. 한 번의 Codex 작업에�
 | P3 | 진행: 서재·평가·리뷰·신고/차단/조치·공개 서재 필터·평점순 탐색·개인 기록 보존 병합 코드 작성, 실행 미검증 | 아래 16절. DB/Auth 연결·migration 적용 후 실제 저장/권한 검수 필요 |
 | P4 | 진행: 초안 편집·게시·공유·복제·회원 PNG/분할 ZIP·OG·기본 평가 가져오기/반영·좋아요·댓글 가중 최근 7일 인기/태그 탐색·대표 티어표·공개 댓글·작성자 프로필 팔로우 코드 작성, 실행 미검증 | 아래 2026-10-07 기록. 공유 DB 설치·인기/팔로우 migration MCP 반영, 실제 Auth/권한/화면 검수 대기. 비회원 PNG/edge 제한은 후속 |
 | P5 | 진행: 티어 토론·반응/팔로우/피드/알림, 커뮤니티 및 리뷰 좋아요·댓글/답글·정렬·신고/운영·알림과 커뮤니티 작품 병합 보존 코드·DB 반영 | 아래 2026-10-10 SQL 적용 기록. 커뮤니티/리뷰/병합 SQL 4개 MCP 적용 성공·이력 확인, 모든 실행 검수 대기 |
-| P6 | 진행: DISC-01/03/05 취향 비교·공동 S 작품 추천 화면/RPC·계산/노출 경계 코드·DB 반영 | 아래 2026-10-10 SQL 적용 기록. 비교/추천 SQL 2개 MCP 적용 성공·이력 확인, 모든 실행 검수 대기, 개인 추천/순위·분석 잔여 |
+| P6 | 진행: 취향 비교·공동 S 추천 코드/DB 반영, DISC-03/05 개인 추천 코드·SQL 작성 | 아래 2026-10-12 기록. 새 개인 추천 SQL 1개 MCP 인증 오류로 미적용, 모든 실행 검수 대기·순위/분석 잔여 |
 | P7 | 미착수 | 없음 |
 
 Codex는 완료 시 `상태: 완료/진행/외부설정대기`, 구현 요구사항 ID, 변경 파일, migration, 테스트 명령/결과, 미검증 항목을 해당 표와 마지막 작업 기록에 남긴다.
@@ -889,3 +889,16 @@ MCP `get_project_url`은 이번에도 `OAuth token refresh failed: Failed to par
 **미검증·다음:** 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·경합/성능 검사와 실제 사용자 흐름은 모두 미실행이다. DDL 성공/이력 확인은 기능·권한 검수 통과를 뜻하지 않는다. 연결/SQL 설치를 막던 항목은 해소됐으며, 실행 검수는 별도 사용자 요청 때 진행한다. 다음 개발 후보는 P6 공개 평가 기반 이웃 개인 추천이고 기존 P4/P5/P7·순위/분석·인증/규장각/허가 표지 잔여 범위는 유지한다.
 
 **Git:** 공동 S 추천 feature `cb2ada5`/develop merge `1d1014c` push 이후 최신 develop fetch/fast-forward 확인 후 `chore/apply-pending-supabase-migrations`를 생성했다. 이번 변경 파일은 README·진행표·AGENTS 적용 기록뿐이다. SQL 적용 보고 시점에는 미커밋이었다. 이후 사용자 Git Flow 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 검사 실행 허가는 포함하지 않는다.
+
+
+### 2026-10-12 · 취향 이웃 기반 개인 추천 (작성·원격 설치/실행 검수 대기)
+
+**상태·요구사항:** DISC-03/05, SOC-06. `/me/recommendations`와 내 서재/계정 메뉴, 독립 로딩·준비/시간 초과/오류·표본 부족 안내, 최대 12개 WorkCard/실제 평가자 수·공통 편수 범위·점수·계산 시각·설명을 작성했다. 협업 결과가 없으면 관심 장르의 기저장 제외 공개 작품을 최근 등록순으로 구분해 보여준다. 표지와 카드의 기존 권한 처리를 재사용한다.
+
+**계산·경계:** 최근 평가 공개 작품 100편 × 작품별 index 조회 200건에서 참여/활성/차단/non-planned/신호 조건을 만족하는 overlap 상위 200명만 비교한다. 공통 5편·유사도 보정 가중치 양수인 상위 50명을 쓰고 작품별 이웃 3명·가중 평균 0.6 이상인 후보 12편만 반환한다. 최대 탐색 범위와 동점 순서는 05 문서와 UI 설명에 남겼다. 본인 private 평가는 본인 계산만, 타인은 public 평가만 쓰고 현재 세션으로 조회한다. 이웃 ID/전체 표본·타인 서재 상태/비공개 평가와 메모를 반환하지 않는다. 기저장 작품은 planned도 제외한다. `/me` 기존 private/no-store/no-referrer·noindex와 prefetch=false를 유지한다.
+
+**SQL·MCP:** 설치된 Supabase CLI 2.119.0 migration new가 `20261011153322_personal_recommendations.sql`을 생성했다(파일 version UTC). 새 함수만 추가하고 기존 공개 평가 index를 재사용한다. CLI 도움말은 telemetry 쓰기 sandbox 제한 후 승인된 재호출로 읽었으며 검사 명령은 아니다. MCP get_project_url은 OAuth token refresh failed: Failed to parse server response로 실패했다. 재인증을 반복하거나 다른 키로 우회하지 않았다. 새 SQL 1개는 원격 미적용이다. 기존 6개는 2026-10-10 설치 완료이며 재적용하지 않는다. 연결 복구 후 `zwzncrdlqnthxgdvsqxq`·관련 정의/이력을 확인하고 이번 SQL만 별도 적용한다. baseline/공유 Auth/여행 앱/default privileges 변경과 linked CLI push/reset/전체 seed는 없다.
+
+**검사·근거:** 기존 Next 16.3.8 fetching 가이드·Supabase 함수 문서와 React/Postgres 스킬을 참고했다. DTO 최소 표본/범위/중복·privacy 필드 제거와 UI 분기, DAL 본인/세션·API 미설치/timeout, local rollback SQL27의 티어 우선·5편/3명·비공개/차단/opt-out/비활성/작품 공개·장르 fallback·기저장 제외·세션 거절 파일을 작성했다. 모두 작성만 했으며 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한/성능과 실제 사용자 흐름은 미실행이다. 문서/소스·Git diff만 읽었다.
+
+**Git·다음:** 이전 SQL 기록 `b915cdb`/develop merge `b0430fe` 이후 최신 develop fetch/fast-forward 확인 후 새 `feature/personal-recommendations`에서 작성했다. 개발 보고 시점에는 미커밋이었다. 이후 사용자 Git Flow 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 새 SQL 원격 적용/검사 실행은 포함하지 않는다. 다음 후보는 DISC-02 취향 분석이며 DISC-04 순위/P4/P5/P7·인증/규장각/허가 표지 및 모든 미검수 범위는 유지한다.

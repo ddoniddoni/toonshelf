@@ -1,5 +1,11 @@
 # 04. 데이터 모델과 보안
 
+## 개인 추천 권한 · 2026-10-12 (작성·원격 미적용/미검증)
+
+새 `20261011153322_personal_recommendations.sql`은 조회 RPC 하나를 추가한다. SECURITY DEFINER/빈 search_path/fully-qualified 이름이며 기존 session_live/current_active 검사 뒤 auth.uid()의 본인 평가와 다른 독자의 public 평가만 읽는다. PUBLIC/anon/service_role EXECUTE는 revoke하고 authenticated만 허용한다. 기존 `(work_id,user_id)` 공개 평가 partial index와 개인별 PK를 재사용하고 테이블/RLS/default privileges/Auth를 바꾸지 않는다.
+
+본인 비공개 평가는 본인 결과에만 쓰고 이웃은 discovery_opt_in·활성/동의·차단 조건을 매 조회 적용한다. planned·공개 불가/성인/테스트/공식 플랫폼 미검증 작품과 본인 서재 모든 상태의 작품은 후보에서 제외한다. 응답에 이웃 ID/전체 후보 수/이웃 서재 상태/원시 평가 목록은 없다. statement timeout 5초와 탐색/결과 상한을 두며 실제 실행 계획·권한·부하 검수는 미실행이다. MCP 인증 갱신 오류로 이번 원격 의존 조회/DDL 성공은 없다.
+
 ## 공동 S 추천 데이터 경계 · 2026-10-10 (작성·미적용/미검증)
 
 `20261009170725_shared_s_recommendations.sql`은 새 `toon_get_shared_s_recommendations(uuid)` RPC 하나다. 기존 테이블/RLS/default privileges·공유 Auth/다른 앱을 변경하지 않는다. 공개 집계와 기존 권리 확인 카드 helper에 한정한 SECURITY DEFINER/빈 search_path를 사용하고 명시 revoke 뒤 anon/authenticated에 실행을 부여한다. 로그인 UID가 있으면 live session·current_active를 요구하며 실패 시 익명으로 재조회하지 않는다.
