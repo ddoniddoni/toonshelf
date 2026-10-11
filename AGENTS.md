@@ -103,3 +103,16 @@ Git 저장소가 초기화된 뒤에만 다음 workflow를 적용한다. 최근 
 ## 최신 작업 기록 · 2026-10-12 개인 작품 추천
 
 이전 SQL 기록 commit `b915cdb`/develop merge `b0430fe` push 후 최신 develop fetch/fast-forward 확인, 새 `feature/personal-recommendations`에서 DISC-03/05, SOC-06을 작성했다. `/me/recommendations`, 내 서재/계정 메뉴, 유사 이웃 평가 기반 최대 12편·실제 평가자 수/공통 편수/점수/시각·설명·관심 장르 fallback·독립 로딩/오류를 연결했다. 최근 본인 평가 공개 작품 100편×작품별 공개 평가 200건→overlap 상위 200명→공통 5편 이상/양수 가중치 상위 50명→작품별 3명·score≥0.6 기준이다. 본인 private 평가는 본인 결과만, 타인 public·discovery opt-in·현재 활성/차단/non-planned/작품 공개 조건을 적용하며 기저장 작품은 모두 제외한다. CLI 생성 `20261011153322_personal_recommendations.sql`은 새 RPC 하나만 추가하고 기존 index/ACL을 유지한다. MCP get_project_url이 OAuth token refresh failed: Failed to parse server response여서 새 SQL 1개만 원격 미적용이다. 이전 6개는 설치 완료이며 재적용하지 않는다. 연결 복구 후 zwzncrdlqnthxgdvsqxq·의존 정의/이력 확인 후 이번 SQL만 적용한다. baseline/공유 Auth/여행 앱/default privileges와 linked CLI push/reset/전체 seed는 변경/실행하지 않았다. 단위 UI/DTO·DAL·local rollback SQL27 작성만 했고 모든 테스트/자동 검사/타입 생성/브라우저·DB 권한/성능/실제 사용자 흐름은 미실행이다. 개발 보고 시점에는 미커밋이었다. 이후 사용자 Git Flow 요청으로 작업 브랜치 commit/push → 최신 develop merge/push → develop 종료를 진행한다. 실제 결과는 Git 이력으로 확인하며 새 SQL 원격 적용/검사 실행은 포함하지 않는다. 다음 후보는 DISC-02 취향 분석이며 기존 잔여 범위는 유지한다.
+
+
+## 최신 작업 기록 · 2026-10-12 작품 순위
+
+개인 추천 feature `5ca547d`/develop `f194974` 이후 취향 분석은 원래 `/Users/ddoni/dev/toonshelf`의 `feature/taste-analysis`에 미커밋으로 보존했다. 다음 개발 요청으로 fetch origin develop 후 같은 최신 f194974에서 `feature/work-rankings`를 별도 worktree로 생성했다. 처음 /private/tmp/toonshelf-work-rankings에서 작성하고 지속 보관을 위해 `/Users/ddoni/dev/toonshelf-worktrees/work-rankings`로 옮겼다. 두 기능 코드/브랜치를 섞거나 자동 커밋하지 않았다. 향후 Git Flow는 각 worktree의 변경을 별도 커밋/통합하며 문서 등 공통 파일 충돌은 두 기록을 모두 보존해 해결한다.
+
+DISC-04/05, SOC-06. `/rankings` 실제 조회 화면·상단 명칭/탐색 진입·전체/공개 완독/공개 독서 30편/결합 조건·장르/플랫폼·20편 페이지·평균/표본·부족 목록·집계 설명/시간·로딩/오류를 작성했다. 최소 5건, m=20 보정 순·동점 표본/UUID, 화면은 실제 평균만 표시한다. C는 같은 조회자의 현재 공개 경계를 적용한 사이트 전체 평가로 필터 전에 계산하고 부족 평균은 SQL에서 null로 반환한다. 여러 작품 링크를 join해 표본을 늘리지 않으며 현재 차단·비활성·비공개·작품 공개를 적용한다. private 서재 자격/메모/평가자 ID는 반환하지 않는다. 기존 공개 통계·서재 RPC는 유지한다.
+
+CLI migration new로 `20261011161937_work_rankings.sql`을 생성했다. MCP get_project_url은 OAuth token refresh failed: Failed to parse server response로 실패했고 원격 조회/DDL 성공은 없다. 개인 추천 `20261011153322_personal_recommendations.sql`→다른 worktree의 취향 분석 `20261011155646_taste_analysis.sql`→이번 순위 총 3개가 원격 설치 대기다. 이전 6개는 2026-10-10 설치 완료이며 재적용하지 않는다. 복구 후 선택 프로젝트 zwzncrdlqnthxgdvsqxq·정의/이력을 확인해 별도 적용한다. baseline/공유 Auth/여행 앱/default privileges·원격 데이터는 보존하며 linked CLI push/reset/전체 seed는 금지다.
+
+단위 DTO/UI·mock DAL·local rollback SQL29를 작성만 했다. SQL29에는 보정 순서·동점·필터 독립 C·4/5건·29/30편·private/공개 상태·다중 링크·페이지·차단·만료 세션 사례를 작성했다. 실제로 읽은 것은 설치된 Next 16.3.8 fetching 가이드, Supabase 공식 함수 문서, 기존 source와 Git diff다. changelog.md는 웹 도구의 content-type 오류로 읽지 못했다. 테스트·lint·typecheck·build·React Doctor·advisor·env·타입 생성·브라우저/DB 권한·성능 검사와 실제 사용자 흐름은 모두 미실행이다. stage/commit/push/merge/PR도 하지 않았다. 다음은 대기 기능 Git/DB 반영과 별도 요청된 검수, P4/P5/P7·인증/규장각/허가 표지/출시 잔여다. P6 전체 완료로 표시하지 않았다.
+
+2026-10-12 사용자 Git Flow 요청으로 취향 분석과 작품 순위를 각 작업 브랜치 commit/push → 최신 develop에 순서대로 merge/push하며, 마지막 원래 작업 폴더는 develop에서 종료한다. 작품 순위 worktree는 보존하고 실제 결과는 Git 이력으로 확인한다. 원격 SQL 3개 적용과 테스트·자동 검사는 이번 요청에 포함하지 않는다.

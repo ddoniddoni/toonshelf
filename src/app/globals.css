@@ -634,3 +634,20 @@ main:focus { outline: none; }
 .personal-recommendations-page { padding-block: 2rem; }
 .personal-recommendations-page h2 { margin-block: 1.5rem 1rem; }
 .personal-recommendation-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-block: 1.5rem; }
+
+/* Public rankings use request-specific aggregates and explicit sample labels. */
+.rankings-page { padding-block: 2.5rem; }
+.ranking-explanation, .ranking-empty { padding: 1.25rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-block: 1.5rem; }
+.ranking-explanation summary { cursor: pointer; font-weight: 700; }
+.ranking-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; margin-block: 1.5rem; }
+.ranking-filters label { display: grid; gap: .5rem; flex: 1 1 12rem; min-width: 0; }
+.ranking-filters select { width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.ranking-sections { display: flex; flex-wrap: wrap; gap: 1rem; margin-block: 1.5rem; }
+.ranking-sections [aria-current="page"] { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: .4rem; }
+.ranking-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); list-style: none; padding: 0; gap: 1.5rem; }
+.ranking-grid > li { min-width: 0; }
+.ranking-entry-heading { display: grid; gap: .25rem; margin-bottom: .75rem; }
+.ranking-entry-heading strong { font-size: 1.1rem; color: var(--accent); }
+.ranking-entry-heading span, .ranking-computed-at { font-size: .8rem; color: var(--muted); }
+@media (max-width: 1000px) { .ranking-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media (max-width: 700px) { .ranking-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.25rem .75rem; } .ranking-filters label { flex-basis: 100%; } }

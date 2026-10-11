@@ -1,5 +1,9 @@
 # 03. 기술 구조와 인증
 
+## 순위 조회 경로 · 2026-10-12 (작성·미설치/미검수)
+
+`/rankings`는 force-dynamic/noindex Server Component이며 필터를 서버 Zod로 검증하고 options/RPC를 병렬 조회한다. 사용자 쿠키를 보존하는 기존 SSR client와 no-store fetch를 사용하며 service key/공유 cache는 추가하지 않는다. `/rankings` 응답에 private/no-store/no-referrer를 설정하고 순위 진입·페이지 Link prefetch를 끈다. server-only DAL은 API 미설치/timeout/권한/잘못된 조건/응답 오류를 빈 순위와 구분하고 조건 envelope·20편 페이지·최소 표본·중복 작품을 확인한다. 익명 조회는 허용하되 auth.uid()가 있는 만료/제한 계정은 익명으로 폴백하지 않는다.
+
 ## 개인 추천 조회 · 2026-10-12 (작성·실행 미검증)
 
 Server Component → guardPage/requireAccount → 사용자 SSR client의 `toon_get_personal_recommendations()` → Zod DTO 경계다. viewerId 입력은 없고 DB auth.uid()로만 계산하며 반환 viewerId를 DAL에서 현재 사용자와 대조한다. service-role/익명 재요청이나 공유 캐시를 쓰지 않는다. 기존 `/me/:path*` private/no-store/no-referrer, force-dynamic, noindex와 별도 loading 경로를 사용한다. 기존 카드와 계정/서재 메뉴에 연결했으며 새 dependency/버전 변경은 없다. Next 16.3.8 설치 fetching 가이드와 Supabase 공식 함수 문서를 읽었다. 공식 changelog markdown 조회는 도구의 content-type 오류로 읽지 못했다.
